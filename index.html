@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISO Master SaaS</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body   { font-family: Arial, sans-serif; background: #0D0D0D; color: #EAEAEA; height: 100vh; }
+
+    /* ===== LAYOUT ===== */
+    .container { display: flex; height: 100vh; }
+    .sidebar   { width: 240px; background: #111; padding: 24px 16px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .main      { flex: 1; padding: 32px; overflow-y: auto; }
+
+    /* ===== SIDEBAR ===== */
+    .logo      { font-size: 18px; font-weight: bold; color: #00C2FF; padding: 8px 10px 20px; letter-spacing: 2px; }
+    .menu      { padding: 12px 14px; cursor: pointer; border-radius: 6px; font-size: 14px; color: #AAAAAA; transition: background 0.15s, color 0.15s; }
+    .menu:hover{ background: #1f1f1f; color: #EAEAEA; }
+    .menu.active { background: #1a2a3a; color: #00C2FF; }
+
+    /* ===== EKRAN LOGOWANIA ===== */
+    .auth-wrap { max-width: 380px; margin: 0 auto; padding: 72px 20px; text-align: center; }
+    .auth-logo { display: block; margin: 0 auto 12px; }
+    .auth-wrap h1 { font-size: 26px; letter-spacing: 4px; color: #00C2FF; margin-bottom: 24px; }
+    .auth-wrap .card { text-align: left; }
+
+    /* ===== CARDS & FORMS ===== */
+    .card      { background: #1a1a1a; padding: 20px; margin-bottom: 14px; border-radius: 8px; border: 1px solid #2a2a2a; }
+    input {
+      display: block; width: 100%; padding: 12px 14px; margin-bottom: 12px;
+      background: #0f0f0f; border: 1px solid #2a2a2a; border-radius: 6px;
+      color: #EAEAEA; font-size: 14px; font-family: inherit;
+    }
+    input::placeholder { color: #666; }
+    input:focus { outline: none; border-color: #00C2FF; }
+
+    /* ===== BUTTONS ===== */
+    button {
+      background: #FF3B30; border: none; padding: 10px 22px;
+      color: white; cursor: pointer; border-radius: 6px;
+      font-size: 14px; font-weight: bold; margin-right: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    button:hover  { opacity: 0.85; }
+    button:active { transform: scale(0.97); }
+    button.secondary { background: #1f3a5a; }
+
+    /* ===== QUIZ ===== */
+    .answer {
+      background: #222; padding: 12px 16px; margin: 8px 0;
+      cursor: pointer; border-radius: 6px; border: 1px solid #333;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .answer:hover        { background: #2a2a3a; border-color: #00C2FF; }
+    .answer.disabled     { pointer-events: none; opacity: 0.7; }
+
+    /* ===== MESSAGES ===== */
+    .success { color: #00C2FF; font-weight: bold; margin-top: 12px; }
+    .error   { color: #FF3B30; font-weight: bold; margin-top: 12px; }
+    .msg     { font-size: 14px; margin-top: 10px; min-height: 18px; }
+
+    /* ===== STATS ===== */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-top: 16px; }
+    .stat-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 20px; text-align: center; }
+    .stat-num  { font-size: 36px; font-weight: bold; color: #00C2FF; }
+    .stat-lbl  { font-size: 13px; color: #888; margin-top: 4px; }
+
+    /* ===== CANVAS AREA ===== */
+    #isoGrid { display: block; background: #0d0d2b; border: 1px solid #333; border-radius: 8px; margin-top: 16px; cursor: crosshair; }
+    .iso-info { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; margin-top: 16px; font-size: 13px; color: #888; line-height: 1.7; }
+    .iso-info strong { color: #00C2FF; }
+
+    /* ===== PRICING ===== */
+    .price-card { background: linear-gradient(135deg, #1a2a3a, #0f1f2f); border: 1px solid #00C2FF44; border-radius: 12px; padding: 32px; max-width: 340px; }
+    .price-card h3 { color: #00C2FF; font-size: 20px; margin-bottom: 8px; }
+    .price-tag { font-size: 40px; font-weight: bold; margin: 16px 0; }
+    .price-tag span { font-size: 16px; color: #888; }
+
+    /* ===== HEADING STYLES ===== */
+    h2 { font-size: 22px; color: #EAEAEA; margin-bottom: 16px; }
+    h3 { font-size: 16px; color: #BBBBBB; margin-bottom: 10px; }
+    p  { font-size: 14px; color: #AAAAAA; line-height: 1.6; margin-bottom: 8px; }
+
+    /* ===== LOADING SPINNER ===== */
+    .loader { display: inline-block; width: 20px; height: 20px; border: 2px solid #333; border-top-color: #00C2FF; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== GRAFIKA #2: AVATAR UŻYTKOWNIKA W SIDEBARZE ===== */
+    .avatar-row    { display: flex; align-items: center; gap: 10px; padding: 12px 10px; border-top: 1px solid #222; margin-bottom: 4px; }
+    .avatar-circle { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #00C2FF, #1f3a5a); color: #0d0d0d; font-weight: bold; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .avatar-email  { font-size: 12px; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ===== GRAFIKA #3: IKONY STAT-CARD ===== */
+    .stat-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+
+    /* ===== GRAFIKA #4: OBRAZEK W QUIZIE ===== */
+    .question-img { display: block; width: 100%; max-height: 180px; object-fit: contain; border-radius: 6px; margin-bottom: 14px; border: 1px solid #2a2a2a; background: #111; }
+
+    /* ===== GRAFIKA #5: MOCKUP W CENNIKU ===== */
+    .pricing-wrap { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
+    #pricingMockup { border-radius: 8px; border: 1px solid #00C2FF33; flex-shrink: 0; }
+
+    /* ===== GRAFIKA #6: PALETA FARB NA CANVAS ===== */
+    .paint-palette { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+    .paint-swatch { width: 24px; height: 24px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s, transform 0.1s; }
+    .paint-swatch:hover  { transform: scale(1.15); }
+    .paint-swatch.active { border-color: #fff; transform: scale(1.2); }
+    .paint-label { font-size: 12px; color: #666; margin-right: 4px; }
+    .paint-clear { font-size: 12px; background: #222; border: 1px solid #333; color: #888; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-weight: normal; margin-left: 4px; }
+    .paint-clear:hover { color: #FF3B30; border-color: #FF3B30; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 1: KONFIGURACJA                                         ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const { createClient } = supabase;
+
+const SUPABASE_URL = "https://ijtcqslzpbjqqkzmfjam.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdGNxc2x6cGJqcXFrem1mamFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MjE1MzIsImV4cCI6MjA5MjI5NzUzMn0.A6iG44Sf3Lx6_691IujMow94ZX0DLo-0DTxt9qPtaPw";
+const STRIPE_LINK  = "https://buy.stripe.com/test_XXXXX";
+
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const AppState = {
+  user:            null,
+  subscribed:      false,
+  currentQuestion: null,
+};
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  ZMIANA: LOGOWANIE PRZEZ NAZWĘ UŻYTKOWNIKA ZAMIAST E-MAILA       ║
+// ║  Supabase Auth wymaga wewnętrznie adresu e-mail, więc nazwa      ║
+// ║  użytkownika jest mapowana na syntetyczny adres w domenie        ║
+// ║  poniżej. Prawdziwa nazwa trafia do user_metadata.username.      ║
+// ║                                                                    ║
+// ║  WAŻNE — wymagana zmiana w panelu Supabase:                      ║
+// ║  Authentication → Providers → Email → wyłącz "Confirm email"     ║
+// ║  Syntetyczne adresy (@isomaster.local) nie istnieją naprawdę,    ║
+// ║  więc e-mail potwierdzający nigdy by nie dotarł.                 ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const USERNAME_EMAIL_DOMAIN = "isomaster.local";
+const USERNAME_REGEX        = /^[a-zA-Z0-9_]{3,20}$/; // litery, cyfry, _, 3-20 znaków
+
+function usernameToEmail(username) {
+  return `${username.toLowerCase()}@${USERNAME_EMAIL_DOMAIN}`;
+}
+
+function getDisplayUsername(user) {
+  // Priorytet: zapisana nazwa w metadanych → wyodrębniona z syntetycznego e-maila
+  return user?.user_metadata?.username || user?.email?.split("@")[0] || "?";
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  POPRAWKA #1: OCHRONA PRZED BRUTE FORCE                         ║
+// ║  Blokuje logowanie na 30 sekund po 5 nieudanych próbach.        ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const LoginGuard = {
+  attempts:   0,        // licznik nieudanych prób
+  lockedUntil: 0,       // timestamp blokady (ms)
+  MAX_ATTEMPTS: 5,      // max prób przed blokadą
+  LOCKOUT_MS:  30000,   // czas blokady: 30 sekund
+
+  isLocked() {
+    return Date.now() < this.lockedUntil;
+  },
+
+  remainingSeconds() {
+    return Math.ceil((this.lockedUntil - Date.now()) / 1000);
+  },
+
+  onFailure() {
+    this.attempts++;
+    if (this.attempts >= this.MAX_ATTEMPTS) {
+      this.lockedUntil = Date.now() + this.LOCKOUT_MS;
+      this.attempts    = 0;
+    }
+  },
+
+  onSuccess() {
+    this.attempts    = 0;
+    this.lockedUntil = 0;
+  },
+};
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  POPRAWKA #2: ZABEZPIECZENIE KOLEJKOWANIA TIMEOUT W QUIZIE      ║
+// ║  Jeden uchwyt na globalny setTimeout — anulowany przed nowym.   ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+let trainingTimer = null;   // uchwyt do clearTimeout — zapobiega wyścigowi
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 2: INICJALIZACJA                                        ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+async function init() {
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (session) {
+      AppState.user       = session.user;
+      AppState.subscribed = await checkSubscription(session.user.id);
+      loadApp();
+    } else {
+      renderAuth();
+    }
+  } catch (err) {
+    console.error("Błąd inicjalizacji:", err);
+    renderAuth();
+  }
+}
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 3: UWIERZYTELNIANIE                                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+function renderAuth() {
+  document.getElementById("app").innerHTML = `
+    <div class="auth-wrap">
+      <!-- GRAFIKA #1: Logo izometryczne SVG — identyfikacja marki na pierwszym ekranie -->
+      <svg class="auth-logo" width="80" height="60" viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+        <!-- Dolny kafelek (cień) -->
+        <polygon points="40,38 60,26 40,14 20,26" fill="#0a1a2a" stroke="#1a3a5a" stroke-width="1"/>
+        <!-- Lewa ściana -->
+        <polygon points="20,26 40,38 40,52 20,40" fill="#0d2a4a" stroke="#1a3a5a" stroke-width="1"/>
+        <!-- Prawa ściana -->
+        <polygon points="60,26 40,38 40,52 60,40" fill="#0a1f38" stroke="#1a3a5a" stroke-width="1"/>
+        <!-- Górny kafelek (powierzchnia) -->
+        <polygon points="40,10 60,22 40,34 20,22" fill="#00C2FF" stroke="#00A8E0" stroke-width="1" opacity="0.9"/>
+        <!-- Blask na górnym kafelku -->
+        <polygon points="40,10 50,16 40,22 30,16" fill="#33d4ff" opacity="0.3"/>
+        <!-- Litera I -->
+        <text x="37" y="25" font-family="Arial" font-size="11" font-weight="bold" fill="#0a1a2a" text-anchor="middle">I</text>
+      </svg>
+      <h1>ISO MASTER</h1>
+      <div class="card">
+        <!-- ZMIANA: pole e-mail zastąpione nazwą użytkownika -->
+        <input id="username" type="text"     placeholder="Nazwa użytkownika"  autocomplete="username">
+        <input id="pass"  type="password"  placeholder="Hasło"   autocomplete="current-password">
+        <button onclick="login()">Zaloguj</button>
+        <button onclick="register()" class="secondary">Zarejestruj</button>
+        <p id="auth-msg" class="msg"></p>
+      </div>
+    </div>
+  `;
+}
+
+// ── POPRAWKA #1 zastosowana w login() ──
+async function login() {
+  const username = document.getElementById("username").value.trim();
+  const pass  = document.getElementById("pass").value;
+  const msg   = document.getElementById("auth-msg");
+
+  if (!username || !pass) {
+    showMsg(msg, "Uzupełnij nazwę użytkownika i hasło.", "error");
+    return;
+  }
+
+  // POPRAWKA #1: Sprawdź blokadę przed wysłaniem zapytania do Supabase.
+  // Zapobiega wysyłaniu setek żądań do auth API w przypadku ataku brute force.
+  if (LoginGuard.isLocked()) {
+    showMsg(msg, `Zbyt wiele prób. Spróbuj ponownie za ${LoginGuard.remainingSeconds()} s.`, "error");
+    return;
+  }
+
+  showMsg(msg, "Logowanie...", "");
+  try {
+    // ZMIANA: logowanie nazwą użytkownika — konwersja na syntetyczny e-mail dla Supabase Auth
+    const email = usernameToEmail(username);
+    const { data, error } = await db.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+
+    LoginGuard.onSuccess();   // POPRAWKA #1: Reset licznika po sukcesie
+    AppState.user       = data.user;
+    AppState.subscribed = await checkSubscription(data.user.id);
+    loadApp();
+  } catch (err) {
+    LoginGuard.onFailure();   // POPRAWKA #1: Inkrementuj licznik po porażce
+
+    // Informacja o pozostałych próbach (jeśli jeszcze nie zablokowany)
+    const remaining = LoginGuard.MAX_ATTEMPTS - LoginGuard.attempts;
+    const hint = LoginGuard.isLocked()
+      ? ` Konto zablokowane na ${LoginGuard.remainingSeconds()} s.`
+      : remaining > 0 ? ` (Pozostało prób: ${remaining})` : "";
+
+    // showMsg używa textContent — treść jest już bezpieczna, bez podwójnego escapowania
+    showMsg(msg, err.message + hint, "error");
+  }
+}
+
+async function register() {
+  const username = document.getElementById("username").value.trim();
+  const pass  = document.getElementById("pass").value;
+  const msg   = document.getElementById("auth-msg");
+
+  if (!username || !pass) {
+    showMsg(msg, "Uzupełnij nazwę użytkownika i hasło.", "error");
+    return;
+  }
+  // ZMIANA: walidacja nazwy użytkownika (staje się częścią syntetycznego e-maila)
+  if (!USERNAME_REGEX.test(username)) {
+    showMsg(msg, "Nazwa użytkownika: 3-20 znaków — litery, cyfry, podkreślenie.", "error");
+    return;
+  }
+  if (pass.length < 6) {
+    showMsg(msg, "Hasło musi mieć co najmniej 6 znaków.", "error");
+    return;
+  }
+
+  showMsg(msg, "Rejestracja...", "");
+  try {
+    // ZMIANA: rejestracja nazwą użytkownika — zapisana w user_metadata,
+    // syntetyczny e-mail używany tylko wewnętrznie przez Supabase Auth
+    const email = usernameToEmail(username);
+    const { error } = await db.auth.signUp({
+      email,
+      password: pass,
+      options: { data: { username } },
+    });
+    if (error) throw error;
+    showMsg(msg, "Konto utworzone. Możesz się teraz zalogować.", "success");
+  } catch (err) {
+    showMsg(msg, err.message, "error");
+  }
+}
+
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+}
+
+function showMsg(el, text, type) {
+  el.textContent = text;
+  el.className   = type ? `msg ${type}` : "msg";
+}
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 4: ŁADOWANIE APLIKACJI I WERYFIKACJA SUBSKRYPCJI        ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+async function checkSubscription(userId) {
+  try {
+    const { data, error } = await db
+      .from("subscriptions")
+      .select("active, expires_at")
+      .eq("user_id", userId)
+      .single();
+
+    if (error || !data) return false;
+
+    const notExpired = !data.expires_at || new Date(data.expires_at) > new Date();
+    return data.active === true && notExpired;
+  } catch {
+    return false;
+  }
+}
+
+function loadApp() {
+  document.getElementById("app").innerHTML = `
+    <div class="container">
+      <div class="sidebar">
+        <div class="logo">ISO<br>MASTER</div>
+        <div class="menu" id="menu-dashboard" onclick="setActive(this); dashboard()">📊 Dashboard</div>
+        <div class="menu" id="menu-quiz"      onclick="setActive(this); training()">🧠 Quiz</div>
+        <div class="menu" id="menu-iso"       onclick="setActive(this); isoCanvas()">🎨 Siatka Izometryczna</div>
+        <div class="menu" id="menu-pricing"   onclick="setActive(this); pricing()">💎 Kup dostęp</div>
+        <!-- GRAFIKA #2: Avatar użytkownika — inicjał nazwy w kółku -->
+        <div style="margin-top:auto">
+          <div class="avatar-row">
+            <div class="avatar-circle" id="sidebarAvatar">?</div>
+            <div class="avatar-email"  id="sidebarEmail"></div>
+          </div>
+          <div class="menu" onclick="doLogout()">← Wyloguj</div>
+        </div>
+      </div>
+      <div class="main" id="main"></div>
+    </div>
+  `;
+  setActive(document.getElementById("menu-dashboard"));
+  // GRAFIKA #2 (ZMIANA: wyświetla nazwę użytkownika zamiast e-maila)
+  const displayName = getDisplayUsername(AppState.user);
+  const initial = displayName.charAt(0).toUpperCase() || "?";
+  const avatarEl = document.getElementById("sidebarAvatar");
+  const emailEl  = document.getElementById("sidebarEmail");
+  if (avatarEl) avatarEl.textContent = initial;
+  if (emailEl)  emailEl.textContent  = displayName;
+  dashboard();
+}
+
+function setActive(el) {
+  document.querySelectorAll(".menu").forEach(m => m.classList.remove("active"));
+  el.classList.add("active");
+}
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 5: DASHBOARD                                            ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+async function dashboard() {
+  const main = document.getElementById("main");
+  main.innerHTML = `<span class="loader"></span> Ładowanie...`;
+
+  try {
+    const { data, error } = await db
+      .from("progress")
+      .select("correct")
+      .eq("user_id", AppState.user.id);
+
+    if (error) throw error;
+
+    const total   = data?.length || 0;
+    const correct = data?.filter(r => r.correct).length || 0;
+    const wrong   = total - correct;
+    const pct     = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+    main.innerHTML = `
+      <h2>Dashboard</h2>
+      <p>Witaj! Twoje statystyki nauki:</p>
+      <div class="stat-grid">
+        <div class="stat-card"><span class="stat-icon">📋</span><div class="stat-num">${total}</div><div class="stat-lbl">Wszystkich odpowiedzi</div></div>
+        <div class="stat-card"><span class="stat-icon">✅</span><div class="stat-num" style="color:#00C2FF">${correct}</div><div class="stat-lbl">Poprawnych</div></div>
+        <div class="stat-card"><span class="stat-icon">❌</span><div class="stat-num" style="color:#FF3B30">${wrong}</div><div class="stat-lbl">Błędnych</div></div>
+        <div class="stat-card"><span class="stat-icon">🎯</span><div class="stat-num">${pct}%</div><div class="stat-lbl">Skuteczność</div></div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <strong>Status subskrypcji:</strong>
+        ${AppState.subscribed
+          ? `<span class="success"> ✓ PRO — pełny dostęp</span>`
+          : `<span class="error"> ✗ Brak dostępu PRO</span> — <a href="#" onclick="setActive(document.getElementById('menu-pricing')); pricing(); return false;" style="color:#00C2FF">Kup teraz</a>`
+        }
+      </div>
+    `;
+  } catch (err) {
+    main.innerHTML = `<p class="error">Błąd ładowania danych: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 6: MODUŁ TRENINGOWY — QUIZ                              ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+async function training() {
+  const main = document.getElementById("main");
+
+  // POPRAWKA #2: Anuluj poprzedni zaplanowany timeout przed każdym wywołaniem.
+  // Bez tego wielokrotne kliknięcia menu Quiz kolejkowały równoległe timery,
+  // które nachodziły na siebie i powodowały niespójny stan UI.
+  if (trainingTimer !== null) {
+    clearTimeout(trainingTimer);
+    trainingTimer = null;
+  }
+
+  if (!AppState.subscribed) {
+    main.innerHTML = `
+      <h2>Brak dostępu PRO</h2>
+      <div class="card">
+        <p>Wykup subskrypcję PRO, aby odblokować moduł treningowy z pytaniami z zakresu izometryki.</p>
+        <button onclick="setActive(document.getElementById('menu-pricing')); pricing()">Kup dostęp</button>
+      </div>
+    `;
+    return;
+  }
+
+  main.innerHTML = `<span class="loader"></span> Ładowanie pytania...`;
+
+  try {
+    AppState.currentQuestion = await getNextQuestion(AppState.user.id);
+
+    if (!AppState.currentQuestion) {
+      main.innerHTML = `
+        <h2>🎉 Brawo!</h2>
+        <div class="card"><p>Odpowiedziałeś na wszystkie dostępne pytania. Sprawdź dashboard, aby zobaczyć swoje wyniki.</p></div>
+      `;
+      return;
+    }
+
+    renderQuestion(main, AppState.currentQuestion);
+  } catch (err) {
+    main.innerHTML = `<p class="error">Błąd: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+// ── POPRAWKA #3 zastosowana w getNextQuestion() ──
+async function getNextQuestion(userId) {
+
+  // POPRAWKA #3: Limit 1000 ID zamiast pobierania wszystkich naraz.
+  // Oryginał pobierał WSZYSTKIE odpowiedziane pytania bez limitu — przy
+  // dużej liczbie wpisów URL zapytania NOT IN(...) przekraczał dziesiątki
+  // kilobajtów, co powodowało błędy serwera (414 URI Too Long).
+  // PRODUKCJA: Zastąp to wywołaniem RPC (Supabase Function) po stronie
+  // serwera, np.: db.rpc('get_next_unanswered_question', { p_user_id: userId })
+  const { data: answered } = await db
+    .from("progress")
+    .select("question_id")
+    .eq("user_id", userId)
+    .limit(1000);    // POPRAWKA #3: Zapobiega przepełnieniu URL
+
+  const doneIds = (answered || []).map(r => r.question_id);
+
+  let query = db.from("questions").select("*");
+  if (doneIds.length > 0) {
+    query = query.not("id", "in", `(${doneIds.join(",")})`);
+  }
+
+  const { data } = await query.limit(1);
+  return data?.[0] ?? null;
+}
+
+function renderQuestion(container, q) {
+  container.innerHTML = "";
+
+  const h = document.createElement("h2");
+  h.textContent = "Pytanie";
+  container.appendChild(h);
+
+  const card = document.createElement("div");
+  card.className = "card";
+
+  const qText = document.createElement("p");
+  qText.textContent = q.question;
+  qText.style.cssText = "font-size:16px; color:#EAEAEA; margin-bottom:16px;";
+  card.appendChild(qText);
+
+  // GRAFIKA #4: Obrazek ilustrujący pytanie (opcjonalny — kolumna image_url w tabeli questions)
+  if (q.image_url) {
+    const img = document.createElement("img");
+    img.src       = q.image_url;
+    img.alt       = "Ilustracja pytania";
+    img.className = "question-img";
+    img.onerror   = () => img.remove(); // ukryj jeśli URL zepsuty
+    card.appendChild(img);
+  }
+
+  q.answers.forEach((answer, index) => {
+    const div = document.createElement("div");
+    div.className = "answer";
+    div.textContent = answer;
+    div.addEventListener("click", () => checkAnswer(index, card));
+    card.appendChild(div);
+  });
+
+  const result = document.createElement("div");
+  result.id = "result";
+  card.appendChild(result);
+
+  container.appendChild(card);
+}
+
+async function checkAnswer(index, card) {
+  const q       = AppState.currentQuestion;
+  const correct = index === q.correct_index;
+
+  const result = document.getElementById("result");
+  result.textContent = correct ? "✓ Poprawna odpowiedź!" : `✗ ${q.fail_message}`;
+  result.className   = correct ? "success" : "error";
+
+  card.querySelectorAll(".answer").forEach(a => a.classList.add("disabled"));
+
+  try {
+    await db.from("progress").insert({
+      user_id:     AppState.user.id,
+      question_id: q.id,
+      correct,
+    });
+  } catch (err) {
+    console.error("Błąd zapisu postępu:", err);
+  }
+
+  // POPRAWKA #2: Zapisz uchwyt timera do zmiennej globalnej.
+  // Dzięki temu training() może go anulować przy kolejnym wywołaniu,
+  // eliminując ryzyko nałożenia się wielu równoległych odliczeń.
+  trainingTimer = setTimeout(training, 2000);
+}
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  GRAFIKA #6: STAN MALOWANIA SIATKI IZOMETRYCZNEJ                ║
+// ║  paintedTiles — mapa (col,row) → kolor; activePaintColor — wyb. ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const paintedTiles    = new Map(); // klucz: "col,row" → string kolor
+let   activePaintColor = "#FF3B30"; // domyślnie czerwony
+
+const PAINT_SWATCHES = [
+  { color: "#FF3B30", label: "Czerwony"  },
+  { color: "#FF9F0A", label: "Pomarańcz" },
+  { color: "#FFD60A", label: "Żółty"     },
+  { color: "#30D158", label: "Zielony"   },
+  { color: "#00C2FF", label: "Niebieski" },
+  { color: "#BF5AF2", label: "Fioletowy" },
+  { color: "#FFFFFF", label: "Biały"     },
+];
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 7: MODUŁ IZOMETRYKI — CANVAS API                       ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+const ISO = {
+  TILE_W: 64,
+  TILE_H: 32,
+  GRID:   8,
+};
+
+function gridToScreen(col, row, offsetX, offsetY) {
+  return {
+    x: (col - row) * (ISO.TILE_W / 2) + offsetX,
+    y: (col + row) * (ISO.TILE_H / 2) + offsetY,
+  };
+}
+
+function drawTile(ctx, col, row, offsetX, offsetY, fillColor, strokeColor) {
+  const { x, y } = gridToScreen(col, row, offsetX, offsetY);
+  const hw = ISO.TILE_W / 2;
+  const hh = ISO.TILE_H / 2;
+
+  ctx.beginPath();
+  ctx.moveTo(x,      y - hh);
+  ctx.lineTo(x + hw, y      );
+  ctx.lineTo(x,      y + hh);
+  ctx.lineTo(x - hw, y      );
+  ctx.closePath();
+
+  ctx.fillStyle   = fillColor;
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth   = 1;
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawLabel(ctx, col, row, offsetX, offsetY) {
+  const { x, y } = gridToScreen(col, row, offsetX, offsetY);
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.font      = "9px Arial";
+  ctx.textAlign = "center";
+  ctx.fillText(`${col},${row}`, x, y + 4);
+}
+
+function screenToGrid(mx, my) {
+  return {
+    col: Math.round(mx / ISO.TILE_W + my / ISO.TILE_H),
+    row: Math.round(my / ISO.TILE_H - mx / ISO.TILE_W),
+  };
+}
+
+function drawGrid(canvas, hovCol = -1, hovRow = -1, showLabels = false) {
+  const ctx     = canvas.getContext("2d");
+  const offsetX = canvas.width  / 2;
+  const offsetY = 48;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let row = 0; row < ISO.GRID; row++) {
+    for (let col = 0; col < ISO.GRID; col++) {
+      const isHovered = col === hovCol && row === hovRow;
+
+      const depth = (col + row) / (ISO.GRID * 2);
+      const paintKey = `${col},${row}`;
+      const painted  = paintedTiles.get(paintKey);
+      const base  = isHovered ? "#00C2FF" : painted ? painted : `hsl(230, 40%, ${14 + depth * 14}%)`;
+      const edge  = isHovered ? "#00A8E0" : painted ? "#ffffff44" : "#4455aa";
+
+      drawTile(ctx, col, row, offsetX, offsetY, base, edge);
+
+      if (showLabels) {
+        drawLabel(ctx, col, row, offsetX, offsetY);
+      }
+    }
+  }
+
+  if (hovCol >= 0 && hovRow >= 0 && hovCol < ISO.GRID && hovRow < ISO.GRID) {
+    ctx.fillStyle = "rgba(0, 194, 255, 0.9)";
+    ctx.font      = "bold 13px Arial";
+    ctx.textAlign = "left";
+    ctx.fillText(`Kafelek: (${hovCol}, ${hovRow})`, 12, 20);
+  }
+}
+
+function isoCanvas() {
+  const main = document.getElementById("main");
+  main.innerHTML = `
+    <h2>Siatka Izometryczna</h2>
+    <p>Najedź myszą na kafelek, aby zobaczyć jego współrzędne. Kliknij, aby pomalować. Siatka ${ISO.GRID}×${ISO.GRID} kafelków.</p>
+
+    <canvas id="isoGrid" width="560" height="340"></canvas>
+
+    <!-- GRAFIKA #6: Paleta kolorów do malowania kafelków -->
+    <div class="paint-palette" id="paintPalette">
+      <span class="paint-label">Maluj:</span>
+    </div>
+
+    <div style="margin-top:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <label style="font-size:13px; color:#888; cursor:pointer;">
+        <input type="checkbox" id="toggleLabels" onchange="redrawWithLabels()" style="margin-right:6px; width:auto; display:inline;">
+        Pokaż etykiety (col, row)
+      </label>
+    </div>
+
+    <div class="iso-info">
+      <strong>Jak działa rzutowanie izometryczne?</strong><br>
+      screenX = (col − row) × ${ISO.TILE_W / 2} + offsetX<br>
+      screenY = (col + row) × ${ISO.TILE_H / 2} + offsetY<br><br>
+      Każdy kafelek to romb o szerokości <strong>${ISO.TILE_W}px</strong>
+      i wysokości <strong>${ISO.TILE_H}px</strong>.
+      Oś X siatki biegnie w prawo-dół, oś Y w lewo-dół.
+    </div>
+  `;
+
+  const canvas = document.getElementById("isoGrid");
+  drawGrid(canvas);
+
+  // GRAFIKA #6: Zbuduj paletę kolorów dynamicznie
+  const palette = document.getElementById("paintPalette");
+  PAINT_SWATCHES.forEach(sw => {
+    const s = document.createElement("div");
+    s.className   = "paint-swatch" + (sw.color === activePaintColor ? " active" : "");
+    s.style.background = sw.color;
+    s.title       = sw.label;
+    s.addEventListener("click", () => {
+      activePaintColor = sw.color;
+      document.querySelectorAll(".paint-swatch").forEach(el => el.classList.remove("active"));
+      s.classList.add("active");
+    });
+    palette.appendChild(s);
+  });
+  const clearBtn = document.createElement("button");
+  clearBtn.textContent = "🗑 Wyczyść";
+  clearBtn.className   = "paint-clear";
+  clearBtn.addEventListener("click", () => {
+    paintedTiles.clear();
+    const showLbl = document.getElementById("toggleLabels")?.checked;
+    drawGrid(canvas, -1, -1, showLbl);
+  });
+  palette.appendChild(clearBtn);
+
+  // GRAFIKA #6: Kliknięcie maluje kafelek wybranym kolorem
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx   = e.clientX - rect.left - canvas.width / 2;
+    const my   = e.clientY - rect.top  - 48;
+    const { col, row } = screenToGrid(mx, my);
+    if (col >= 0 && col < ISO.GRID && row >= 0 && row < ISO.GRID) {
+      const key = `${col},${row}`;
+      if (paintedTiles.get(key) === activePaintColor) {
+        paintedTiles.delete(key); // drugie kliknięcie — wyczyść kafelek
+      } else {
+        paintedTiles.set(key, activePaintColor);
+      }
+      const showLbl = document.getElementById("toggleLabels")?.checked;
+      drawGrid(canvas, col, row, showLbl);
+    }
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx   = e.clientX - rect.left - canvas.width / 2;
+    const my   = e.clientY - rect.top  - 48;
+
+    const { col, row } = screenToGrid(mx, my);
+    const showLbl = document.getElementById("toggleLabels")?.checked;
+    drawGrid(canvas, col, row, showLbl);
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    const showLbl = document.getElementById("toggleLabels")?.checked;
+    drawGrid(canvas, -1, -1, showLbl);
+  });
+}
+
+function redrawWithLabels() {
+  const canvas = document.getElementById("isoGrid");
+  if (canvas) {
+    const showLbl = document.getElementById("toggleLabels").checked;
+    drawGrid(canvas, -1, -1, showLbl);
+  }
+}
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 8: CENNIK I STRIPE                                      ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+function pricing() {
+  document.getElementById("main").innerHTML = `
+    <h2>Wybierz Plan</h2>
+    <div class="pricing-wrap">
+      <div class="price-card">
+        <h3>ISO MASTER PRO</h3>
+        <div class="price-tag">49 zł <span>/ miesiąc</span></div>
+        <ul style="color:#aaa; font-size:14px; margin:16px 0 24px; padding-left:20px; line-height:2">
+          <li>Nieograniczony dostęp do quizów</li>
+          <li>Moduł izometryki z wizualizacjami</li>
+          <li>Śledzenie postępów</li>
+          <li>Certyfikat ukończenia</li>
+        </ul>
+        <button onclick="buy()" style="width:100%; padding:14px;">Kup przez Stripe →</button>
+        <p style="font-size:12px; color:#555; margin-top:12px; text-align:center;">
+          Po płatności Stripe wyśle webhook, który aktywuje Twój dostęp.
+        </p>
+      </div>
+      <!-- GRAFIKA #5: Mini podgląd siatki izometrycznej jako wizualizacja produktu -->
+      <div>
+        <p style="font-size:12px; color:#555; margin-bottom:8px; text-align:center;">Podgląd modułu izometrycznego</p>
+        <canvas id="pricingMockup" width="240" height="160"></canvas>
+      </div>
+    </div>
+  `;
+  // Rysuj mini siatkę na płótnie podglądu
+  (function drawPricingMockup() {
+    const c  = document.getElementById("pricingMockup");
+    if (!c) return;
+    const cx = c.getContext("2d");
+    const TW = 30, TH = 15, COLS = 6, ROWS = 6;
+    const ox = c.width / 2, oy = 24;
+    cx.clearRect(0, 0, c.width, c.height);
+    for (let r = 0; r < ROWS; r++) {
+      for (let cl = 0; cl < COLS; cl++) {
+        const sx = (cl - r) * (TW / 2) + ox;
+        const sy = (cl + r) * (TH / 2) + oy;
+        const dep = (cl + r) / (COLS * 2);
+        const highlight = (cl === 2 && r === 2) || (cl === 3 && r === 1);
+        cx.beginPath();
+        cx.moveTo(sx, sy - TH/2);
+        cx.lineTo(sx + TW/2, sy);
+        cx.lineTo(sx, sy + TH/2);
+        cx.lineTo(sx - TW/2, sy);
+        cx.closePath();
+        cx.fillStyle   = highlight ? "#00C2FF" : `hsl(230,40%,${13 + dep*13}%)`;
+        cx.strokeStyle = highlight ? "#00A8E0" : "#334488";
+        cx.lineWidth   = 0.8;
+        cx.fill();
+        cx.stroke();
+      }
+    }
+  })();
+}
+
+// ── POPRAWKA #4 zastosowana w buy() ──
+function buy() {
+  // POPRAWKA #4: Przekaż user_id jako client_reference_id w URL Stripe.
+  // Oryginał otwierał STRIPE_LINK bez żadnych danych użytkownika — webhook
+  // nie wiedział, komu aktywować subskrypcję w tabeli "subscriptions".
+  // Stripe Payment Links obsługują parametr ?client_reference_id= natywnie
+  // i przekazują go do obiektu checkout.session w zdarzeniu webhookowym.
+  //
+  // WAŻNE: Po stronie Stripe webhook należy odczytać:
+  //   session.client_reference_id  →  user_id Supabase
+  // i wykonać: UPDATE subscriptions SET active=true WHERE user_id=...
+  const userId     = AppState.user?.id ?? "";
+  const stripeUrl  = `${STRIPE_LINK}?client_reference_id=${encodeURIComponent(userId)}`;
+  window.location.href = stripeUrl;
+}
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SEKCJA 9: WYLOGOWANIE                                          ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+async function doLogout() {
+  try {
+    await db.auth.signOut();
+  } catch (err) {
+    console.error("Błąd wylogowania:", err);
+  }
+  AppState.user            = null;
+  AppState.subscribed      = false;
+  AppState.currentQuestion = null;
+
+  // Anuluj ewentualny oczekujący timer quizu przy wylogowaniu
+  if (trainingTimer !== null) {
+    clearTimeout(trainingTimer);
+    trainingTimer = null;
+  }
+
+  renderAuth();
+}
+
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  START                                                           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+init();
+</script>
+</body>
+</html>
