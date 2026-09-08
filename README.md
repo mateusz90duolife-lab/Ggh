@@ -1,19 +1,67 @@
-# ISO Master SaaS
+# ISO Master
 
-Jednoplikowa aplikacja webowa (`index.html`) do nauki rzutowania izometrycznego.
-Frontend bez frameworka i bez kroku budowania — wystarczy otworzyć plik przez
-serwer HTTP. Backend to Supabase (autoryzacja + baza), płatności przez Stripe
-Payment Link.
+Nauka rzutowania izometrycznego i czytania rysunku technicznego.
+Repozytorium zawiera dwie aplikacje, obie bez frameworka i bez kroku budowania.
 
-## Uruchomienie lokalne
+| Plik | Co to jest | Czego wymaga |
+| --- | --- | --- |
+| `trener.html` | **Trener izometryki** — generator ćwiczeń przestrzennych z adaptacyjną trudnością | nic, działa offline |
+| `index.html` | Powłoka SaaS: logowanie, subskrypcja, prosty quiz | konta Supabase i Stripe |
+
+Metodyka, na której oparto trener, wraz ze źródłami: [METODYKA.md](METODYKA.md).
+
+---
+
+## Trener izometryki (`trener.html`)
+
+Otwórz plik w przeglądarce i gotowe. Bez logowania, bez serwera, bez zależności
+zewnętrznych. Postęp zapisuje się w pamięci przeglądarki.
+
+**Osiem typów zadań**, generowanych proceduralnie, więc pule zadań się nie
+wyczerpują:
+
+| Zadanie | Umiejętność |
+| --- | --- |
+| Plan kodowany → bryła | odczyt zapisu wysokości słupków |
+| Rzuty → bryła | odtworzenie bryły z trzech rzutów |
+| Bryła → rzut | wskazanie poprawnego rzutu |
+| Obroty przestrzenne | obrót o 90° wokół wybranej osi |
+| Odbicia i symetria | odróżnienie odbicia od obrotu |
+| Przekroje brył | przekrój płaszczyzną |
+| Liczenie kostek | objętość wraz z kostkami zasłoniętymi |
+| Układ rzutów | metoda pierwszego i trzeciego kąta |
+
+**Tryb Buduj** daje zadanie konstrukcyjne zamiast wyboru z listy: trzy rzuty
+i pusta siatka, w której trzeba postawić bryłę słupek po słupku. Sprawdzenie
+porównuje zbiory kostek, więc zgadywanie nie działa.
+
+**Jak dobierany jest materiał:** typy zadań są przeplatane (ta sama umiejętność
+nie wystąpi dwa razy z rzędu), każda umiejętność ma własny harmonogram powtórek
+w rosnących odstępach, a poziom trudności podąża za skutecznością, celując
+w okolice 75–85% trafień. Błędne odpowiedzi nie są losowe — kodują typowe
+pomyłki, a informacja zwrotna nazywa popełniony błąd zamiast tylko go
+odnotować.
+
+Domyślną metodą rzutowania jest **metoda pierwszego kąta** (europejska,
+PN-EN ISO 5456-2). W ustawieniach można przełączyć na metodę trzeciego kąta.
+
+---
+
+## Powłoka SaaS (`index.html`)
+
+Frontend bez frameworka. Backend to Supabase (autoryzacja i baza), płatności
+przez Stripe Payment Link.
+
+### Uruchomienie lokalne
 
 ```bash
 python3 -m http.server 8000
 # następnie otwórz http://localhost:8000
 ```
 
-Otwarcie pliku bezpośrednio przez `file://` nie zadziała — Supabase Auth
-wymaga kontekstu HTTP.
+Otwarcie pliku bezpośrednio przez `file://` nie zadziała dla `index.html` —
+Supabase Auth wymaga kontekstu HTTP. Trener (`trener.html`) działa również
+z `file://`.
 
 ## Moduły
 
