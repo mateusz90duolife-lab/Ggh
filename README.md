@@ -17,8 +17,33 @@ Metodyka, na której oparto trener, wraz ze źródłami: [METODYKA.md](METODYKA.
 Otwórz plik w przeglądarce i gotowe. Bez logowania, bez serwera, bez zależności
 zewnętrznych. Postęp zapisuje się w pamięci przeglądarki.
 
-**Osiem typów zadań**, generowanych proceduralnie, więc pule zadań się nie
-wyczerpują:
+Aplikacja ma pięć zakładek: **Kurs**, **Trening**, **Buduj**, **Teoria**
+i **Postępy**.
+
+### Kurs — ścieżka prowadzona
+
+Dziesięć modułów w ustalonej kolejności, około dwóch godzin. Każdy moduł to
+teoria, ćwiczenia bez oceny i sprawdzian z progiem 5 z 6, który otwiera
+kolejny moduł. Na końcu egzamin z 12 zadań ze wszystkich modułów, próg 9,
+oraz certyfikat do wydruku.
+
+| # | Moduł | # | Moduł |
+| --- | --- | --- | --- |
+| 1 | Układ osi i rzut izometryczny | 6 | Obroty wokół osi pionowej |
+| 2 | Plan kodowany | 7 | Obroty wokół osi poziomych |
+| 3 | Trzy rzuty prostokątne | 8 | Odbicia i symetria |
+| 4 | Uskoki i linie wewnętrzne | 9 | Przekroje brył |
+| 5 | Czytanie rzutów: od rysunku do bryły | 10 | Metoda pierwszego i trzeciego kąta |
+
+Układ modułów odwzorowuje strukturę kursu „Developing Spatial Thinking".
+Kurs buduje rozumienie po kolei, tryb Trening je potem utrwala, mieszając
+materiał. Uzasadnienie tego podziału opisuje sekcja 9 w
+[METODYKA.md](METODYKA.md).
+
+### Trening — praktyka przeplatana
+
+Sesja to 10 zadań dobieranych przez model ucznia. **Osiem typów zadań**,
+generowanych proceduralnie, więc pule zadań się nie wyczerpują:
 
 | Zadanie | Umiejętność |
 | --- | --- |
@@ -31,11 +56,17 @@ wyczerpują:
 | Liczenie kostek | objętość wraz z kostkami zasłoniętymi |
 | Układ rzutów | metoda pierwszego i trzeciego kąta |
 
-**Tryb Buduj** daje zadanie konstrukcyjne zamiast wyboru z listy: trzy rzuty
+### Buduj, Teoria, Postępy
+
+**Buduj** daje zadanie konstrukcyjne zamiast wyboru z listy: trzy rzuty
 i pusta siatka, w której trzeba postawić bryłę słupek po słupku. Sprawdzenie
 porównuje zbiory kostek, więc zgadywanie nie działa.
 
-**Jak dobierany jest materiał:** typy zadań są przeplatane (ta sama umiejętność
+**Teoria** to dwanaście lekcji z rysunkami generowanymi tym samym silnikiem
+co zadania. **Postępy** pokazują opanowanie każdej umiejętności i termin
+najbliższej powtórki.
+
+**Jak dobierany jest materiał w treningu:** typy zadań są przeplatane (ta sama umiejętność
 nie wystąpi dwa razy z rzędu), każda umiejętność ma własny harmonogram powtórek
 w rosnących odstępach, a poziom trudności podąża za skutecznością, celując
 w okolice 75–85% trafień. Błędne odpowiedzi nie są losowe — kodują typowe
@@ -44,6 +75,22 @@ odnotować.
 
 Domyślną metodą rzutowania jest **metoda pierwszego kąta** (europejska,
 PN-EN ISO 5456-2). W ustawieniach można przełączyć na metodę trzeciego kąta.
+
+---
+
+### Testy
+
+```bash
+./testy/uruchom.sh          # logika: geometria, zadania, model ucznia, kurs
+./testy/uruchom.sh --all    # dodatkowo przebieg w przeglądarce (Playwright)
+```
+
+Testy logiki działają na kodzie wyciętym z `trener.html`, więc aplikacja nie
+zawiera żadnych ułatwień pod kątem testowania. Najmocniejszy z nich jest test
+krzyżowy: sprawdza, że obrót bryły w prawo faktycznie obraca jej rzut z góry
+w prawo, czyli że dwa niezależne fragmenty kodu opisują tę samą geometrię.
+Test przeglądarkowy przechodzi cały kurs od pierwszego modułu po certyfikat
+i potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu.
 
 ---
 
@@ -63,22 +110,23 @@ Otwarcie pliku bezpośrednio przez `file://` nie zadziała dla `index.html` —
 Supabase Auth wymaga kontekstu HTTP. Trener (`trener.html`) działa również
 z `file://`.
 
-## Moduły
+### Zakładki powłoki
 
-| Moduł | Opis |
+| Zakładka | Opis |
 | --- | --- |
 | Dashboard | Statystyki odpowiedzi: suma, poprawne, błędne, skuteczność |
 | Quiz | Pytania jednokrotnego wyboru, tylko dla subskrybentów PRO |
 | Siatka izometryczna | Canvas 8×8, podgląd współrzędnych, malowanie kafelków |
 | Cennik | Płatność przez Stripe Payment Link |
+| Trener izometryki | Odsyłacz do `trener.html` |
 
-## Konfiguracja Supabase
+### Konfiguracja Supabase
 
 Stałe `SUPABASE_URL` i `SUPABASE_KEY` znajdują się na początku bloku
 `<script>`. Klucz `anon` jest z założenia publiczny, ale dostęp do danych musi
 być ograniczony przez Row Level Security.
 
-### Wymagane tabele
+#### Wymagane tabele
 
 ```sql
 create table questions (
@@ -110,7 +158,7 @@ własne wiersze. Tabelę `subscriptions` zapisuje wyłącznie webhook Stripe
 (rola `service_role`) — klient nie może jej modyfikować, inaczej każdy
 nadałby sobie dostęp PRO.
 
-### Logowanie nazwą użytkownika
+#### Logowanie nazwą użytkownika
 
 Supabase Auth wymaga adresu e-mail, dlatego nazwa użytkownika jest mapowana na
 syntetyczny adres `<nazwa>@isomaster.local`, a prawdziwa nazwa trafia do
@@ -123,7 +171,7 @@ Konieczne ustawienie w panelu Supabase:
 Adresy w domenie `isomaster.local` nie istnieją, więc e-mail potwierdzający
 nigdy by nie dotarł i rejestracja utknęłaby na etapie weryfikacji.
 
-## Konfiguracja Stripe
+### Konfiguracja Stripe
 
 Ustaw `STRIPE_LINK` na swój Payment Link. Aplikacja dokleja do niego
 `?client_reference_id=<user_id>`. Webhook po stronie serwera odczytuje
@@ -137,7 +185,7 @@ on conflict (user_id) do update
   set active = true, expires_at = excluded.expires_at;
 ```
 
-## Znane ograniczenia
+### Znane ograniczenia powłoki SaaS
 
 - `getNextQuestion()` pobiera do 1000 odpowiedzianych pytań i filtruje po
   stronie klienta przez `NOT IN (...)`. Powyżej tego progu przenieś logikę do
@@ -147,3 +195,5 @@ on conflict (user_id) do update
   rate-limitingu po stronie serwera.
 - Kolorowanie kafelków siatki izometrycznej nie jest zapisywane — stan ginie
   po przeładowaniu strony.
+
+Ograniczenia samego trenera opisuje sekcja 10 w [METODYKA.md](METODYKA.md).

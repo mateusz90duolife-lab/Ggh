@@ -213,6 +213,43 @@ table.tbl td b { color: var(--txt); }
 }
 .toggle button.on { background: var(--accent); color: #062a38; font-weight: 700; }
 
+/* ───── KURS ───── */
+.mod {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px;
+  background: var(--bg-soft); cursor: pointer; transition: border-color .12s, background .12s;
+}
+.mod:hover:not(.locked) { border-color: var(--accent); background: var(--card-hi); }
+.mod.locked { opacity: .45; cursor: not-allowed; }
+.mod.done { border-color: #245c34; }
+.mod-num {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px; background: #10222e; color: var(--accent); border: 1px solid #1d4a63;
+}
+.mod.done .mod-num { background: #0e2415; color: var(--good); border-color: #245c34; }
+.mod-body { flex: 1; min-width: 0; }
+.mod-title { font-size: 15px; font-weight: 600; }
+.mod-meta { font-size: 12px; color: var(--txt-faint); margin-top: 3px; }
+.mod-badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; white-space: nowrap; border: 1px solid; }
+.badge-done { color: var(--good); border-color: #245c34; background: #0e2415; }
+.badge-open { color: var(--accent); border-color: #1d4a63; background: #0d2230; }
+.badge-lock { color: var(--txt-faint); border-color: var(--line); }
+
+.cert { border: 2px solid var(--accent); border-radius: 14px; padding: 40px 32px; text-align: center;
+        background: linear-gradient(160deg, #0e2230, #0c1620); }
+.cert h2 { font-size: 26px; color: var(--accent); margin-bottom: 6px; letter-spacing: 1px; }
+.cert .who { font-size: 15px; color: var(--txt); margin: 18px 0 6px; }
+.cert .meta { font-size: 13px; color: var(--txt-dim); }
+.cert-seal { font-size: 44px; margin-bottom: 10px; }
+
+@media print {
+  body { background: #fff; color: #000; }
+  .topbar, .nav, button { display: none !important; }
+  .cert { border-color: #000; background: #fff; }
+  .cert h2, .cert .who, .cert .meta { color: #000; }
+}
+
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .hide { display: none !important; }
 .center { text-align: center; }
@@ -751,9 +788,9 @@ function exPlanBryla(cfg) {
 }
 
 /* ── 2. Bryła → rzut prostokątny ── */
-function exBrylaRzut(cfg) {
+function exBrylaRzut(cfg, opts) {
   const s = generateSolidWhere(cfg, q => q.nx === q.ny && q.ny === q.nz);
-  const kind = pick(["front", "top", "left", "right"]);
+  const kind = pick((opts && opts.kinds) || ["front", "top", "left", "right"]);
   const correct = orthoView(s, kind);
   const cand = [];
   for (const k of ["front", "top", "left", "right"]) if (k !== kind) cand.push(orthoOpt(orthoView(s, k), "otherView"));
@@ -791,17 +828,18 @@ function exRzutyBryla(cfg, method) {
 
 /* ── 4. Obroty przestrzenne ── */
 const ROTS = [
-  { fn: XF.rotZ,  inv: XF.rotZi, other: XF.rotX,  txt: "o 90° w prawo wokół osi pionowej (patrząc z góry)" },
-  { fn: XF.rotZi, inv: XF.rotZ,  other: XF.rotY,  txt: "o 90° w lewo wokół osi pionowej (patrząc z góry)" },
-  { fn: XF.rotX,  inv: XF.rotXi, other: XF.rotZ,  txt: "o 90° do przodu — góra bryły przechyla się w Twoją stronę" },
-  { fn: XF.rotXi, inv: XF.rotX,  other: XF.rotZi, txt: "o 90° do tyłu — góra bryły przechyla się od Ciebie" },
-  { fn: XF.rotY,  inv: XF.rotYi, other: XF.rotZ,  txt: "o 90° w prawo wokół osi biegnącej w głąb — bryła kładzie się na prawy bok" },
-  { fn: XF.rotYi, inv: XF.rotY,  other: XF.rotZi, txt: "o 90° w lewo wokół osi biegnącej w głąb — bryła kładzie się na lewy bok" },
+  { ax: "z", fn: XF.rotZ,  inv: XF.rotZi, other: XF.rotX,  txt: "o 90° w prawo wokół osi pionowej (patrząc z góry)" },
+  { ax: "z", fn: XF.rotZi, inv: XF.rotZ,  other: XF.rotY,  txt: "o 90° w lewo wokół osi pionowej (patrząc z góry)" },
+  { ax: "x", fn: XF.rotX,  inv: XF.rotXi, other: XF.rotZ,  txt: "o 90° do przodu — góra bryły przechyla się w Twoją stronę" },
+  { ax: "x", fn: XF.rotXi, inv: XF.rotX,  other: XF.rotZi, txt: "o 90° do tyłu — góra bryły przechyla się od Ciebie" },
+  { ax: "y", fn: XF.rotY,  inv: XF.rotYi, other: XF.rotZ,  txt: "o 90° w prawo wokół osi biegnącej w głąb — bryła kładzie się na prawy bok" },
+  { ax: "y", fn: XF.rotYi, inv: XF.rotY,  other: XF.rotZi, txt: "o 90° w lewo wokół osi biegnącej w głąb — bryła kładzie się na lewy bok" },
 ];
 
-function exObrot(cfg) {
+function exObrot(cfg, opts) {
   const s = generateSolidWhere(cfg, isChiralEnough);
-  const r = pick(ROTS);
+  const allowed = (opts && opts.axes) ? ROTS.filter(r => opts.axes.indexOf(r.ax) >= 0) : ROTS;
+  const r = pick(allowed.length ? allowed : ROTS);
   const correct = xform(s, r.fn);
   const cand = [
     isoOpt(xform(s, r.inv), "rotWrong"),
@@ -843,23 +881,25 @@ function exOdbicie(cfg) {
 }
 
 /* ── 6. Przekroje ── */
-function exPrzekroj(cfg) {
-  const axes = [
+function exPrzekroj(cfg, opts) {
+  const axesAll = [
     { a: "y", n: s => s.ny, txt: (i, s) => "pionową, równoległą do rzutu z przodu, przez " + (i + 1) + ". rząd licząc od przodu" },
     { a: "x", n: s => s.nx, txt: (i, s) => "pionową, równoległą do rzutu z boku, przez " + (i + 1) + ". kolumnę licząc od lewej" },
     { a: "z", n: s => s.nz, txt: (i, s) => "poziomą, na wysokości " + (i + 1) + ". warstwy licząc od dołu" },
   ];
+  const axes = (opts && opts.cuts) ? axesAll.filter(a => opts.cuts.indexOf(a.a) >= 0) : axesAll;
+  const axPool = axes.length ? axes : axesAll;
   let s, ax, idx, correct, tries = 0;
   do {
     s = generateSolid(cfg);
-    ax = pick(axes);
+    ax = pick(axPool);
     const n = ax.n(s);
     if (n < 2) { tries++; continue; }
     idx = randInt(n);
     correct = sectionView(s, ax.a, idx);
     tries++;
   } while ((!correct || isEmptyView(correct)) && tries < 60);
-  if (!correct || isEmptyView(correct)) { s = solidFromHeights([[2, 1], [1, 2]]); ax = axes[0]; idx = 0; correct = sectionView(s, "y", 0); }
+  if (!correct || isEmptyView(correct)) { s = solidFromHeights([[2, 1], [1, 2]]); ax = axesAll[0]; idx = 0; correct = sectionView(s, "y", 0); }
 
   const cand = [];
   for (let i = 0; i < ax.n(s); i++) if (i !== idx) {
@@ -914,8 +954,8 @@ const SLOTS = {
 const SLOT_TXT = { right: "po prawej stronie rzutu głównego", left: "po lewej stronie rzutu głównego",
                    below: "pod rzutem głównym", above: "nad rzutem głównym" };
 
-function exUklad(cfg) {
-  const method = Math.random() < 0.5 ? "E" : "A";
+function exUklad(cfg, opts) {
+  const method = (opts && opts.forceMethod) || (Math.random() < 0.5 ? "E" : "A");
   const slot = pick(Object.keys(SLOTS[method]));
   const info = SLOTS[method][slot];
   const all = ["rzut z lewej strony", "rzut z prawej strony", "rzut z góry", "rzut z dołu", "rzut z tyłu"];
@@ -936,7 +976,7 @@ function exUklad(cfg) {
 const BUILDERS = {
   "plan-bryla":  exPlanBryla,
   "bryla-rzut":  exBrylaRzut,
-  "rzuty-bryla": (cfg) => exRzutyBryla(cfg, State.method),
+  "rzuty-bryla": (cfg, o) => exRzutyBryla(cfg, (o && o.forceMethod) || State.method),
   "obrot":       exObrot,
   "odbicie":     exOdbicie,
   "przekroj":    exPrzekroj,
@@ -944,9 +984,9 @@ const BUILDERS = {
   "uklad":       exUklad,
 };
 
-function buildExercise(skill, level) {
+function buildExercise(skill, level, opts) {
   const cfg = cfgFor(level);
-  const q = BUILDERS[skill](cfg);
+  const q = BUILDERS[skill](cfg, opts || {});
   q.correct = q.options.findIndex(o => o.tag === "ok");
   q.level = level;
   return q;
@@ -966,6 +1006,7 @@ const State = {
   level: 2, method: "E",
   skills: {}, seen: 0, ok: 0, streak: 0, best: 0,
   recent: [], lastSkills: [], diag: null, sessions: 0,
+  course: { mods: {}, exam: null },
 };
 
 function skillOf(id) {
@@ -985,6 +1026,8 @@ function load() {
   } catch (e) { /* uszkodzony wpis — start od zera */ }
   State.level = clamp(State.level || 2, 1, 8);
   if (State.method !== "A") State.method = "E";
+  if (!State.course || typeof State.course !== "object") State.course = { mods: {}, exam: null };
+  if (!State.course.mods) State.course.mods = {};
   for (const id of SKILL_IDS) skillOf(id);
 }
 
@@ -1034,9 +1077,9 @@ function chooseSkill() {
   return pool[pool.length - 1];
 }
 
-function nextQuestion(skill, level) {
+function nextQuestion(skill, level, opts) {
   for (let i = 0; i < 12; i++) {
-    const q = buildExercise(skill || chooseSkill(), level || State.level);
+    const q = buildExercise(skill || chooseSkill(), level || State.level, opts);
     if (q.options.length >= 3 && q.correct >= 0) return q;
   }
   return buildExercise("liczenie", 2);
@@ -1153,20 +1196,34 @@ function renderOptionBody(opt, scale) {
    CZĘŚĆ 11 — SESJA TRENINGOWA
    ═══════════════════════════════════════════════════════════════ */
 
-const UI = { screen: "trening" };
+const UI = { screen: "kurs", module: null };
 const DIAG_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8];
 
-const Session = { active: false, diag: false, i: 0, len: SESSION_LEN, ok: 0, q: null, answered: false, chosen: -1, summary: null };
+const Session = { active: false, mode: "trening", diag: false, queue: null, moduleId: null,
+                  i: 0, len: SESSION_LEN, ok: 0, q: null, answered: false, chosen: -1, summary: null };
 
-function startSession(diag) {
-  Session.active = true; Session.diag = !!diag;
+/** opts: {mode, queue, moduleId}. Bez kolejki zadania dobiera model ucznia. */
+function startSession(opts) {
+  opts = opts || {};
+  Session.active   = true;
+  Session.mode     = opts.mode || "trening";
+  Session.diag     = Session.mode === "diag";
+  Session.queue    = opts.queue || null;
+  Session.moduleId = opts.moduleId || null;
   Session.i = 0; Session.ok = 0; Session.summary = null;
-  Session.len = diag ? DIAG_LEVELS.length : SESSION_LEN;
+  Session.len = Session.queue ? Session.queue.length : (Session.diag ? DIAG_LEVELS.length : SESSION_LEN);
   loadQuestion();
 }
 
 function loadQuestion() {
-  Session.q = Session.diag ? nextQuestion("obrot", DIAG_LEVELS[Session.i]) : nextQuestion();
+  if (Session.queue) {
+    const spec = Session.queue[Session.i];
+    Session.q = nextQuestion(spec.skill, spec.level, spec.opts);
+  } else if (Session.diag) {
+    Session.q = nextQuestion("obrot", DIAG_LEVELS[Session.i]);
+  } else {
+    Session.q = nextQuestion();
+  }
   Session.answered = false; Session.chosen = -1;
   render();
 }
@@ -1187,15 +1244,28 @@ function nextStep() {
 }
 
 function finishSession() {
-  if (Session.diag) {
+  const m = Session.mode;
+  if (m === "diag") {
     const lvl = clamp(1 + Session.ok, 1, 8);
     State.diag = { score: Session.ok, total: Session.len, level: lvl, date: Date.now() };
     State.level = lvl;
-  } else {
+  } else if (m === "trening") {
     State.sessions++;
+  } else if (m === "kurs-drill") {
+    courseProgress(Session.moduleId).drill = true;
+  } else if (m === "kurs-test") {
+    const mod = COURSE_BY_ID[Session.moduleId];
+    const pr  = courseProgress(Session.moduleId);
+    if (Session.ok > (pr.best || 0)) pr.best = Session.ok;
+    if (mod && Session.ok >= mod.pass) pr.passed = true;
+  } else if (m === "kurs-exam") {
+    const passed = Session.ok >= EXAM.pass;
+    const prev = State.course.exam;
+    if (!prev || Session.ok > prev.score) State.course.exam = { score: Session.ok, total: Session.len, passed: passed, date: Date.now() };
+    else if (passed) State.course.exam.passed = true;
   }
   save();
-  Session.summary = { ok: Session.ok, len: Session.len, diag: Session.diag };
+  Session.summary = { ok: Session.ok, len: Session.len, mode: m, moduleId: Session.moduleId };
   Session.active = false;
   render();
 }
@@ -1207,22 +1277,22 @@ function finishSession() {
 function screenTrening(root) {
   if (Session.active) { renderQuestion(root); return; }
 
-  if (Session.summary) {
+  if (Session.summary && String(Session.summary.mode).indexOf("kurs") !== 0) {
     const s = Session.summary;
     const pct = Math.round(s.ok / s.len * 100);
     const card = el("div", "card center");
-    card.appendChild(el("h2", null, s.diag ? "Test wstępny zakończony" : "Sesja zakończona"));
+    card.appendChild(el("h2", null, s.mode === "diag" ? "Test wstępny zakończony" : "Sesja zakończona"));
     const big = el("div", "stat-n", s.ok + " / " + s.len);
     big.style.fontSize = "42px";
     card.appendChild(big);
     card.appendChild(el("p", null, "Skuteczność " + pct + "%."));
-    card.appendChild(el("p", null, s.diag
+    card.appendChild(el("p", null, s.mode === "diag"
       ? "Poziom startowy ustawiony na " + State.level + ". Możesz zacząć trening."
       : "Aktualny poziom trudności: " + State.level + " z 8. Kolejne powtórki materiału zaplanowane są w czasie."));
     const row = el("div", "row center mt");
     row.style.justifyContent = "center";
     const b1 = el("button", "btn", "Następna sesja");
-    b1.onclick = () => { Session.summary = null; startSession(false); };
+    b1.onclick = () => { Session.summary = null; startSession({ mode: "trening" }); };
     row.appendChild(b1);
     const b2 = el("button", "btn ghost", "Zobacz postępy");
     b2.onclick = () => { UI.screen = "postepy"; Session.summary = null; render(); };
@@ -1247,10 +1317,10 @@ function screenTrening(root) {
 
   const row = el("div", "row mt");
   const b1 = el("button", "btn", "Zacznij sesję");
-  b1.onclick = () => startSession(false);
+  b1.onclick = () => startSession({ mode: "trening" });
   row.appendChild(b1);
   const b2 = el("button", "btn ghost", State.diag ? "Powtórz test wstępny" : "Test wstępny (8 zadań)");
-  b2.onclick = () => startSession(true);
+  b2.onclick = () => startSession({ mode: "diag" });
   row.appendChild(b2);
   card.appendChild(row);
   root.appendChild(card);
@@ -1511,110 +1581,261 @@ function lesson(title, buildBody) {
   return box;
 }
 
-function screenTeoria(root) {
-  const wrap = el("div", "card pad0");
-  const demo = solidFromHeights([[3, 1], [1, 2]]);
+/* ── Wspólne bryły demonstracyjne (stałe, żeby rysunki w teorii się nie zmieniały) ── */
+const DEMO_A = solidFromHeights([[3, 1], [1, 2]]);
+const DEMO_B = solidFromHeights([[2, 1, 0], [1, 3, 1], [0, 1, 2]]);
 
-  wrap.appendChild(lesson("1. Układ osi i rzut izometryczny", b => {
-    const p = el("p", null, "W rzucie izometrycznym trzy osie przestrzeni tworzą na rysunku kąty po 120°. " +
-      "Oś pionowa zostaje pionowa, dwie poziome biegną pod kątem 30° do poziomu. Dzięki temu wszystkie trzy " +
-      "wymiary bryły są na rysunku mierzalne w tej samej skali.");
-    b.appendChild(p);
+function stimRow() {
+  const r = el("div", "stimulus");
+  for (let i = 0; i < arguments.length; i++) if (arguments[i]) r.appendChild(arguments[i]);
+  return r;
+}
+function para(b, t) { b.appendChild(el("p", null, t)); }
+function bullets(b, items) {
+  const ul = el("ul");
+  for (const t of items) { const n = el("li"); n.innerHTML = t; ul.appendChild(n); }
+  b.appendChild(ul);
+}
+function noteBox(b, t) { const n = el("div", "note"); n.textContent = t; b.appendChild(n); }
+
+/* ═══ REJESTR LEKCJI ═══
+   Ten sam materiał zasila zakładkę Teoria i moduły kursu. */
+const LESSONS = [
+{
+  id: "osie", title: "Układ osi i rzut izometryczny",
+  build: b => {
+    para(b, "W rzucie izometrycznym trzy osie przestrzeni tworzą na rysunku kąty po 120°. Oś pionowa zostaje pionowa, " +
+      "dwie poziome biegną pod kątem 30° do poziomu. Dzięki temu wszystkie trzy wymiary bryły są na rysunku mierzalne " +
+      "w tej samej skali, w odróżnieniu od rzutu perspektywicznego.");
     const c = el("canvas"); drawIsoAxes(c);
     b.appendChild(figure("osie układu: x w prawo, y w głąb, z w górę", c));
-    const t = el("div", "note");
-    t.textContent = "Wzór rzutowania użyty w aplikacji: ekranX = (x + y) · cos30 · s, ekranY = (x − y) · sin30 · s − z · s. " +
-      "Obserwator stoi z przodu, z prawej i od góry, więc każda kostka pokazuje trzy ściany: górną, przednią i prawą.";
+    noteBox(b, "Wzór rzutowania użyty w aplikacji: ekranX = (x + y) · cos30 · s, ekranY = (x − y) · sin30 · s − z · s. " +
+      "Obserwator stoi z przodu, z prawej i od góry, więc każda kostka pokazuje trzy ściany: górną, przednią i prawą.");
+    para(b, "Uwaga terminologiczna: w izometrii znormalizowanej długości wzdłuż osi są skracane do około 0,816 " +
+      "rzeczywistej długości. W rysunku izometrycznym stosowanym w dydaktyce skrótu się nie stosuje, bo nie wpływa " +
+      "on na kształt, a tylko na wielkość rysunku.");
+  }
+},
+{
+  id: "plan", title: "Plan kodowany — pomost między 2D a 3D",
+  build: b => {
+    para(b, "Plan kodowany to siatka rzutu z góry, w której każde pole zawiera liczbę kostek stojących w tym miejscu. " +
+      "Zapisuje bryłę jednoznacznie i pozwala odczytać ją analitycznie, słupek po słupku, zamiast próbować ogarnąć " +
+      "całość naraz.");
+    b.appendChild(stimRow(planFigure(heightsOf(DEMO_B), "plan kodowany"), isoFigure(DEMO_B, "ta sama bryła", { w: 210, h: 180 })));
+    para(b, "Konwencja przyjęta w aplikacji: górny wiersz planu to tył bryły, dolny — przód. Taka sama jak w rzucie " +
+      "z góry, dzięki czemu plan i rzut z góry mają identyczny zarys.");
+    noteBox(b, "Suma wszystkich liczb w planie to liczba kostek bryły. To najszybszy sposób na sprawdzenie objętości, " +
+      "łącznie z kostkami, których nie widać.");
+  }
+},
+{
+  id: "rzuty", title: "Trzy rzuty prostokątne",
+  build: b => {
+    para(b, "Rzut prostokątny to widok bryły z jednego kierunku, rzutowany prostopadle na płaszczyznę. Trzy rzuty " +
+      "wystarczają do opisania większości brył, bo każdy podaje inną parę wymiarów.");
+    b.appendChild(stimRow(
+      isoFigure(DEMO_B, "bryła", { w: 200, h: 172 }),
+      orthoFigure(orthoView(DEMO_B, "front"), "rzut z przodu", 28),
+      orthoFigure(orthoView(DEMO_B, "top"), "rzut z góry", 28),
+      orthoFigure(orthoView(DEMO_B, "left"), "rzut z lewej", 28)));
+    const t = el("table", "tbl");
+    t.innerHTML = "<tr><th>Rzut</th><th>Kierunek patrzenia</th><th>Co pokazuje</th></tr>" +
+      "<tr><td><b>z przodu</b></td><td>od frontu w głąb</td><td>szerokość i wysokość</td></tr>" +
+      "<tr><td><b>z góry</b></td><td>z góry w dół</td><td>szerokość i głębokość</td></tr>" +
+      "<tr><td><b>z boku</b></td><td>od boku poprzecznie</td><td>głębokość i wysokość</td></tr>";
     b.appendChild(t);
-    b.appendChild(el("p", null, "Uwaga terminologiczna: w izometrii znormalizowanej długości wzdłuż osi są skracane " +
-      "do około 0,816 rzeczywistej długości. W rysunku izometrycznym stosowanym w dydaktyce skrótu się nie stosuje, " +
-      "bo nie wpływa on na kształt, a tylko na wielkość rysunku."));
-  }));
-
-  wrap.appendChild(lesson("2. Plan kodowany — pomost między 2D a 3D", b => {
-    b.appendChild(el("p", null, "Plan kodowany to siatka rzutu z góry, w której każde pole zawiera liczbę kostek " +
-      "stojących w tym miejscu. Zapisuje bryłę jednoznacznie i pozwala odczytać ją analitycznie, słupek po słupku, " +
-      "zamiast próbować ogarnąć całość naraz."));
-    const row = el("div", "stimulus");
-    row.appendChild(planFigure(heightsOf(demo), "plan kodowany"));
-    row.appendChild(isoFigure(demo, "ta sama bryła", { w: 200, h: 172 }));
-    b.appendChild(row);
-    b.appendChild(el("p", null, "Konwencja przyjęta w aplikacji: górny wiersz planu to tył bryły, dolny — przód. " +
-      "Taka sama jak w rzucie z góry, dzięki czemu plan i rzut z góry mają identyczny zarys."));
-  }));
-
-  wrap.appendChild(lesson("3. Rzuty prostokątne i linie uskoków", b => {
-    b.appendChild(el("p", null, "Rzut prostokątny to widok bryły z jednego kierunku, rzutowany prostopadle na płaszczyznę. " +
-      "Gruba linia to zarys zewnętrzny. Cienka linia wewnątrz zarysu oznacza uskok — miejsce, w którym powierzchnia " +
-      "bryły przeskakuje na inną głębokość."));
-    const row = el("div", "stimulus");
-    row.appendChild(isoFigure(demo, "bryła", { w: 200, h: 172 }));
-    row.appendChild(orthoFigure(orthoView(demo, "front"), "rzut z przodu", 30));
-    row.appendChild(orthoFigure(orthoView(demo, "top"), "rzut z góry", 30));
-    row.appendChild(orthoFigure(orthoView(demo, "left"), "rzut z lewej", 30));
-    b.appendChild(row);
-    b.appendChild(el("p", null, "Sam zarys nie wystarcza do odtworzenia bryły. Dopiero uskoki mówią, gdzie materiał " +
-      "cofa się w głąb. To najczęstsze źródło pomyłek przy czytaniu rysunku."));
-  }));
-
-  wrap.appendChild(lesson("4. Metoda pierwszego i trzeciego kąta", b => {
-    b.appendChild(el("p", null, "Obraz każdego rzutu jest w obu metodach taki sam. Różni się wyłącznie ROZMIESZCZENIE " +
-      "rzutów na arkuszu. W metodzie europejskiej (pierwszego kąta) przedmiot znajduje się przed rzutnią, " +
-      "w amerykańskiej (trzeciego kąta) — za rzutnią."));
-    const tb = el("table", "tbl");
-    tb.innerHTML =
-      "<tr><th>Rzut</th><th>Metoda pierwszego kąta (E)</th><th>Metoda trzeciego kąta (A)</th></tr>" +
+    para(b, "Rzut nie pokazuje odległości mierzonej wzdłuż kierunku patrzenia. Dlatego jeden rzut nigdy nie opisuje " +
+      "bryły jednoznacznie: wiele różnych brył ma ten sam rzut z przodu.");
+  }
+},
+{
+  id: "uskoki", title: "Uskoki — dlaczego zarys nie wystarcza",
+  build: b => {
+    para(b, "Gruba linia na rzucie to zarys zewnętrzny. Cienka linia wewnątrz zarysu oznacza uskok: miejsce, " +
+      "w którym powierzchnia bryły przeskakuje na inną głębokość.");
+    const flat = solidFromHeights([[2, 2], [2, 2]]);
+    const step = solidFromHeights([[2, 1], [2, 1]]);
+    b.appendChild(stimRow(
+      isoFigure(flat, "bryła pełna", { w: 180, h: 158 }),
+      orthoFigure(orthoView(flat, "front"), "jej rzut z przodu", 30),
+      isoFigure(step, "bryła z uskokiem", { w: 180, h: 158 }),
+      orthoFigure(orthoView(step, "front"), "jej rzut z przodu", 30)));
+    para(b, "Obie bryły mają identyczny zarys rzutu z przodu. Różni je wyłącznie cienka linia, która mówi, " +
+      "że tylny rząd jest niższy. Bez niej rysunek byłby dwuznaczny.");
+    noteBox(b, "To najczęstsze źródło pomyłek przy czytaniu rysunku technicznego: uczeń patrzy na kształt zarysu " +
+      "i pomija linie wewnętrzne, które niosą informację o głębokości.");
+  }
+},
+{
+  id: "czytanie", title: "Czytanie rzutów: procedura odtworzenia bryły",
+  build: b => {
+    para(b, "Odtworzenie bryły z rzutów nie wymaga zgadywania. Istnieje procedura, która działa zawsze " +
+      "dla brył złożonych z kostek. Wykonuje się ją w trzech krokach.");
+    bullets(b, [
+      "<b>Krok 1 — rzut z góry daje zarys podstawy.</b> Zaznacz w planie te pola, które są wypełnione na rzucie z góry. " +
+        "Pozostałe zostają puste i już się nimi nie zajmujesz.",
+      "<b>Krok 2 — rzut z przodu daje maksymalne wysokości kolumn.</b> Każda kolumna rzutu z przodu odpowiada jednej " +
+        "kolumnie planu. Jej wysokość to najwyższy słupek w tej kolumnie.",
+      "<b>Krok 3 — rzut z boku daje maksymalne wysokości rzędów.</b> Analogicznie, ale dla rzędów planu. " +
+        "Przecięcie obu ograniczeń wyznacza wysokość każdego słupka.",
+    ]);
+    b.appendChild(stimRow(
+      orthoFigure(orthoView(DEMO_B, "top"), "1. zarys podstawy", 28),
+      orthoFigure(orthoView(DEMO_B, "front"), "2. wysokości kolumn", 28),
+      orthoFigure(orthoView(DEMO_B, "left"), "3. wysokości rzędów", 28),
+      planFigure(heightsOf(DEMO_B), "wynik: plan kodowany")));
+    para(b, "Jeżeli po trzech krokach pozostaje niejednoznaczność, decydują linie uskoków. " +
+      "Tryb Buduj w tej aplikacji jest ćwiczeniem dokładnie tej procedury.");
+  }
+},
+{
+  id: "obroty-z", title: "Obroty wokół osi pionowej",
+  build: b => {
+    para(b, "Obrót wokół osi pionowej jest najprostszy, bo bryła pozostaje postawiona: wysokości słupków się " +
+      "nie zmieniają, zmienia się tylko ich rozmieszczenie w planie.");
+    const rot = xform(DEMO_B, XF.rotZ);
+    const sc = sharedIsoScale([DEMO_B, rot], 200, 172, 12);
+    b.appendChild(stimRow(
+      isoFigure(DEMO_B, "przed obrotem", { w: 200, h: 172 }, sc),
+      isoFigure(rot, "po obrocie o 90° w prawo", { w: 200, h: 172 }, sc)));
+    para(b, "Widać to najlepiej na rzucie z góry: obrót bryły w prawo obraca cały rzut z góry w prawo.");
+    b.appendChild(stimRow(
+      orthoFigure(orthoView(DEMO_B, "top"), "rzut z góry przed", 28),
+      orthoFigure(orthoView(rot, "top"), "rzut z góry po", 28)));
+    noteBox(b, "Praktyczna reguła: po obrocie w prawo dotychczasowy rzut z prawej strony staje się nowym rzutem " +
+      "z przodu. Po obrocie w lewo — rzut z lewej strony.");
+  }
+},
+{
+  id: "obroty-xy", title: "Obroty wokół osi poziomych",
+  build: b => {
+    para(b, "Obrót wokół osi poziomej kładzie bryłę na bok albo przechyla ją do przodu. To trudniejszy przypadek, " +
+      "bo zamienia wysokość z głębokością albo z szerokością.");
+    const rot = xform(DEMO_A, XF.rotX);
+    const sc = sharedIsoScale([DEMO_A, rot], 200, 172, 12);
+    b.appendChild(stimRow(
+      isoFigure(DEMO_A, "przed obrotem", { w: 200, h: 172 }, sc),
+      isoFigure(rot, "po przechyleniu do przodu", { w: 200, h: 172 }, sc)));
+    noteBox(b, "Po takim obrocie bryła może mieć nawisy, czyli kostki wiszące nad pustką. Plan kodowany przestaje " +
+      "wtedy wystarczać do jej opisania — a to dobra ilustracja tego, że plan jest wygodnym skrótem, nie pełnym zapisem.");
+    bullets(b, [
+      "<b>Przechylenie do przodu</b> — góra bryły jedzie w Twoją stronę, tył wędruje do góry.",
+      "<b>Przechylenie do tyłu</b> — odwrotnie, przód wędruje pod spód.",
+      "<b>Położenie na bok</b> — obrót wokół osi biegnącej w głąb, wysokość zamienia się z szerokością.",
+    ]);
+    para(b, "Strategia, która działa: wybierz jeden narożnik, najlepiej wierzchołek najwyższego słupka, " +
+      "i ustal, gdzie trafia po obrocie. Reszta bryły ułoży się względem niego.");
+  }
+},
+{
+  id: "odbicia", title: "Odbicia i symetria",
+  build: b => {
+    para(b, "Odbicie lustrzane zamienia stronę lewą z prawą. Kluczowa własność: bryły chiralnej nie da się " +
+      "nałożyć na jej odbicie żadnym obrotem. To najczęstsza pułapka w zadaniach przestrzennych.");
+    const mir = xform(DEMO_B, XF.mirX);
+    const rot180 = xform(DEMO_B, XF.rotZ, 2);
+    const sc = sharedIsoScale([DEMO_B, mir, rot180], 190, 164, 12);
+    b.appendChild(stimRow(
+      isoFigure(DEMO_B, "oryginał", { w: 190, h: 164 }, sc),
+      isoFigure(mir, "odbicie lustrzane", { w: 190, h: 164 }, sc),
+      isoFigure(rot180, "obrót o 180°", { w: 190, h: 164 }, sc)));
+    para(b, "Środkowa i prawa bryła bywają mylone, bo obie wyglądają jak „odwrócony oryginał”. " +
+      "Tylko środkowa jest odbiciem. Prawa to nadal ta sama bryła, ustawiona inaczej.");
+    noteBox(b, "Test na odróżnienie: policz kostki wzdłuż jednej krawędzi, idąc od lewej. Obrót zachowa tę kolejność " +
+      "przy odpowiednim ustawieniu, odbicie odwróci ją zawsze.");
+  }
+},
+{
+  id: "przekroje", title: "Przekroje brył",
+  build: b => {
+    para(b, "Przekrój pokazuje tylko materiał leżący dokładnie w płaszczyźnie cięcia. Nie jest widokiem: " +
+      "nie widać na nim tego, co leży za płaszczyzną ani przed nią.");
+    b.appendChild(stimRow(
+      isoFigure(DEMO_B, "bryła", { w: 200, h: 172 }),
+      planFigure(heightsOf(DEMO_B), "plan kodowany"),
+      orthoFigure(sectionView(DEMO_B, "y", 0), "przekrój przez 1. rząd od przodu", 28),
+      orthoFigure(sectionView(DEMO_B, "y", 1), "przekrój przez 2. rząd", 28)));
+    para(b, "Przy cięciu płaszczyzną pionową równoległą do rzutu z przodu wynik odczytuje się wprost z planu: " +
+      "bierzesz jeden rząd planu i rysujesz słupki o podanych wysokościach.");
+    noteBox(b, "Dlatego przekrój przez pierwszy rząd bywa identyczny z rzutem z przodu, ale tylko wtedy, gdy nic " +
+      "za nim nie wystaje ponad ten rząd. W innym wypadku rzut pokaże więcej niż przekrój.");
+  }
+},
+{
+  id: "metoda", title: "Metoda pierwszego i trzeciego kąta",
+  build: b => {
+    para(b, "Obraz każdego rzutu jest w obu metodach taki sam. Różni się wyłącznie ROZMIESZCZENIE rzutów na arkuszu. " +
+      "W metodzie europejskiej (pierwszego kąta) przedmiot znajduje się przed rzutnią, w amerykańskiej " +
+      "(trzeciego kąta) — za rzutnią.");
+    const t = el("table", "tbl");
+    t.innerHTML = "<tr><th>Rzut</th><th>Metoda pierwszego kąta (E)</th><th>Metoda trzeciego kąta (A)</th></tr>" +
       "<tr><td><b>z góry</b></td><td>pod rzutem głównym</td><td>nad rzutem głównym</td></tr>" +
       "<tr><td><b>z lewej strony</b></td><td>po prawej stronie</td><td>po lewej stronie</td></tr>" +
       "<tr><td><b>z prawej strony</b></td><td>po lewej stronie</td><td>po prawej stronie</td></tr>";
-    b.appendChild(tb);
-    const row = el("div", "stimulus");
-    row.appendChild(viewsLayout(demo, "E", "left"));
-    row.appendChild(viewsLayout(demo, "A", "right"));
-    b.appendChild(row);
-    const n = el("div", "note");
-    n.textContent = "Ten sam rysunek odczytany w niewłaściwej konwencji daje inną bryłę. Dlatego norma PN-EN ISO 5456-2 " +
+    b.appendChild(t);
+    b.appendChild(stimRow(viewsLayout(DEMO_A, "E", "left"), viewsLayout(DEMO_A, "A", "right")));
+    noteBox(b, "Ten sam rysunek odczytany w niewłaściwej konwencji daje inną bryłę. Dlatego norma PN-EN ISO 5456-2 " +
       "wymaga umieszczenia na rysunku symbolu graficznego zastosowanej metody — rzutu ściętego stożka. " +
-      "Polska i Europa stosują metodę pierwszego kąta, Ameryka Północna trzeciego.";
-    b.appendChild(n);
-  }));
+      "Polska i Europa stosują metodę pierwszego kąta, Ameryka Północna trzeciego.");
+  }
+},
+{
+  id: "strategie", title: "Strategie rozwiązywania zadań",
+  build: b => {
+    para(b, "Badania nad wyobraźnią przestrzenną wyróżniają dwa style pracy. Oba są potrzebne.");
+    bullets(b, [
+      "<b>Całościowy</b> — obracasz bryłę w wyobraźni jako jeden obiekt. Szybki, ale zawodzi przy bryłach złożonych.",
+      "<b>Analityczny</b> — śledzisz pojedynczy element: jeden narożnik, jedną ścianę, jeden słupek. Wolniejszy, " +
+        "ale niezawodny. To on ratuje przy trudnych zadaniach.",
+    ]);
+    para(b, "Praktyczne wskazówki, które warto stosować przy zadaniach w tym trenerze:");
+    bullets(b, [
+      "Przy obrotach wybierz <b>jeden charakterystyczny narożnik</b> i sprawdź, gdzie trafia.",
+      "Przy czytaniu rzutów zacznij od <b>rzutu z góry</b>: on podaje zarys podstawy.",
+      "Potem <b>rzut z przodu</b> podaje maksymalne wysokości w kolumnach, a rzut boczny — w rzędach.",
+      "Odbicie lustrzane <b>nigdy</b> nie jest obrotem. Jeśli bryła wygląda znajomo, ale coś się nie zgadza, sprawdź stronę.",
+      "Przy liczeniu kostek sumuj plan kodowany, nie licz tego, co widać.",
+    ]);
+  }
+},
+{
+  id: "trener", title: "Jak ten trener rozkłada naukę w czasie",
+  build: b => {
+    para(b, "Program nie podaje zadań po kolei tematami. Robi trzy rzeczy naraz, zgodnie z wynikami badań nad uczeniem się:");
+    bullets(b, [
+      "<b>Przeplata typy zadań</b> — dwa razy z rzędu ta sama umiejętność nie wystąpi. Utrudnia to naukę w trakcie, " +
+        "ale poprawia trwałość i przenoszenie umiejętności na nowe przypadki.",
+      "<b>Rozkłada powtórki w czasie</b> — każda umiejętność ma własny licznik. Po poprawnej odpowiedzi odstęp do " +
+        "kolejnej powtórki rośnie, po błędnej wraca do zera.",
+      "<b>Dobiera trudność</b> — poziom rośnie przy skuteczności powyżej 85% i spada poniżej 60%, żeby zadania " +
+        "utrzymywały się w okolicy 75–85% trafień.",
+    ]);
+    para(b, "Kurs w zakładce Kurs prowadzi przez materiał po kolei i sprawdza każdy moduł osobno. Zakładka Trening " +
+      "robi coś innego: miesza wszystko, co już umiesz, i pilnuje powtórek. Oba tryby są potrzebne — kurs buduje " +
+      "wiedzę, trening ją utrwala.");
+    para(b, "Pełne uzasadnienie i lista źródeł znajdują się w pliku METODYKA.md w repozytorium.");
+  }
+},
+];
 
-  wrap.appendChild(lesson("5. Strategie rozwiązywania zadań", b => {
-    b.appendChild(el("p", null, "Badania nad wyobraźnią przestrzenną wyróżniają dwa style pracy. Oba są potrzebne."));
-    const ul = el("ul");
-    const li = (t) => { const n = el("li"); n.innerHTML = t; ul.appendChild(n); };
-    li("<b>Całościowy</b> — obracasz bryłę w wyobraźni jako jeden obiekt. Szybki, ale zawodzi przy bryłach złożonych.");
-    li("<b>Analityczny</b> — śledzisz pojedynczy element: jeden narożnik, jedną ścianę, jeden słupek. Wolniejszy, " +
-       "ale niezawodny. To on ratuje przy trudnych zadaniach.");
-    b.appendChild(ul);
-    b.appendChild(el("p", null, "Praktyczne wskazówki, które warto stosować przy zadaniach w tym trenerze:"));
-    const ul2 = el("ul");
-    const li2 = (t) => { const n = el("li"); n.innerHTML = t; ul2.appendChild(n); };
-    li2("Przy obrotach wybierz <b>jeden charakterystyczny narożnik</b> — na przykład najwyższy słupek — i sprawdź, gdzie trafia.");
-    li2("Przy czytaniu rzutów zacznij od <b>rzutu z góry</b>: on podaje zarys podstawy, czyli które pola planu są zajęte.");
-    li2("Potem <b>rzut z przodu</b> podaje maksymalne wysokości w kolumnach, a rzut boczny — maksymalne wysokości w rzędach.");
-    li2("Odbicie lustrzane <b>nigdy</b> nie jest obrotem. Jeśli bryła wygląda znajomo, ale coś się nie zgadza, sprawdź stronę.");
-    b.appendChild(ul2);
-  }));
+const LESSON_BY_ID = {};
+for (const L of LESSONS) LESSON_BY_ID[L.id] = L;
 
-  wrap.appendChild(lesson("6. Jak ten trener rozkłada naukę w czasie", b => {
-    b.appendChild(el("p", null, "Program nie podaje zadań po kolei tematami. Robi trzy rzeczy naraz, zgodnie z wynikami " +
-      "badań nad uczeniem się:"));
-    const ul = el("ul");
-    const li = (t) => { const n = el("li"); n.innerHTML = t; ul.appendChild(n); };
-    li("<b>Przeplata typy zadań</b> — dwa razy z rzędu ta sama umiejętność nie wystąpi. Utrudnia to naukę w trakcie, " +
-       "ale poprawia trwałość i przenoszenie umiejętności na nowe przypadki.");
-    li("<b>Rozkłada powtórki w czasie</b> — każda umiejętność ma własny licznik. Po poprawnej odpowiedzi odstęp do " +
-       "kolejnej powtórki rośnie, po błędnej wraca do zera.");
-    li("<b>Dobiera trudność</b> — poziom rośnie przy skuteczności powyżej 85% i spada poniżej 60%, żeby zadania " +
-       "utrzymywały się w okolicy 75–85% trafień.");
-    b.appendChild(ul);
-    b.appendChild(el("p", null, "Dlatego krótkie, regularne sesje działają lepiej niż jedna długa. Pełne uzasadnienie " +
-      "i lista źródeł znajdują się w pliku METODYKA.md w repozytorium."));
-  }));
-
-  root.appendChild(wrap);
+function renderLessons(container, ids, openAll) {
+  const wrap = el("div", "card pad0");
+  const list = ids ? ids.map(i => LESSON_BY_ID[i]).filter(Boolean) : LESSONS;
+  list.forEach((L, i) => {
+    const num = ids ? "" : (LESSONS.indexOf(L) + 1) + ". ";
+    const box = lesson(num + L.title, L.build);
+    if (openAll) box.classList.add("open");
+    wrap.appendChild(box);
+  });
+  container.appendChild(wrap);
+  return wrap;
 }
+
+function screenTeoria(root) { renderLessons(root, null, false); }
 
 /* ═══════════════════════════════════════════════════════════════
    CZĘŚĆ 15 — POSTĘPY I USTAWIENIA
@@ -1703,6 +1924,7 @@ function screenPostepy(root) {
     try { localStorage.removeItem(STORE_KEY); } catch (e) {}
     State.skills = {}; State.seen = 0; State.ok = 0; State.streak = 0; State.best = 0;
     State.recent = []; State.lastSkills = []; State.diag = null; State.sessions = 0; State.level = 2;
+    State.course = { mods: {}, exam: null }; UI.module = null;
     for (const id of SKILL_IDS) skillOf(id);
     save(); render();
   };
@@ -1720,6 +1942,7 @@ function screenPostepy(root) {
    ═══════════════════════════════════════════════════════════════ */
 
 const TABS = [
+  ["kurs",    "Kurs"],
   ["trening", "Trening"],
   ["buduj",   "Buduj"],
   ["teoria",  "Teoria"],
@@ -1756,10 +1979,358 @@ function render() {
   renderNav();
   const root = $("#view");
   root.innerHTML = "";
-  if (UI.screen === "trening")      screenTrening(root);
+  if (UI.screen === "kurs")         screenKurs(root);
+  else if (UI.screen === "trening") screenTrening(root);
   else if (UI.screen === "buduj")   screenBuduj(root);
   else if (UI.screen === "teoria")  screenTeoria(root);
   else                              screenPostepy(root);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 16 — KURS
+
+   Ścieżka prowadzona: 10 modułów w ustalonej kolejności, każdy
+   zamknięty sprawdzianem, plus egzamin końcowy. Układ modułów
+   odwzorowuje strukturę kursu "Developing Spatial Thinking"
+   (rysunki izometryczne, rzuty, obroty, odbicia, przekroje),
+   przycięty do tego, czego ten silnik potrafi uczciwie uczyć.
+   Trening obok kursu robi co innego: miesza i utrwala.
+   ═══════════════════════════════════════════════════════════════ */
+
+const COURSE = [
+  { id: "m1", title: "Układ osi i rzut izometryczny", time: "10 min",
+    goal: "Odczytasz osie rzutu izometrycznego i policzysz kostki bryły razem z tymi, których nie widać.",
+    lessons: ["osie"],
+    drill: [{ skill: "liczenie", n: 5, level: 2 }],
+    test:  [{ skill: "liczenie", n: 6, level: 3 }], pass: 5 },
+
+  { id: "m2", title: "Plan kodowany", time: "12 min",
+    goal: "Zamienisz plan kodowany na bryłę i z powrotem. To podstawowy zapis używany w całym kursie.",
+    lessons: ["plan"],
+    drill: [{ skill: "plan-bryla", n: 4, level: 2 }, { skill: "liczenie", n: 2, level: 3 }],
+    test:  [{ skill: "plan-bryla", n: 6, level: 3 }], pass: 5 },
+
+  { id: "m3", title: "Trzy rzuty prostokątne", time: "12 min",
+    goal: "Wskażesz, jak wygląda rzut z przodu, z góry i z boku dla zadanej bryły.",
+    lessons: ["rzuty"],
+    drill: [{ skill: "bryla-rzut", n: 6, level: 2, opts: { kinds: ["front", "top"] } }],
+    test:  [{ skill: "bryla-rzut", n: 6, level: 3 }], pass: 5 },
+
+  { id: "m4", title: "Uskoki i linie wewnętrzne", time: "12 min",
+    goal: "Odróżnisz bryły o identycznym zarysie po samych liniach uskoków.",
+    lessons: ["uskoki"],
+    drill: [{ skill: "bryla-rzut", n: 6, level: 4 }],
+    test:  [{ skill: "bryla-rzut", n: 6, level: 4 }], pass: 5 },
+
+  { id: "m5", title: "Czytanie rzutów: od rysunku do bryły", time: "15 min",
+    goal: "Odtworzysz bryłę z trzech rzutów, stosując procedurę: podstawa, kolumny, rzędy.",
+    lessons: ["czytanie", "strategie"],
+    drill: [{ skill: "rzuty-bryla", n: 5, level: 3 }],
+    test:  [{ skill: "rzuty-bryla", n: 6, level: 4 }], pass: 5,
+    tip: "Po sprawdzianie przejdź do zakładki Buduj. Konstruowanie bryły utrwala tę umiejętność mocniej niż wybór z listy." },
+
+  { id: "m6", title: "Obroty wokół osi pionowej", time: "12 min",
+    goal: "Przewidzisz wygląd bryły po obrocie o 90° w prawo lub w lewo, patrząc z góry.",
+    lessons: ["obroty-z"],
+    drill: [{ skill: "obrot", n: 5, level: 3, opts: { axes: ["z"] } }],
+    test:  [{ skill: "obrot", n: 6, level: 4, opts: { axes: ["z"] } }], pass: 5 },
+
+  { id: "m7", title: "Obroty wokół osi poziomych", time: "15 min",
+    goal: "Poradzisz sobie z przechyleniem bryły do przodu, do tyłu i położeniem jej na bok.",
+    lessons: ["obroty-xy"],
+    drill: [{ skill: "obrot", n: 5, level: 3, opts: { axes: ["x", "y"] } }],
+    test:  [{ skill: "obrot", n: 6, level: 4, opts: { axes: ["x", "y"] } }], pass: 5 },
+
+  { id: "m8", title: "Odbicia i symetria", time: "12 min",
+    goal: "Odróżnisz odbicie lustrzane od obrotu — najczęstszą pułapkę w zadaniach przestrzennych.",
+    lessons: ["odbicia"],
+    drill: [{ skill: "odbicie", n: 5, level: 3 }],
+    test:  [{ skill: "odbicie", n: 6, level: 4 }], pass: 5 },
+
+  { id: "m9", title: "Przekroje brył", time: "12 min",
+    goal: "Wyznaczysz przekrój bryły płaszczyzną pionową i poziomą.",
+    lessons: ["przekroje"],
+    drill: [{ skill: "przekroj", n: 5, level: 3, opts: { cuts: ["y", "x"] } }],
+    test:  [{ skill: "przekroj", n: 6, level: 4 }], pass: 5 },
+
+  { id: "m10", title: "Norma: metoda pierwszego i trzeciego kąta", time: "12 min",
+    goal: "Rozmieścisz rzuty zgodnie z PN-EN ISO 5456-2 i odczytasz rysunek w obu konwencjach.",
+    lessons: ["metoda"],
+    drill: [{ skill: "uklad", n: 4 }, { skill: "rzuty-bryla", n: 2, level: 3 }],
+    test:  [{ skill: "uklad", n: 6 }], pass: 5 },
+];
+
+const COURSE_BY_ID = {};
+for (const m of COURSE) COURSE_BY_ID[m.id] = m;
+
+const EXAM = {
+  pass: 9,
+  specs: [
+    { skill: "liczenie",    n: 1, level: 4 },
+    { skill: "plan-bryla",  n: 2, level: 4 },
+    { skill: "bryla-rzut",  n: 2, level: 4 },
+    { skill: "rzuty-bryla", n: 2, level: 4 },
+    { skill: "obrot",       n: 1, level: 4, opts: { axes: ["z"] } },
+    { skill: "obrot",       n: 1, level: 5, opts: { axes: ["x", "y"] } },
+    { skill: "odbicie",     n: 1, level: 4 },
+    { skill: "przekroj",    n: 1, level: 4 },
+    { skill: "uklad",       n: 1 },
+  ],
+};
+
+function courseProgress(id) {
+  if (!State.course.mods[id]) State.course.mods[id] = { drill: false, best: 0, passed: false };
+  return State.course.mods[id];
+}
+function moduleIndex(id) { for (let i = 0; i < COURSE.length; i++) if (COURSE[i].id === id) return i; return -1; }
+function moduleUnlocked(i) { return i === 0 || courseProgress(COURSE[i - 1].id).passed; }
+function passedCount() { let n = 0; for (const m of COURSE) if (courseProgress(m.id).passed) n++; return n; }
+function examUnlocked() { return passedCount() === COURSE.length; }
+function courseDone() { return !!(State.course.exam && State.course.exam.passed); }
+
+function expandQueue(specs, mix) {
+  const out = [];
+  for (const sp of specs) for (let i = 0; i < sp.n; i++) out.push({ skill: sp.skill, level: sp.level, opts: sp.opts });
+  return mix ? shuffle(out) : out;
+}
+
+/* ── Ekran główny kursu ── */
+function screenKurs(root) {
+  if (Session.active && String(Session.mode).indexOf("kurs") === 0) {
+    root.appendChild(courseSessionBar());
+    renderQuestion(root);
+    return;
+  }
+  if (Session.summary && String(Session.summary.mode).indexOf("kurs") === 0) { courseSummary(root); return; }
+  if (UI.module) { moduleDetail(root, UI.module); return; }
+  syllabus(root);
+}
+
+function courseSessionBar() {
+  const m = COURSE_BY_ID[Session.moduleId];
+  const stage = Session.mode === "kurs-drill" ? "Ćwiczenia" : Session.mode === "kurs-test" ? "Sprawdzian" : "Egzamin końcowy";
+  const c = el("div", "card");
+  const row = el("div", "row");
+  row.appendChild(el("div", "q-tag", stage));
+  row.appendChild(el("b", null, m ? m.title : "Egzamin końcowy"));
+  row.appendChild(el("div", "spacer"));
+  const stop = el("button", "btn ghost sm", "Przerwij");
+  stop.onclick = () => {
+    Session.active = false; Session.summary = null;
+    UI.module = Session.moduleId; render();
+  };
+  row.appendChild(stop);
+  row.style.alignItems = "center";
+  c.appendChild(row);
+  c.style.padding = "14px 18px";
+  return c;
+}
+
+/* ── Spis modułów ── */
+function syllabus(root) {
+  const done = passedCount();
+
+  const intro = el("div", "card");
+  intro.appendChild(el("h1", null, "Kurs izometryki"));
+  intro.appendChild(el("p", "lead",
+    "Dziesięć modułów w ustalonej kolejności, każdy zamknięty sprawdzianem, na końcu egzamin. " +
+    "Kolejny moduł otwiera się po zaliczeniu poprzedniego. Całość zajmuje około dwóch godzin."));
+  const bar = el("div", "bar good");
+  bar.style.margin = "16px 0 8px";
+  const fill = el("i"); fill.style.width = (done / COURSE.length * 100) + "%"; bar.appendChild(fill);
+  intro.appendChild(bar);
+  intro.appendChild(el("div", "muted", "Zaliczone moduły: " + done + " z " + COURSE.length +
+    (courseDone() ? " · kurs ukończony" : "")));
+  root.appendChild(intro);
+
+  if (courseDone()) root.appendChild(certificate());
+
+  const list = el("div", "card");
+  COURSE.forEach((m, i) => {
+    const pr = courseProgress(m.id);
+    const unlocked = moduleUnlocked(i);
+    const row = el("div", "mod" + (pr.passed ? " done" : "") + (unlocked ? "" : " locked"));
+    row.appendChild(el("div", "mod-num", pr.passed ? "✓" : String(i + 1)));
+    const body = el("div", "mod-body");
+    body.appendChild(el("div", "mod-title", m.title));
+    body.appendChild(el("div", "mod-meta", m.time + " · " +
+      (pr.passed ? "sprawdzian " + pr.best + "/" + (m.test.reduce((a, t) => a + t.n, 0)) :
+       unlocked ? "gotowy do rozpoczęcia" : "wymaga zaliczenia modułu " + i)));
+    row.appendChild(body);
+    const badge = el("div", "mod-badge " + (pr.passed ? "badge-done" : unlocked ? "badge-open" : "badge-lock"),
+      pr.passed ? "zaliczony" : unlocked ? "otwarty" : "zamknięty");
+    row.appendChild(badge);
+    if (unlocked) row.onclick = () => { UI.module = m.id; render(); };
+    list.appendChild(row);
+  });
+
+  // Egzamin końcowy
+  const ex = State.course.exam;
+  const exOpen = examUnlocked();
+  const exRow = el("div", "mod" + (courseDone() ? " done" : "") + (exOpen ? "" : " locked"));
+  exRow.appendChild(el("div", "mod-num", courseDone() ? "✓" : "★"));
+  const eb = el("div", "mod-body");
+  eb.appendChild(el("div", "mod-title", "Egzamin końcowy"));
+  eb.appendChild(el("div", "mod-meta", "12 zadań ze wszystkich modułów · próg zaliczenia " + EXAM.pass + "/12" +
+    (ex ? " · najlepszy wynik " + ex.score + "/" + ex.total : "")));
+  exRow.appendChild(eb);
+  exRow.appendChild(el("div", "mod-badge " + (courseDone() ? "badge-done" : exOpen ? "badge-open" : "badge-lock"),
+    courseDone() ? "zdany" : exOpen ? "otwarty" : "zamknięty"));
+  if (exOpen) exRow.onclick = () => startSession({ mode: "kurs-exam", queue: expandQueue(EXAM.specs, true) });
+  list.appendChild(exRow);
+  root.appendChild(list);
+}
+
+/* ── Widok pojedynczego modułu ── */
+function moduleDetail(root, id) {
+  const m = COURSE_BY_ID[id];
+  const i = moduleIndex(id);
+  const pr = courseProgress(id);
+  const testTotal = m.test.reduce((a, t) => a + t.n, 0);
+  const drillTotal = m.drill.reduce((a, t) => a + t.n, 0);
+
+  const head = el("div", "card");
+  const back = el("button", "btn ghost sm", "← Spis modułów");
+  back.onclick = () => { UI.module = null; render(); };
+  head.appendChild(back);
+  const h = el("h1"); h.style.marginTop = "14px";
+  h.textContent = "Moduł " + (i + 1) + ". " + m.title;
+  head.appendChild(h);
+  head.appendChild(el("div", "muted", m.time + (pr.passed ? " · moduł zaliczony" : "")));
+  const goal = el("div", "note");
+  goal.textContent = "Cel: " + m.goal;
+  head.appendChild(goal);
+  root.appendChild(head);
+
+  const th = el("div", "card");
+  th.appendChild(el("h3", null, "1. Teoria"));
+  th.style.paddingBottom = "6px";
+  root.appendChild(th);
+  renderLessons(root, m.lessons, true);
+
+  const act = el("div", "card");
+  act.appendChild(el("h3", null, "2. Ćwiczenia i sprawdzian"));
+  act.appendChild(el("p", null,
+    "Ćwiczenia (" + drillTotal + " zadań) mają informację zwrotną po każdej odpowiedzi i nie są oceniane. " +
+    "Sprawdzian (" + testTotal + " zadań) wymaga " + m.pass + " poprawnych odpowiedzi, żeby otworzyć kolejny moduł."));
+  const row = el("div", "row mt");
+  const bd = el("button", "btn" + (pr.drill ? " ghost" : ""), (pr.drill ? "Powtórz ćwiczenia" : "Ćwiczenia") + " (" + drillTotal + ")");
+  bd.onclick = () => startSession({ mode: "kurs-drill", moduleId: id, queue: expandQueue(m.drill, false) });
+  row.appendChild(bd);
+  const bt = el("button", "btn" + (pr.drill ? "" : " ghost"), (pr.passed ? "Popraw sprawdzian" : "Sprawdzian") + " (" + testTotal + ")");
+  bt.onclick = () => startSession({ mode: "kurs-test", moduleId: id, queue: expandQueue(m.test, true) });
+  row.appendChild(bt);
+  act.appendChild(row);
+  if (!pr.drill) act.appendChild(el("div", "muted", "Zalecana kolejność: najpierw ćwiczenia, potem sprawdzian."));
+  if (pr.best) act.appendChild(el("div", "muted", "Najlepszy wynik sprawdzianu: " + pr.best + " / " + testTotal + "."));
+  if (m.tip) { const t = el("div", "note"); t.textContent = m.tip; act.appendChild(t); }
+  root.appendChild(act);
+}
+
+/* ── Podsumowanie etapu kursu ── */
+function courseSummary(root) {
+  const s = Session.summary;
+  const m = COURSE_BY_ID[s.moduleId];
+  const i = m ? moduleIndex(m.id) : -1;
+  const card = el("div", "card center");
+  const back = () => { Session.summary = null; };
+
+  if (s.mode === "kurs-drill") {
+    card.appendChild(el("h2", null, "Ćwiczenia zakończone"));
+    const big = el("div", "stat-n", s.ok + " / " + s.len); big.style.fontSize = "42px";
+    card.appendChild(big);
+    card.appendChild(el("p", null, "Ćwiczenia nie są oceniane. Gdy czujesz się pewnie, przejdź do sprawdzianu."));
+    const row = el("div", "row center mt"); row.style.justifyContent = "center";
+    const b1 = el("button", "btn", "Sprawdzian (" + m.test.reduce((a, t) => a + t.n, 0) + ")");
+    b1.onclick = () => { back(); startSession({ mode: "kurs-test", moduleId: m.id, queue: expandQueue(m.test, true) }); };
+    row.appendChild(b1);
+    const b2 = el("button", "btn ghost", "Powtórz ćwiczenia");
+    b2.onclick = () => { back(); startSession({ mode: "kurs-drill", moduleId: m.id, queue: expandQueue(m.drill, false) }); };
+    row.appendChild(b2);
+    const b3 = el("button", "btn ghost", "Wróć do modułu");
+    b3.onclick = () => { back(); UI.module = m.id; render(); };
+    row.appendChild(b3);
+    card.appendChild(row);
+
+  } else if (s.mode === "kurs-test") {
+    const ok = s.ok >= m.pass;
+    card.appendChild(el("h2", null, ok ? "Moduł zaliczony" : "Sprawdzian niezaliczony"));
+    const big = el("div", "stat-n", s.ok + " / " + s.len);
+    big.style.fontSize = "42px"; big.style.color = ok ? "var(--good)" : "var(--bad)";
+    card.appendChild(big);
+    card.appendChild(el("p", null, ok
+      ? "Próg wynosił " + m.pass + ". Kolejny moduł jest już otwarty."
+      : "Do zaliczenia brakuje " + (m.pass - s.ok) + " poprawnych odpowiedzi. Wróć do ćwiczeń i spróbuj ponownie."));
+    const row = el("div", "row center mt"); row.style.justifyContent = "center";
+    if (ok && i + 1 < COURSE.length) {
+      const b1 = el("button", "btn", "Moduł " + (i + 2) + ": " + COURSE[i + 1].title);
+      b1.onclick = () => { back(); UI.module = COURSE[i + 1].id; render(); };
+      row.appendChild(b1);
+    } else if (ok && examUnlocked()) {
+      const b1 = el("button", "btn", "Egzamin końcowy");
+      b1.onclick = () => { back(); startSession({ mode: "kurs-exam", queue: expandQueue(EXAM.specs, true) }); };
+      row.appendChild(b1);
+    }
+    const b2 = el("button", "btn" + (ok ? " ghost" : ""), ok ? "Powtórz sprawdzian" : "Powtórz ćwiczenia");
+    b2.onclick = () => {
+      back();
+      if (ok) startSession({ mode: "kurs-test", moduleId: m.id, queue: expandQueue(m.test, true) });
+      else    startSession({ mode: "kurs-drill", moduleId: m.id, queue: expandQueue(m.drill, false) });
+    };
+    row.appendChild(b2);
+    const b3 = el("button", "btn ghost", "Spis modułów");
+    b3.onclick = () => { back(); UI.module = null; render(); };
+    row.appendChild(b3);
+    card.appendChild(row);
+
+  } else {
+    const ok = s.ok >= EXAM.pass;
+    card.appendChild(el("h2", null, ok ? "Egzamin zdany" : "Egzamin niezaliczony"));
+    const big = el("div", "stat-n", s.ok + " / " + s.len);
+    big.style.fontSize = "42px"; big.style.color = ok ? "var(--good)" : "var(--bad)";
+    card.appendChild(big);
+    card.appendChild(el("p", null, ok
+      ? "Kurs ukończony. Certyfikat znajdziesz na stronie spisu modułów."
+      : "Próg wynosi " + EXAM.pass + " z " + s.len + ". Wróć do modułów, w których idzie Ci najsłabiej — pokazuje je zakładka Postępy."));
+    const row = el("div", "row center mt"); row.style.justifyContent = "center";
+    const b1 = el("button", "btn", ok ? "Zobacz certyfikat" : "Spis modułów");
+    b1.onclick = () => { back(); UI.module = null; render(); };
+    row.appendChild(b1);
+    if (!ok) {
+      const b2 = el("button", "btn ghost", "Powtórz egzamin");
+      b2.onclick = () => { back(); startSession({ mode: "kurs-exam", queue: expandQueue(EXAM.specs, true) }); };
+      row.appendChild(b2);
+    }
+    card.appendChild(row);
+  }
+  root.appendChild(card);
+}
+
+/* ── Certyfikat ── */
+function certificate() {
+  const ex = State.course.exam;
+  const box = el("div", "card");
+  const c = el("div", "cert");
+  c.appendChild(el("div", "cert-seal", "◆"));
+  c.appendChild(el("h2", null, "KURS UKOŃCZONY"));
+  c.appendChild(el("div", "meta", "Izometryka i czytanie rysunku technicznego"));
+  c.appendChild(el("div", "who", "Zaliczono " + COURSE.length + " modułów oraz egzamin końcowy"));
+  const d = new Date(ex.date);
+  c.appendChild(el("div", "meta", "Wynik egzaminu: " + ex.score + " / " + ex.total +
+    " · data: " + d.toLocaleDateString("pl-PL")));
+  if (State.diag) {
+    const pre = Math.round(State.diag.score / State.diag.total * 100);
+    const post = Math.round(ex.score / ex.total * 100);
+    c.appendChild(el("div", "meta", "Test wstępny " + pre + "% → egzamin " + post + "%" +
+      (post > pre ? " (przyrost " + (post - pre) + " pkt proc.)" : "")));
+  }
+  box.appendChild(c);
+  const row = el("div", "row mt"); row.style.justifyContent = "center";
+  const pr = el("button", "btn ghost sm", "Drukuj / zapisz PDF");
+  pr.onclick = () => window.print();
+  row.appendChild(pr);
+  box.appendChild(row);
+  return box;
 }
 
 load();

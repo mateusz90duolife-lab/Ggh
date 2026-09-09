@@ -174,7 +174,47 @@ zadania sprawdzający samo rozmieszczenie rzutów.
 
 ---
 
-## 9. Czego aplikacja świadomie nie robi
+## 9. Kurs liniowy obok treningu przeplatanego
+
+To jest jedyne miejsce, w którym dwie dobrze udokumentowane zasady stoją
+naprzeciw siebie, więc wymaga wyjaśnienia.
+
+**Przeplatanie wygrywa z blokowaniem.** Mieszanie typów zadań daje gorsze
+wyniki w trakcie nauki, ale lepszy transfer i trwalszą pamięć niż ćwiczenie
+jednego typu w bloku.
+
+**A jednak kurs prowadzi po kolei.** Materiał ułożony tematycznie, moduł po
+module, to z definicji praktyka blokowa.
+
+Sprzeczność jest pozorna, bo obie zasady odpowiadają na inne pytanie.
+Przeplatanie dotyczy **utrwalania** czegoś, co się już rozumie. Kolejność
+tematyczna dotyczy **budowania** rozumienia od zera. Nie da się przeplatać
+przekrojów z obrotami, zanim uczeń wie, czym jest plan kodowany.
+
+Stąd podział ról w aplikacji:
+
+| Tryb | Rola | Kolejność zadań |
+| --- | --- | --- |
+| **Kurs** | zbudować rozumienie po kolei | blokowa, temat po temacie |
+| **Trening** | utrwalić i utrzymać | przeplatana, sterowana powtórkami |
+
+Kurs ma dziesięć modułów odwzorowujących strukturę materiału Sorby
+(rysunki izometryczne, rzuty, obroty, odbicia, przekroje). Każdy zamyka
+sprawdzanie na progu 5 z 6, które otwiera kolejny moduł. Egzamin końcowy
+miesza wszystkie umiejętności — i to jest już zadanie przeplatane, bo na
+tym etapie sprawdzamy transfer, a nie naukę.
+
+Odpowiedzi udzielone w kursie zasilają ten sam model ucznia co trening,
+więc po ukończeniu kursu harmonogram powtórek jest już gotowy i tryb
+Trening wie, co komu przypominać.
+
+Uczciwa uwaga o czasie: kurs to około dwóch godzin, a badania mówią
+o 15–20 godzinach treningu. Kurs jest rusztowaniem, nie całą nauką.
+Objętość ma dostarczyć tryb Trening używany regularnie.
+
+---
+
+## 10. Czego aplikacja świadomie nie robi
 
 - **Nie zastępuje klocków.** Badania wskazują konstruowanie fizyczne jako
   pierwszy etap. Tryb Buduj jest jego namiastką, nie zamiennikiem.
