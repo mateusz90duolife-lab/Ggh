@@ -1,0 +1,2340 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISO Master — Trener Izometryki</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   ISO MASTER — TRENER IZOMETRYKI
+   Aplikacja jednoplikowa, bez zależności, działa offline.
+   Metodyka i źródła: METODYKA.md
+   ═══════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0D0D0D;
+  --bg-soft:   #151515;
+  --card:      #1a1a1a;
+  --card-hi:   #202028;
+  --line:      #2a2a2a;
+  --line-hi:   #3a3a48;
+  --txt:       #EAEAEA;
+  --txt-dim:   #8a8a8a;
+  --txt-faint: #5a5a5a;
+  --accent:    #00C2FF;
+  --accent-dk: #007ea8;
+  --good:      #30D158;
+  --bad:       #FF3B30;
+  --warn:      #FFD60A;
+  --radius:    10px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg); color: var(--txt);
+  min-height: 100vh; font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ───── UKŁAD ───── */
+.shell { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13,13,13,0.92); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 18px;
+  padding: 12px 0; margin-bottom: 22px; flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 1.5px; font-size: 15px; }
+.brand span { color: var(--accent); }
+.spacer { flex: 1; }
+
+.hud { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 13px; font-size: 12px; color: var(--txt-dim);
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.chip b { color: var(--txt); font-size: 13px; }
+.chip.hot b { color: var(--warn); }
+
+/* ───── NAWIGACJA ───── */
+.nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 24px; }
+.nav button {
+  background: transparent; border: 1px solid transparent; color: var(--txt-dim);
+  padding: 9px 16px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; font-family: inherit; transition: all .15s;
+}
+.nav button:hover { background: var(--bg-soft); color: var(--txt); }
+.nav button.on { background: #10222e; border-color: #1d4a63; color: var(--accent); font-weight: 600; }
+
+/* ───── KARTY ───── */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-bottom: 16px; }
+.card.pad0 { padding: 0; overflow: hidden; }
+
+h1 { font-size: 24px; margin-bottom: 6px; letter-spacing: -0.3px; }
+h2 { font-size: 19px; margin-bottom: 14px; letter-spacing: -0.2px; }
+h3 { font-size: 15px; margin-bottom: 10px; color: var(--txt); }
+p  { color: var(--txt-dim); margin-bottom: 10px; }
+p.lead { color: var(--txt); }
+a { color: var(--accent); }
+code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; background: #000; padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+
+/* ───── PRZYCISKI ───── */
+button.btn {
+  background: var(--accent); border: none; color: #062a38;
+  padding: 11px 22px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; font-weight: 700; font-family: inherit;
+  transition: opacity .15s, transform .08s;
+}
+button.btn:hover:not(:disabled) { opacity: .88; }
+button.btn:active:not(:disabled) { transform: scale(.975); }
+button.btn:disabled { opacity: .35; cursor: not-allowed; }
+button.btn.ghost { background: transparent; border: 1px solid var(--line-hi); color: var(--txt); }
+button.btn.ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+button.btn.danger { background: transparent; border: 1px solid #4a2020; color: #b04b44; }
+button.btn.danger:hover:not(:disabled) { border-color: var(--bad); color: var(--bad); }
+button.btn.sm { padding: 7px 14px; font-size: 13px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* ───── ZADANIE ───── */
+.q-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+.q-tag {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--accent); background: #0d2230; border: 1px solid #1d4a63;
+  padding: 4px 10px; border-radius: 5px; white-space: nowrap;
+}
+.q-text { font-size: 17px; color: var(--txt); flex: 1; min-width: 240px; line-height: 1.45; }
+.q-hint { font-size: 13px; color: var(--txt-faint); margin-top: 5px; }
+
+.stimulus { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; align-items: flex-start; padding: 18px 0 6px; }
+
+/* ───── OPCJE ODPOWIEDZI ───── */
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 20px; }
+.opt {
+  background: var(--bg-soft); border: 2px solid var(--line); border-radius: var(--radius);
+  padding: 12px; cursor: pointer; text-align: center;
+  transition: border-color .12s, background .12s, transform .08s;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.opt:hover:not(.locked) { border-color: var(--accent); background: var(--card-hi); }
+.opt:active:not(.locked) { transform: scale(.985); }
+.opt .lbl { font-size: 12px; color: var(--txt-faint); font-weight: 700; letter-spacing: 1px; }
+.opt.locked { cursor: default; }
+.opt.correct { border-color: var(--good); background: #0e2415; }
+.opt.correct .lbl { color: var(--good); }
+.opt.wrong   { border-color: var(--bad);  background: #2a1210; }
+.opt.wrong .lbl { color: var(--bad); }
+.opt.dim { opacity: .4; }
+
+/* ───── INFORMACJA ZWROTNA ───── */
+.fb { margin-top: 18px; border-radius: var(--radius); padding: 16px 18px; border: 1px solid; animation: rise .18s ease-out; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.fb.ok  { background: #0e2415; border-color: #245c34; }
+.fb.err { background: #241210; border-color: #5c2420; }
+.fb-title { font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.fb.ok  .fb-title { color: var(--good); }
+.fb.err .fb-title { color: var(--bad); }
+.fb-body { color: #bdbdbd; font-size: 14px; }
+.fb-body b { color: var(--txt); }
+
+/* ───── PODPISY POD RYSUNKAMI ───── */
+.fig { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.fig-cap { font-size: 11px; color: var(--txt-faint); text-transform: uppercase; letter-spacing: 1.2px; text-align: center; }
+canvas { display: block; max-width: 100%; }
+.canvas-frame { background: #0a0a12; border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+
+/* ───── PASKI POSTĘPU ───── */
+.bar { height: 7px; background: #000; border-radius: 999px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent-dk), var(--accent)); border-radius: 999px; transition: width .35s ease; }
+.bar.good > i { background: linear-gradient(90deg, #1d7a38, var(--good)); }
+
+.skill { display: grid; grid-template-columns: 1fr 90px; gap: 12px 14px; align-items: center; padding: 11px 0; border-bottom: 1px solid var(--line); }
+.skill:last-child { border-bottom: 0; }
+.skill-name { font-size: 14px; }
+.skill-sub { font-size: 12px; color: var(--txt-faint); margin-top: 3px; }
+.skill-pct { text-align: right; font-size: 13px; color: var(--txt-dim); font-variant-numeric: tabular-nums; }
+
+/* ───── STATYSTYKI ───── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+.stat { background: var(--bg-soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; text-align: center; }
+.stat-n { font-size: 28px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stat-l { font-size: 12px; color: var(--txt-faint); margin-top: 3px; }
+
+/* ───── EDYTOR PLANU (TRYB BUDUJ) ───── */
+.plan-grid { display: inline-grid; gap: 4px; background: var(--line); padding: 4px; border-radius: 8px; }
+.plan-cell {
+  width: 46px; height: 46px; background: #12121a; border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; cursor: pointer; user-select: none;
+  color: var(--txt-faint); transition: background .1s, color .1s;
+  border: 1px solid transparent;
+}
+.plan-cell:hover { border-color: var(--accent); }
+.plan-cell.set { background: #10303f; color: var(--accent); }
+.plan-axis { font-size: 10px; color: var(--txt-faint); text-transform: uppercase; letter-spacing: 1px; }
+
+/* ───── TEORIA ───── */
+.lesson { border-bottom: 1px solid var(--line); }
+.lesson:last-child { border-bottom: 0; }
+.lesson-h {
+  padding: 16px 22px; cursor: pointer; display: flex; align-items: center; gap: 12px;
+  font-weight: 600; font-size: 15px; transition: background .12s;
+}
+.lesson-h:hover { background: var(--bg-soft); }
+.lesson-h .caret { color: var(--txt-faint); transition: transform .2s; font-size: 12px; }
+.lesson.open .lesson-h .caret { transform: rotate(90deg); }
+.lesson-b { padding: 0 22px 22px; display: none; }
+.lesson.open .lesson-b { display: block; }
+.lesson-b ul { margin: 0 0 12px 20px; color: var(--txt-dim); }
+.lesson-b li { margin-bottom: 6px; }
+
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+table.tbl th, table.tbl td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+table.tbl th { color: var(--txt-faint); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+table.tbl td { color: var(--txt-dim); }
+table.tbl td b { color: var(--txt); }
+
+.note { background: #0d1c26; border-left: 3px solid var(--accent); padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 14px; color: #a8c4d0; }
+
+/* ───── UKŁAD RZUTÓW ───── */
+.views-layout { display: grid; gap: 10px; justify-content: center; }
+.views-card { border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px 12px; background: #101014; }
+.view-slot { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.view-slot.empty { visibility: hidden; }
+
+.toggle { display: inline-flex; border: 1px solid var(--line-hi); border-radius: 7px; overflow: hidden; }
+.toggle button {
+  background: transparent; border: 0; color: var(--txt-dim); padding: 7px 14px;
+  cursor: pointer; font-size: 13px; font-family: inherit;
+}
+.toggle button.on { background: var(--accent); color: #062a38; font-weight: 700; }
+
+/* ───── KURS ───── */
+.mod {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px;
+  background: var(--bg-soft); cursor: pointer; transition: border-color .12s, background .12s;
+}
+.mod:hover:not(.locked) { border-color: var(--accent); background: var(--card-hi); }
+.mod.locked { opacity: .45; cursor: not-allowed; }
+.mod.done { border-color: #245c34; }
+.mod-num {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 14px; background: #10222e; color: var(--accent); border: 1px solid #1d4a63;
+}
+.mod.done .mod-num { background: #0e2415; color: var(--good); border-color: #245c34; }
+.mod-body { flex: 1; min-width: 0; }
+.mod-title { font-size: 15px; font-weight: 600; }
+.mod-meta { font-size: 12px; color: var(--txt-faint); margin-top: 3px; }
+.mod-badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; white-space: nowrap; border: 1px solid; }
+.badge-done { color: var(--good); border-color: #245c34; background: #0e2415; }
+.badge-open { color: var(--accent); border-color: #1d4a63; background: #0d2230; }
+.badge-lock { color: var(--txt-faint); border-color: var(--line); }
+
+.cert { border: 2px solid var(--accent); border-radius: 14px; padding: 40px 32px; text-align: center;
+        background: linear-gradient(160deg, #0e2230, #0c1620); }
+.cert h2 { font-size: 26px; color: var(--accent); margin-bottom: 6px; letter-spacing: 1px; }
+.cert .who { font-size: 15px; color: var(--txt); margin: 18px 0 6px; }
+.cert .meta { font-size: 13px; color: var(--txt-dim); }
+.cert-seal { font-size: 44px; margin-bottom: 10px; }
+
+@media print {
+  body { background: #fff; color: #000; }
+  .topbar, .nav, button { display: none !important; }
+  .cert { border-color: #000; background: #fff; }
+  .cert h2, .cert .who, .cert .meta { color: #000; }
+}
+
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.hide { display: none !important; }
+.center { text-align: center; }
+.mt { margin-top: 18px; }
+.muted { color: var(--txt-faint); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .shell { padding: 0 14px 60px; }
+  .stimulus { gap: 16px; }
+  .plan-cell { width: 40px; height: 40px; font-size: 15px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand">ISO<span>MASTER</span></div>
+    <div class="hud" id="hud"></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav" id="nav"></div>
+  <div id="view"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 1 — NARZĘDZIA
+   ═══════════════════════════════════════════════════════════════ */
+
+const $  = (sel, root) => (root || document).querySelector(sel);
+const el = (tag, cls, txt) => { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; };
+const randInt = n => Math.floor(Math.random() * n);
+const pick    = a => a[randInt(a.length)];
+const clamp   = (v, lo, hi) => v < lo ? lo : v > hi ? hi : v;
+
+function shuffle(a) {
+  const r = a.slice();
+  for (let i = r.length - 1; i > 0; i--) { const j = randInt(i + 1); [r[i], r[j]] = [r[j], r[i]]; }
+  return r;
+}
+
+function setupCanvas(canvas, w, h) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  canvas.style.width  = w + "px";
+  canvas.style.height = h + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  return ctx;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 2 — BRYŁA WOKSELOWA
+
+   Układ współrzędnych (prawoskrętny, umowa aplikacji):
+     x — szerokość, rośnie w PRAWO patrząc od przodu
+     y — głębokość, rośnie w GŁĄB (y=0 to płaszczyzna najbliższa obserwatorowi)
+     z — wysokość, rośnie w GÓRĘ
+   ═══════════════════════════════════════════════════════════════ */
+
+const K = (x, y, z) => x + "," + y + "," + z;
+
+function makeSolid(cells) {
+  let mnx = Infinity, mny = Infinity, mnz = Infinity;
+  for (const c of cells) { if (c[0] < mnx) mnx = c[0]; if (c[1] < mny) mny = c[1]; if (c[2] < mnz) mnz = c[2]; }
+  const norm = cells.map(c => [c[0] - mnx, c[1] - mny, c[2] - mnz]);
+  norm.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+  const set = new Set(norm.map(c => K(c[0], c[1], c[2])));
+  let mxx = 0, mxy = 0, mxz = 0;
+  for (const c of norm) { if (c[0] > mxx) mxx = c[0]; if (c[1] > mxy) mxy = c[1]; if (c[2] > mxz) mxz = c[2]; }
+  return {
+    cells: norm,
+    set,
+    nx: mxx + 1, ny: mxy + 1, nz: mxz + 1,
+    count: norm.length,
+    id: norm.map(c => K(c[0], c[1], c[2])).join("|"),
+    has(x, y, z) { return set.has(K(x, y, z)); },
+  };
+}
+
+function solidFromHeights(hm) {
+  const cells = [];
+  for (let x = 0; x < hm.length; x++)
+    for (let y = 0; y < hm[x].length; y++)
+      for (let z = 0; z < hm[x][y]; z++) cells.push([x, y, z]);
+  return makeSolid(cells);
+}
+
+/** Mapa wysokości bryły. Wierna tylko dla brył bez nawisów (patrz isStackable). */
+function heightsOf(solid) {
+  const hm = Array.from({ length: solid.nx }, () => new Array(solid.ny).fill(0));
+  for (const [x, y, z] of solid.cells) if (z + 1 > hm[x][y]) hm[x][y] = z + 1;
+  return hm;
+}
+
+/** Czy bryła jest "postawiona" — każdy słupek pełny od z=0 w górę, bez nawisów. */
+function isStackable(solid) {
+  const hm = heightsOf(solid);
+  let n = 0;
+  for (let x = 0; x < solid.nx; x++) for (let y = 0; y < solid.ny; y++) n += hm[x][y];
+  return n === solid.count;
+}
+
+/* ── Przekształcenia izometryczne (obroty o 90° i odbicia) ── */
+const XF = {
+  rotZ:  c => [ c[1], -c[0],  c[2]],   // 90° w prawo, patrząc z góry
+  rotZi: c => [-c[1],  c[0],  c[2]],   // 90° w lewo
+  rotX:  c => [ c[0], -c[2],  c[1]],   // wokół osi poziomej biegnącej w prawo
+  rotXi: c => [ c[0],  c[2], -c[1]],
+  rotY:  c => [ c[2],  c[1], -c[0]],   // wokół osi poziomej biegnącej w głąb
+  rotYi: c => [-c[2],  c[1],  c[0]],
+  mirX:  c => [-c[0],  c[1],  c[2]],   // odbicie lewo-prawo
+  mirY:  c => [ c[0], -c[1],  c[2]],   // odbicie przód-tył
+};
+
+function xform(solid, fn, times) {
+  let cells = solid.cells;
+  for (let i = 0; i < (times || 1); i++) cells = cells.map(fn);
+  return makeSolid(cells);
+}
+
+/* ── Modyfikacje używane do budowy dystraktorów ── */
+
+/** Przenosi jedną kostkę z wierzchu jednego słupka na wierzch innego. */
+function moveOneCube(solid) {
+  const hm = heightsOf(solid);
+  const tall = [], room = [];
+  for (let x = 0; x < solid.nx; x++) for (let y = 0; y < solid.ny; y++) {
+    if (hm[x][y] > 0) tall.push([x, y]);
+    if (hm[x][y] > 0 && hm[x][y] < 6) room.push([x, y]);
+  }
+  for (let t = 0; t < 40; t++) {
+    const from = pick(tall), to = pick(room);
+    if (from[0] === to[0] && from[1] === to[1]) continue;
+    if (hm[from[0]][from[1]] <= 1) continue;   // nie kasujemy całego słupka
+    const h2 = hm.map(r => r.slice());
+    h2[from[0]][from[1]]--; h2[to[0]][to[1]]++;
+    const s = solidFromHeights(h2);
+    if (s.id !== solid.id) return s;
+  }
+  return null;
+}
+
+/** Dokłada albo zabiera jedną kostkę. */
+function addOrRemoveCube(solid, add) {
+  const hm = heightsOf(solid);
+  const spots = [];
+  for (let x = 0; x < solid.nx; x++) for (let y = 0; y < solid.ny; y++) {
+    if (add && hm[x][y] > 0) spots.push([x, y]);
+    if (!add && hm[x][y] > 1) spots.push([x, y]);
+  }
+  if (!spots.length) return null;
+  const [x, y] = pick(spots);
+  const h2 = hm.map(r => r.slice());
+  h2[x][y] += add ? 1 : -1;
+  const s = solidFromHeights(h2);
+  return s.id === solid.id ? null : s;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 3 — GENERATOR BRYŁ
+   Bryły powstają jako mapy wysokości, więc każda ma jednoznaczny
+   plan kodowany (metodyka, sekcja 4).
+   ═══════════════════════════════════════════════════════════════ */
+
+function randomFootprint(W, D, n) {
+  const start = [randInt(W), randInt(D)];
+  const cells = [start];
+  const seen  = new Set([start.join(",")]);
+  const dirs  = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  let guard = 0;
+  while (cells.length < n && guard++ < 600) {
+    const c = pick(cells), d = pick(dirs);
+    const nx = c[0] + d[0], ny = c[1] + d[1];
+    if (nx < 0 || ny < 0 || nx >= W || ny >= D) continue;
+    const k = nx + "," + ny;
+    if (seen.has(k)) continue;
+    seen.add(k); cells.push([nx, ny]);
+  }
+  return cells;
+}
+
+function isFullBox(s) { return s.count === s.nx * s.ny * s.nz; }
+
+/** Bryła symetryczna psuje zadania na obrót i odbicie — odrzucamy takie. */
+function isChiralEnough(s) {
+  return xform(s, XF.mirX).id !== s.id
+      && xform(s, XF.mirY).id !== s.id
+      && xform(s, XF.rotZ).id !== s.id;
+}
+
+function generateSolid(cfg) {
+  for (let attempt = 0; attempt < 300; attempt++) {
+    const n = cfg.minFoot + randInt(cfg.maxFoot - cfg.minFoot + 1);
+    const foot = randomFootprint(cfg.w, cfg.d, n);
+    if (foot.length < cfg.minFoot) continue;
+    const hm = Array.from({ length: cfg.w }, () => new Array(cfg.d).fill(0));
+    for (const f of foot) hm[f[0]][f[1]] = 1 + randInt(cfg.maxH);
+    const s = solidFromHeights(hm);
+    if (s.count < cfg.minCubes || s.count > cfg.maxCubes) continue;
+    if (isFullBox(s)) continue;
+    if (s.nx < 2 || s.ny < 2) continue;
+    if (cfg.chiral && !isChiralEnough(s)) continue;
+    return s;
+  }
+  // Awaryjna bryła — zawsze poprawna, gdyby losowanie zawiodło
+  return solidFromHeights([[2, 1], [1, 3]]);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 4 — RENDER IZOMETRYCZNY
+
+   Rzut izometryczny (kąty osi 30°):
+     ekranX = (x + y) · s · cos30
+     ekranY = (x − y) · s · sin30 − z · s
+   Obserwator znajduje się z przodu, z prawej i od góry, więc widoczne
+   są trzy ściany każdej kostki: górna, przednia i prawa.
+   ═══════════════════════════════════════════════════════════════ */
+
+const ISO_C = 0.8660254, ISO_S = 0.5;
+
+function isoPt(x, y, z, s) {
+  return { x: (x + y) * s * ISO_C, y: (x - y) * s * ISO_S - z * s };
+}
+
+function isoBounds(solid, s) {
+  let a = Infinity, b = -Infinity, c = Infinity, d = -Infinity;
+  for (const X of [0, solid.nx]) for (const Y of [0, solid.ny]) for (const Z of [0, solid.nz]) {
+    const p = isoPt(X, Y, Z, s);
+    if (p.x < a) a = p.x; if (p.x > b) b = p.x;
+    if (p.y < c) c = p.y; if (p.y > d) d = p.y;
+  }
+  return { minX: a, minY: c, w: b - a, h: d - c };
+}
+
+/** Skala, przy której bryła mieści się w płótnie. */
+function isoFitScale(solid, W, H, pad) {
+  const u = isoBounds(solid, 1);
+  return Math.min((W - 2 * pad) / u.w, (H - 2 * pad) / u.h);
+}
+
+/** Wspólna skala dla zestawu brył — bez niej opcje odpowiedzi miałyby
+    różną wielkość, co samo w sobie podpowiadałoby odpowiedź. */
+function sharedIsoScale(solids, W, H, pad) {
+  let s = Infinity;
+  for (const sd of solids) s = Math.min(s, isoFitScale(sd, W, H, pad));
+  return isFinite(s) ? s : 20;
+}
+
+function poly(ctx, pts, fill, stroke, lw) {
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+  if (fill)   { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.lineJoin = "round"; ctx.stroke(); }
+}
+
+function drawIso(canvas, solid, opt) {
+  opt = opt || {};
+  const W = opt.w || 190, H = opt.h || 165, pad = opt.pad == null ? 12 : opt.pad;
+  const ctx = setupCanvas(canvas, W, H);
+  const s = opt.scale || isoFitScale(solid, W, H, pad);
+  const b = isoBounds(solid, s);
+  const ox = (W - b.w) / 2 - b.minX;
+  const oy = (H - b.h) / 2 - b.minY;
+
+  const hue  = opt.hue == null ? 199 : opt.hue;
+  const sat  = opt.sat == null ? 55  : opt.sat;
+  const top  = "hsl(" + hue + "," + sat + "%,64%)";
+  const front= "hsl(" + hue + "," + sat + "%,45%)";
+  const side = "hsl(" + hue + "," + sat + "%,31%)";
+  const edge = "hsl(" + hue + ",45%,14%)";
+
+  const P = (x, y, z) => { const p = isoPt(x, y, z, s); return [p.x + ox, p.y + oy]; };
+
+  // Malarz: od najdalszych do najbliższych. Obserwator w kierunku (+x, −y, +z).
+  const order = solid.cells.slice().sort((a, c) => (a[0] - a[1] + a[2]) - (c[0] - c[1] + c[2]));
+  for (const cell of order) {
+    const x = cell[0], y = cell[1], z = cell[2];
+    if (!solid.has(x, y, z + 1)) poly(ctx, [P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], top,   edge, 1);
+    if (!solid.has(x, y - 1, z)) poly(ctx, [P(x, y, z),     P(x + 1, y, z),     P(x + 1, y, z + 1),     P(x, y, z + 1)],     front, edge, 1);
+    if (!solid.has(x + 1, y, z)) poly(ctx, [P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], side,  edge, 1);
+  }
+  return ctx;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 5 — RZUTY PROSTOKĄTNE
+
+   Obraz rzutu to dokładnie to, co widzi obserwator z danej strony.
+   Metoda rzutowania (pierwszego / trzeciego kąta) nie zmienia obrazu,
+   zmienia wyłącznie ROZMIESZCZENIE rzutów na arkuszu.
+   depth = odległość od obserwatora (0 = powierzchnia najbliższa),
+   różnica głębokości między sąsiednimi polami daje widoczną krawędź.
+   ═══════════════════════════════════════════════════════════════ */
+
+const VIEW_LABEL = {
+  front: "rzut z przodu",
+  top:   "rzut z góry",
+  left:  "rzut z lewej strony",
+  right: "rzut z prawej strony",
+};
+
+function orthoView(solid, kind) {
+  const nx = solid.nx, ny = solid.ny, nz = solid.nz;
+  let cols, rows;
+  if (kind === "front")      { cols = nx; rows = nz; }
+  else if (kind === "top")   { cols = nx; rows = ny; }
+  else                       { cols = ny; rows = nz; }
+
+  const filled = [], depth = [];
+  for (let r = 0; r < rows; r++) { filled.push(new Array(cols).fill(false)); depth.push(new Array(cols).fill(null)); }
+
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    let f = false, d = null;
+    if (kind === "front") {                       // obserwator od przodu (−y)
+      const x = c, z = nz - 1 - r;
+      for (let y = 0; y < ny; y++) if (solid.has(x, y, z)) { f = true; d = y; break; }
+    } else if (kind === "top") {                  // obserwator z góry (+z); tył u góry obrazu
+      const x = c, y = ny - 1 - r;
+      for (let z = nz - 1; z >= 0; z--) if (solid.has(x, y, z)) { f = true; d = nz - 1 - z; break; }
+    } else if (kind === "left") {                 // obserwator z lewej (−x); tył po lewej obrazu
+      const y = ny - 1 - c, z = nz - 1 - r;
+      for (let x = 0; x < nx; x++) if (solid.has(x, y, z)) { f = true; d = x; break; }
+    } else if (kind === "right") {                // obserwator z prawej (+x); przód po lewej obrazu
+      const y = c, z = nz - 1 - r;
+      for (let x = nx - 1; x >= 0; x--) if (solid.has(x, y, z)) { f = true; d = nx - 1 - x; break; }
+    }
+    filled[r][c] = f; depth[r][c] = d;
+  }
+  return { kind, cols, rows, filled, depth, label: VIEW_LABEL[kind],
+           id: filled.map(r => r.map(v => v ? "1" : "0").join("")).join("/") };
+}
+
+function drawOrtho(canvas, view, opt) {
+  opt = opt || {};
+  const cell = opt.cell || 20, pad = 11;
+  const W = opt.w || (view.cols * cell + pad * 2);
+  const H = opt.h || (view.rows * cell + pad * 2);
+  const ctx = setupCanvas(canvas, W, H);
+  const ox = (W - view.cols * cell) / 2;
+  const oy = (H - view.rows * cell) / 2;
+
+  ctx.fillStyle = opt.fill || "#2c3a4a";
+  for (let r = 0; r < view.rows; r++) for (let c = 0; c < view.cols; c++)
+    if (view.filled[r][c]) ctx.fillRect(ox + c * cell, oy + r * cell, cell, cell);
+
+  const line = opt.line || "#d8e6f0";
+  const seg = (x1, y1, x2, y2, lw) => {
+    ctx.beginPath(); ctx.moveTo(ox + x1 * cell, oy + y1 * cell); ctx.lineTo(ox + x2 * cell, oy + y2 * cell);
+    ctx.strokeStyle = line; ctx.lineWidth = lw; ctx.lineCap = "round"; ctx.stroke();
+  };
+  const at = (r, c) => (r < 0 || c < 0 || r >= view.rows || c >= view.cols) ? null : (view.filled[r][c] ? view.depth[r][c] : null);
+
+  for (let r = 0; r < view.rows; r++) for (let c = 0; c < view.cols; c++) {
+    if (!view.filled[r][c]) continue;
+    const d = view.depth[r][c];
+    const sides = [
+      [at(r - 1, c), c, r,     c + 1, r    ],  // góra
+      [at(r + 1, c), c, r + 1, c + 1, r + 1],  // dół
+      [at(r, c - 1), c, r,     c,     r + 1],  // lewo
+      [at(r, c + 1), c + 1, r, c + 1, r + 1],  // prawo
+    ];
+    for (const s of sides) {
+      if (s[0] === null)      seg(s[1], s[2], s[3], s[4], 2.4);   // zarys — linia gruba
+      else if (s[0] !== d)    seg(s[1], s[2], s[3], s[4], 1.0);   // uskok — krawędź wewnętrzna
+    }
+  }
+  return ctx;
+}
+
+/* ── Plan kodowany: siatka rzutu z góry z liczbą kostek w polu ── */
+function drawPlan(canvas, hm, opt) {
+  opt = opt || {};
+  const nx = hm.length, ny = hm[0].length;
+  const cell = opt.cell || 30, pad = 12;
+  const W = opt.w || (nx * cell + pad * 2), H = opt.h || (ny * cell + pad * 2);
+  const ctx = setupCanvas(canvas, W, H);
+  const ox = (W - nx * cell) / 2, oy = (H - ny * cell) / 2;
+  ctx.font = "bold 15px system-ui, Arial";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  for (let r = 0; r < ny; r++) for (let c = 0; c < nx; c++) {
+    const y = ny - 1 - r;                       // tył u góry, jak w rzucie z góry
+    const h = hm[c][y];
+    const X = ox + c * cell, Y = oy + r * cell;
+    ctx.fillStyle = h > 0 ? "#10303f" : "#101018";
+    ctx.fillRect(X, Y, cell, cell);
+    ctx.strokeStyle = "#2a3a48"; ctx.lineWidth = 1;
+    ctx.strokeRect(X + 0.5, Y + 0.5, cell - 1, cell - 1);
+    if (h > 0) { ctx.fillStyle = "#00C2FF"; ctx.fillText(String(h), X + cell / 2, Y + cell / 2 + 1); }
+  }
+  return ctx;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 6 — PRZEKROJE I POMIARY POMOCNICZE
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Przekrój płaszczyzną prostopadłą do osi. Zwraca strukturę zgodną z drawOrtho. */
+function sectionView(solid, axis, index) {
+  const nx = solid.nx, ny = solid.ny, nz = solid.nz;
+  let cols, rows, get;
+  if (axis === "y") {                      // płaszczyzna równoległa do rzutu z przodu
+    cols = nx; rows = nz;
+    get = (r, c) => solid.has(c, index, nz - 1 - r);
+  } else if (axis === "x") {               // płaszczyzna równoległa do rzutu z boku
+    cols = ny; rows = nz;
+    get = (r, c) => solid.has(index, ny - 1 - c, nz - 1 - r);
+  } else {                                 // pozioma, równoległa do rzutu z góry
+    cols = nx; rows = ny;
+    get = (r, c) => solid.has(c, ny - 1 - r, index);
+  }
+  const filled = [], depth = [];
+  for (let r = 0; r < rows; r++) {
+    filled.push([]); depth.push([]);
+    for (let c = 0; c < cols; c++) { const f = get(r, c); filled[r].push(f); depth[r].push(f ? 0 : null); }
+  }
+  return { kind: "section", cols, rows, filled, depth,
+           id: filled.map(r => r.map(v => v ? "1" : "0").join("")).join("/") };
+}
+
+function isEmptyView(v) { return v.filled.every(r => r.every(x => !x)); }
+
+/** Kostki mające choć jedną ścianę zwróconą do obserwatora izometrycznego. */
+function facingCubes(solid) {
+  let n = 0;
+  for (const c of solid.cells) {
+    const x = c[0], y = c[1], z = c[2];
+    if (!solid.has(x, y, z + 1) || !solid.has(x, y - 1, z) || !solid.has(x + 1, y, z)) n++;
+  }
+  return n;
+}
+
+function footprintArea(solid) {
+  const hm = heightsOf(solid);
+  let n = 0;
+  for (let x = 0; x < solid.nx; x++) for (let y = 0; y < solid.ny; y++) if (hm[x][y] > 0) n++;
+  return n;
+}
+
+function generateSolidWhere(cfg, pred, tries) {
+  for (let i = 0; i < (tries || 150); i++) { const s = generateSolid(cfg); if (pred(s)) return s; }
+  return generateSolid(cfg);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 7 — UMIEJĘTNOŚCI I POZIOMY TRUDNOŚCI
+   ═══════════════════════════════════════════════════════════════ */
+
+const SKILLS = {
+  "plan-bryla":  { name: "Plan kodowany → bryła",  modul: "Rysunki izometryczne",   w: 1.0 },
+  "rzuty-bryla": { name: "Rzuty → bryła",          modul: "Rzuty prostokątne",      w: 1.3 },
+  "bryla-rzut":  { name: "Bryła → rzut",           modul: "Rzuty prostokątne",      w: 1.1 },
+  "obrot":       { name: "Obroty przestrzenne",    modul: "Obroty 3D",              w: 1.3 },
+  "odbicie":     { name: "Odbicia i symetria",     modul: "Odbicia i symetria",     w: 1.0 },
+  "przekroj":    { name: "Przekroje brył",         modul: "Przekroje",              w: 1.0 },
+  "liczenie":    { name: "Liczenie kostek",        modul: "Wyobraźnia objętościowa", w: 0.7 },
+  "uklad":       { name: "Układ rzutów (E / A)",   modul: "Norma PN-EN ISO 5456-2", w: 0.8 },
+};
+const SKILL_IDS = Object.keys(SKILLS);
+
+function cfgFor(level) {
+  if (level <= 2) return { w: 2, d: 2, maxH: 3, minFoot: 3, maxFoot: 4, minCubes: 4, maxCubes: 8,  opts: 3, chiral: true };
+  if (level <= 4) return { w: 3, d: 3, maxH: 3, minFoot: 3, maxFoot: 5, minCubes: 5, maxCubes: 12, opts: 4, chiral: true };
+  if (level <= 6) return { w: 3, d: 3, maxH: 3, minFoot: 5, maxFoot: 7, minCubes: 8, maxCubes: 17, opts: 4, chiral: true };
+  return                 { w: 4, d: 3, maxH: 4, minFoot: 6, maxFoot: 9, minCubes: 11, maxCubes: 26, opts: 5, chiral: true };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 8 — GENERATORY ZADAŃ
+
+   Każde zadanie zwraca:
+     skill, prompt, hint, stimulus(node), options[], correct, explain(i)
+   Dystraktory noszą etykietę błędu (tag), który nazywa informacja
+   zwrotna — patrz METODYKA.md, sekcja 5.
+   ═══════════════════════════════════════════════════════════════ */
+
+const WHY = {
+  ok:       "to jest poprawna odpowiedź",
+  mirror:   "to odbicie lustrzane poprawnej bryły, nie obrót. Odbicie zamienia stronę lewą z prawą i nie da się go uzyskać żadnym obrotem",
+  rotWrong: "obrót wykonany w przeciwną stronę",
+  axWrong:  "obrót wykonany wokół innej osi",
+  moved:    "jedna kostka stoi w innym miejscu — porównaj słupek po słupku",
+  added:    "bryła ma o jedną kostkę za dużo",
+  removed:  "bryła ma o jedną kostkę za mało",
+  planRot:  "plan kodowany odczytany obrócony o 90°",
+  otherView:"to inny rzut tej samej bryły",
+  viewFlip: "rzut odbity — pomylony kierunek patrzenia",
+  otherSec: "przekrój poprowadzony w innym miejscu",
+  onlySeen: "policzone tylko kostki z widoczną ścianą, bez zasłoniętych",
+  onlyCols: "policzona liczba słupków (pól planu), a nie kostek",
+  offOne:   "pomyłka o jedną kostkę",
+  identity: "to ta sama bryła, niezmieniona",
+};
+
+/** Buduje listę opcji z unikatowymi identyfikatorami; odrzuca duplikaty. */
+function assembleOptions(correctOpt, candidates, want) {
+  const out = [correctOpt];
+  const seen = new Set([correctOpt.id]);
+  for (const c of shuffle(candidates)) {
+    if (out.length >= want) break;
+    if (!c || !c.id || seen.has(c.id)) continue;
+    seen.add(c.id); out.push(c);
+  }
+  return shuffle(out);
+}
+
+const isoOpt = (solid, tag) => ({ kind: "iso", solid, id: "S" + solid.id, tag });
+const orthoOpt = (view, tag) => ({ kind: "ortho", view, id: "V" + view.id, tag });
+const numOpt = (n, tag) => ({ kind: "num", value: n, id: "N" + n, tag });
+const textOpt = (t, tag) => ({ kind: "text", text: t, id: "T" + t, tag });
+
+/* ── 1. Plan kodowany → bryła ── */
+function exPlanBryla(cfg) {
+  const s = generateSolid(cfg);
+  const hm = heightsOf(s);
+  const cand = [];
+  cand.push(isoOpt(xform(s, XF.mirX), "mirror"));
+  const mv = moveOneCube(s);  if (mv) cand.push(isoOpt(mv, "moved"));
+  const ad = addOrRemoveCube(s, true);  if (ad) cand.push(isoOpt(ad, "added"));
+  const rm = addOrRemoveCube(s, false); if (rm) cand.push(isoOpt(rm, "removed"));
+  cand.push(isoOpt(xform(s, XF.rotZ), "planRot"));
+  return {
+    skill: "plan-bryla",
+    prompt: "Plan kodowany podaje liczbę kostek w każdym słupku. Która bryła mu odpowiada?",
+    hint: "Górny wiersz planu to tył bryły, dolny — przód.",
+    stimulus: [{ type: "plan", hm, cap: "plan kodowany" }],
+    options: assembleOptions(isoOpt(s, "ok"), cand, cfg.opts),
+    solution: s,
+  };
+}
+
+/* ── 2. Bryła → rzut prostokątny ── */
+function exBrylaRzut(cfg, opts) {
+  const s = generateSolidWhere(cfg, q => q.nx === q.ny && q.ny === q.nz);
+  const kind = pick((opts && opts.kinds) || ["front", "top", "left", "right"]);
+  const correct = orthoView(s, kind);
+  const cand = [];
+  for (const k of ["front", "top", "left", "right"]) if (k !== kind) cand.push(orthoOpt(orthoView(s, k), "otherView"));
+  cand.push(orthoOpt(orthoView(xform(s, XF.mirX), kind), "viewFlip"));
+  const mv = moveOneCube(s); if (mv) cand.push(orthoOpt(orthoView(mv, kind), "moved"));
+  return {
+    skill: "bryla-rzut",
+    prompt: "Który rysunek jest poprawnym rzutem tej bryły — " + VIEW_LABEL[kind] + "?",
+    hint: "Rzut pokazuje zarys bryły; cienkie linie w środku to uskoki między różnymi głębokościami.",
+    stimulus: [{ type: "iso", solid: s, cap: "bryła" }],
+    options: assembleOptions(orthoOpt(correct, "ok"), cand, cfg.opts),
+    solution: s,
+  };
+}
+
+/* ── 3. Rzuty → bryła ── */
+function exRzutyBryla(cfg, method) {
+  const s = generateSolid(cfg);
+  const side = method === "E" ? "left" : "right";
+  const cand = [];
+  cand.push(isoOpt(xform(s, XF.mirX), "mirror"));
+  const mv = moveOneCube(s); if (mv) cand.push(isoOpt(mv, "moved"));
+  const rm = addOrRemoveCube(s, false); if (rm) cand.push(isoOpt(rm, "removed"));
+  const ad = addOrRemoveCube(s, true);  if (ad) cand.push(isoOpt(ad, "added"));
+  cand.push(isoOpt(xform(s, XF.rotZ), "planRot"));
+  return {
+    skill: "rzuty-bryla",
+    prompt: "Trzy rzuty prostokątne opisują jedną bryłę. Którą?",
+    hint: "Rysunek w metodzie " + (method === "E" ? "pierwszego kąta (europejskiej)" : "trzeciego kąta (amerykańskiej)") + ".",
+    stimulus: [{ type: "views", solid: s, method, side }],
+    options: assembleOptions(isoOpt(s, "ok"), cand, cfg.opts),
+    solution: s,
+  };
+}
+
+/* ── 4. Obroty przestrzenne ── */
+const ROTS = [
+  { ax: "z", fn: XF.rotZ,  inv: XF.rotZi, other: XF.rotX,  txt: "o 90° w prawo wokół osi pionowej (patrząc z góry)" },
+  { ax: "z", fn: XF.rotZi, inv: XF.rotZ,  other: XF.rotY,  txt: "o 90° w lewo wokół osi pionowej (patrząc z góry)" },
+  { ax: "x", fn: XF.rotX,  inv: XF.rotXi, other: XF.rotZ,  txt: "o 90° do przodu — góra bryły przechyla się w Twoją stronę" },
+  { ax: "x", fn: XF.rotXi, inv: XF.rotX,  other: XF.rotZi, txt: "o 90° do tyłu — góra bryły przechyla się od Ciebie" },
+  { ax: "y", fn: XF.rotY,  inv: XF.rotYi, other: XF.rotZ,  txt: "o 90° w prawo wokół osi biegnącej w głąb — bryła kładzie się na prawy bok" },
+  { ax: "y", fn: XF.rotYi, inv: XF.rotY,  other: XF.rotZi, txt: "o 90° w lewo wokół osi biegnącej w głąb — bryła kładzie się na lewy bok" },
+];
+
+function exObrot(cfg, opts) {
+  const s = generateSolidWhere(cfg, isChiralEnough);
+  const allowed = (opts && opts.axes) ? ROTS.filter(r => opts.axes.indexOf(r.ax) >= 0) : ROTS;
+  const r = pick(allowed.length ? allowed : ROTS);
+  const correct = xform(s, r.fn);
+  const cand = [
+    isoOpt(xform(s, r.inv), "rotWrong"),
+    isoOpt(xform(s, r.other), "axWrong"),
+    isoOpt(xform(correct, XF.mirX), "mirror"),
+    isoOpt(s, "identity"),
+  ];
+  const mv = moveOneCube(correct); if (mv) cand.push(isoOpt(mv, "moved"));
+  return {
+    skill: "obrot",
+    prompt: "Obróć pokazaną bryłę " + r.txt + ". Który wynik jest poprawny?",
+    hint: "Wybierz w bryle jeden charakterystyczny narożnik i śledź, gdzie trafia po obrocie.",
+    stimulus: [{ type: "iso", solid: s, cap: "bryła wyjściowa" }],
+    options: assembleOptions(isoOpt(correct, "ok"), cand, cfg.opts),
+    solution: correct,
+  };
+}
+
+/* ── 5. Odbicia i symetria ── */
+function exOdbicie(cfg) {
+  const s = generateSolidWhere(cfg, isChiralEnough);
+  const mirrorLR = Math.random() < 0.5;
+  const correct = xform(s, mirrorLR ? XF.mirX : XF.mirY);
+  const cand = [
+    isoOpt(xform(s, XF.rotZ, 2), "rotWrong"),
+    isoOpt(xform(s, XF.rotZ), "axWrong"),
+    isoOpt(s, "identity"),
+    isoOpt(xform(s, mirrorLR ? XF.mirY : XF.mirX), "axWrong"),
+  ];
+  return {
+    skill: "odbicie",
+    prompt: "Która bryła jest odbiciem lustrzanym pokazanej w płaszczyźnie " +
+            (mirrorLR ? "pionowej, zamieniającej lewo z prawem" : "pionowej, zamieniającej przód z tyłem") + "?",
+    hint: "Odbicie to nie obrót. Bryła obrócona o 180° zwykle wygląda podobnie, ale nią nie jest.",
+    stimulus: [{ type: "iso", solid: s, cap: "bryła wyjściowa" }],
+    options: assembleOptions(isoOpt(correct, "ok"), cand, cfg.opts),
+    solution: correct,
+  };
+}
+
+/* ── 6. Przekroje ── */
+function exPrzekroj(cfg, opts) {
+  const axesAll = [
+    { a: "y", n: s => s.ny, txt: (i, s) => "pionową, równoległą do rzutu z przodu, przez " + (i + 1) + ". rząd licząc od przodu" },
+    { a: "x", n: s => s.nx, txt: (i, s) => "pionową, równoległą do rzutu z boku, przez " + (i + 1) + ". kolumnę licząc od lewej" },
+    { a: "z", n: s => s.nz, txt: (i, s) => "poziomą, na wysokości " + (i + 1) + ". warstwy licząc od dołu" },
+  ];
+  const axes = (opts && opts.cuts) ? axesAll.filter(a => opts.cuts.indexOf(a.a) >= 0) : axesAll;
+  const axPool = axes.length ? axes : axesAll;
+  let s, ax, idx, correct, tries = 0;
+  do {
+    s = generateSolid(cfg);
+    ax = pick(axPool);
+    const n = ax.n(s);
+    if (n < 2) { tries++; continue; }
+    idx = randInt(n);
+    correct = sectionView(s, ax.a, idx);
+    tries++;
+  } while ((!correct || isEmptyView(correct)) && tries < 60);
+  if (!correct || isEmptyView(correct)) { s = solidFromHeights([[2, 1], [1, 2]]); ax = axesAll[0]; idx = 0; correct = sectionView(s, "y", 0); }
+
+  const cand = [];
+  for (let i = 0; i < ax.n(s); i++) if (i !== idx) {
+    const v = sectionView(s, ax.a, i);
+    if (!isEmptyView(v)) cand.push(orthoOpt(v, "otherSec"));
+  }
+  const mirrored = sectionView(xform(s, XF.mirX), ax.a, idx);
+  if (!isEmptyView(mirrored)) cand.push(orthoOpt(mirrored, "viewFlip"));
+  return {
+    skill: "przekroj",
+    prompt: "Bryłę przecięto płaszczyzną " + ax.txt(idx, s) + ". Który rysunek pokazuje ten przekrój?",
+    hint: "Przekrój pokazuje tylko materiał leżący dokładnie w płaszczyźnie cięcia.",
+    stimulus: [{ type: "iso", solid: s, cap: "bryła" }, { type: "plan", hm: heightsOf(s), cap: "plan kodowany" }],
+    options: assembleOptions(orthoOpt(correct, "ok"), cand, cfg.opts),
+    solution: s,
+  };
+}
+
+/* ── 7. Liczenie kostek ── */
+function exLiczenie(cfg) {
+  const s = generateSolidWhere(cfg, q => q.count >= 6 && facingCubes(q) < q.count);
+  const total = s.count;
+  const cand = [
+    numOpt(facingCubes(s), "onlySeen"),
+    numOpt(footprintArea(s), "onlyCols"),
+    numOpt(total - 1, "offOne"),
+    numOpt(total + 1, "offOne"),
+  ];
+  return {
+    skill: "liczenie",
+    prompt: "Z ilu kostek zbudowano tę bryłę? Licz również kostki zasłonięte.",
+    hint: "Rozłóż bryłę na słupki i zsumuj ich wysokości.",
+    stimulus: [{ type: "iso", solid: s, cap: "bryła" }],
+    options: assembleOptions(numOpt(total, "ok"), cand, Math.min(cfg.opts, 4)),
+    solution: s,
+  };
+}
+
+/* ── 8. Układ rzutów wg normy ── */
+const SLOTS = {
+  E: {
+    right: { correct: "rzut z lewej strony", why: "W metodzie pierwszego kąta rzut trafia po stronie przeciwnej niż obserwator: patrzymy z lewej, rysunek ląduje po prawej." },
+    below: { correct: "rzut z góry",         why: "Obserwator patrzy z góry, więc w metodzie pierwszego kąta rzut ląduje pod rzutem głównym." },
+    left:  { correct: "rzut z prawej strony", why: "Patrzymy z prawej, więc rzut ląduje po lewej stronie rzutu głównego." },
+  },
+  A: {
+    right: { correct: "rzut z prawej strony", why: "W metodzie trzeciego kąta rzut trafia po tej samej stronie co obserwator: patrzymy z prawej, rysunek jest po prawej." },
+    above: { correct: "rzut z góry",          why: "Obserwator patrzy z góry, a w metodzie trzeciego kąta rzut ląduje nad rzutem głównym." },
+    left:  { correct: "rzut z lewej strony",  why: "Patrzymy z lewej, więc rzut jest po lewej stronie rzutu głównego." },
+  },
+};
+const SLOT_TXT = { right: "po prawej stronie rzutu głównego", left: "po lewej stronie rzutu głównego",
+                   below: "pod rzutem głównym", above: "nad rzutem głównym" };
+
+function exUklad(cfg, opts) {
+  const method = (opts && opts.forceMethod) || (Math.random() < 0.5 ? "E" : "A");
+  const slot = pick(Object.keys(SLOTS[method]));
+  const info = SLOTS[method][slot];
+  const all = ["rzut z lewej strony", "rzut z prawej strony", "rzut z góry", "rzut z dołu", "rzut z tyłu"];
+  const cand = all.filter(t => t !== info.correct).map(t => textOpt(t, "otherView"));
+  return {
+    skill: "uklad",
+    prompt: "Rysunek wykonano metodą " + (method === "E" ? "pierwszego kąta (europejską)" : "trzeciego kąta (amerykańską)") +
+            ". Rzut umieszczony " + SLOT_TXT[slot] + " to:",
+    hint: method === "E"
+      ? "Metoda pierwszego kąta: przedmiot jest PRZED rzutnią, więc rzut trafia po przeciwnej stronie niż obserwator."
+      : "Metoda trzeciego kąta: przedmiot jest ZA rzutnią, więc rzut trafia po tej samej stronie co obserwator.",
+    stimulus: [{ type: "layoutDiagram", method, slot }],
+    options: assembleOptions(textOpt(info.correct, "ok"), cand, 4),
+    note: info.why,
+  };
+}
+
+const BUILDERS = {
+  "plan-bryla":  exPlanBryla,
+  "bryla-rzut":  exBrylaRzut,
+  "rzuty-bryla": (cfg, o) => exRzutyBryla(cfg, (o && o.forceMethod) || State.method),
+  "obrot":       exObrot,
+  "odbicie":     exOdbicie,
+  "przekroj":    exPrzekroj,
+  "liczenie":    exLiczenie,
+  "uklad":       exUklad,
+};
+
+function buildExercise(skill, level, opts) {
+  const cfg = cfgFor(level);
+  const q = BUILDERS[skill](cfg, opts || {});
+  q.correct = q.options.findIndex(o => o.tag === "ok");
+  q.level = level;
+  return q;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 9 — MODEL UCZNIA
+   Powtórki rozłożone (pudełka Leitnera), przeplatanie typów zadań
+   i adaptacyjny poziom trudności — patrz METODYKA.md, sekcja 6.
+   ═══════════════════════════════════════════════════════════════ */
+
+const STORE_KEY = "isomaster.trener.v1";
+const BOX_MIN   = [0, 1, 4, 12, 40, 150, 480, 1440];   // odstępy powtórek w minutach
+const SESSION_LEN = 10;
+
+const State = {
+  level: 2, method: "E",
+  skills: {}, seen: 0, ok: 0, streak: 0, best: 0,
+  recent: [], lastSkills: [], diag: null, sessions: 0,
+  course: { mods: {}, exam: null },
+};
+
+function skillOf(id) {
+  if (!State.skills[id]) State.skills[id] = { m: 0, box: 0, due: 0, seen: 0, ok: 0 };
+  return State.skills[id];
+}
+
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(State)); } catch (e) { /* tryb prywatny */ }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d && typeof d === "object") Object.assign(State, d);
+  } catch (e) { /* uszkodzony wpis — start od zera */ }
+  State.level = clamp(State.level || 2, 1, 8);
+  if (State.method !== "A") State.method = "E";
+  if (!State.course || typeof State.course !== "object") State.course = { mods: {}, exam: null };
+  if (!State.course.mods) State.course.mods = {};
+  for (const id of SKILL_IDS) skillOf(id);
+}
+
+function recordAnswer(skill, correct) {
+  const s = skillOf(skill);
+  s.seen++; if (correct) s.ok++;
+  s.m = s.m * 0.72 + (correct ? 0.28 : 0);
+  if (correct) { s.box = Math.min(s.box + 1, BOX_MIN.length - 1); }
+  else         { s.box = 0; }
+  s.due = Date.now() + BOX_MIN[s.box] * 60000;
+
+  State.seen++; if (correct) State.ok++;
+  State.streak = correct ? State.streak + 1 : 0;
+  if (State.streak > State.best) State.best = State.streak;
+  State.recent.push(correct ? 1 : 0);
+  if (State.recent.length > 12) State.recent.shift();
+  State.lastSkills.push(skill);
+  if (State.lastSkills.length > 6) State.lastSkills.shift();
+  adaptLevel();
+  save();
+}
+
+/** Trudność dobierana tak, by skuteczność trzymała się w okolicy 75–85%. */
+function adaptLevel() {
+  if (State.recent.length < 8) return;
+  const last = State.recent.slice(-8);
+  const acc  = last.reduce((a, b) => a + b, 0) / last.length;
+  if (acc >= 0.85 && State.level < 8) { State.level++; State.recent = []; }
+  else if (acc <= 0.60 && State.level > 1) { State.level--; State.recent = []; }
+}
+
+/** Przeplatanie: nigdy dwa razy z rzędu ta sama umiejętność; priorytet dla zaległych i słabych. */
+function chooseSkill() {
+  const now = Date.now();
+  const banned = State.lastSkills.slice(-2);
+  let pool = SKILL_IDS.filter(id => !banned.includes(id));
+  if (pool.length < 2) pool = SKILL_IDS.slice();
+  const w = pool.map(id => {
+    const s = skillOf(id);
+    const overdue  = s.due <= now ? 2.2 : 0.5;
+    const weakness = 1.25 - s.m;
+    const fresh    = s.seen === 0 ? 2.0 : 1;
+    return Math.max(0.05, overdue * weakness * fresh * SKILLS[id].w);
+  });
+  let t = w.reduce((a, b) => a + b, 0) * Math.random();
+  for (let i = 0; i < pool.length; i++) { t -= w[i]; if (t <= 0) return pool[i]; }
+  return pool[pool.length - 1];
+}
+
+function nextQuestion(skill, level, opts) {
+  for (let i = 0; i < 12; i++) {
+    const q = buildExercise(skill || chooseSkill(), level || State.level, opts);
+    if (q.options.length >= 3 && q.correct >= 0) return q;
+  }
+  return buildExercise("liczenie", 2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 10 — RYSOWANIE ELEMENTÓW ZADANIA
+   ═══════════════════════════════════════════════════════════════ */
+
+function figure(capText, canvasNode) {
+  const f = el("div", "fig");
+  const frame = el("div", "canvas-frame");
+  frame.appendChild(canvasNode);
+  f.appendChild(frame);
+  if (capText) f.appendChild(el("div", "fig-cap", capText));
+  return f;
+}
+
+function isoFigure(solid, cap, size, scale) {
+  const c = el("canvas");
+  drawIso(c, solid, { w: (size && size.w) || 200, h: (size && size.h) || 172, scale: scale });
+  return figure(cap, c);
+}
+
+function orthoFigure(view, cap, cell) {
+  const c = el("canvas");
+  drawOrtho(c, view, { cell: cell || 22 });
+  return figure(cap, c);
+}
+
+function planFigure(hm, cap) {
+  const c = el("canvas");
+  drawPlan(c, hm, { cell: 32 });
+  return figure(cap, c);
+}
+
+/** Układ trzech rzutów zgodny z wybraną metodą rzutowania. */
+function viewsLayout(solid, method, side) {
+  const wrap = el("div", "views-layout");
+  wrap.style.gridTemplateColumns = "auto auto";
+  const place = (node, r, c) => { node.style.gridRow = r; node.style.gridColumn = c; wrap.appendChild(node); };
+  const slot = (kind, cap) => {
+    const s = el("div", "view-slot");
+    const c = el("canvas");
+    drawOrtho(c, orthoView(solid, kind), { cell: 24 });
+    const fr = el("div", "canvas-frame"); fr.appendChild(c);
+    s.appendChild(fr); s.appendChild(el("div", "fig-cap", cap));
+    return s;
+  };
+  if (method === "E") {
+    place(slot("front", "rzut główny"), 1, 1);
+    place(slot(side, VIEW_LABEL[side]),  1, 2);
+    place(slot("top", "rzut z góry"),    2, 1);
+  } else {
+    place(slot("top", "rzut z góry"),    1, 1);
+    place(slot("front", "rzut główny"),  2, 1);
+    place(slot(side, VIEW_LABEL[side]),  2, 2);
+  }
+  const box = el("div", "views-card");
+  box.appendChild(wrap);
+  const cap = el("div", "fig-cap");
+  cap.style.marginTop = "12px";
+  cap.textContent = "metoda " + (method === "E" ? "pierwszego kąta (E)" : "trzeciego kąta (A)");
+  box.appendChild(cap);
+  return box;
+}
+
+/** Schemat rozmieszczenia rzutów z zaznaczonym pytanym polem. */
+function layoutDiagram(method, slot) {
+  const wrap = el("div", "views-layout");
+  wrap.style.gridTemplateColumns = "repeat(3, 92px)";
+  const cellBox = (txt, on) => {
+    const d = el("div");
+    d.style.cssText = "height:62px;display:flex;align-items:center;justify-content:center;text-align:center;" +
+      "border-radius:7px;font-size:11px;padding:5px;line-height:1.3;border:2px " + (on ? "solid #00C2FF" : "dashed #2a2a2a") + ";" +
+      "background:" + (on ? "#0d2230" : "#141414") + ";color:" + (on ? "#00C2FF" : "#5a5a5a") + ";font-weight:" + (on ? "700" : "400");
+    d.textContent = txt;
+    return d;
+  };
+  const put = (node, r, c) => { node.style.gridRow = r; node.style.gridColumn = c; wrap.appendChild(node); };
+  put(cellBox("rzut główny", false), 2, 2);
+  put(cellBox(slot === "left" ? "?" : "", slot === "left"), 2, 1);
+  put(cellBox(slot === "right" ? "?" : "", slot === "right"), 2, 3);
+  put(cellBox(slot === "above" ? "?" : "", slot === "above"), 1, 2);
+  put(cellBox(slot === "below" ? "?" : "", slot === "below"), 3, 2);
+  const box = el("div", "views-card");
+  box.appendChild(wrap);
+  box.appendChild(el("div", "fig-cap", "metoda " + (method === "E" ? "pierwszego kąta (E)" : "trzeciego kąta (A)")));
+  box.lastChild.style.marginTop = "12px";
+  return box;
+}
+
+function renderStimulus(list, scale) {
+  const row = el("div", "stimulus");
+  for (const s of list) {
+    if (s.type === "iso")            row.appendChild(isoFigure(s.solid, s.cap, { w: 214, h: 182 }, scale));
+    else if (s.type === "plan")      row.appendChild(planFigure(s.hm, s.cap));
+    else if (s.type === "views")     row.appendChild(viewsLayout(s.solid, s.method, s.side));
+    else if (s.type === "layoutDiagram") row.appendChild(layoutDiagram(s.method, s.slot));
+  }
+  return row;
+}
+
+function renderOptionBody(opt, scale) {
+  if (opt.kind === "iso")   { const c = el("canvas"); drawIso(c, opt.solid, { w: 152, h: 132, scale: scale }); return c; }
+  if (opt.kind === "ortho") { const c = el("canvas"); drawOrtho(c, opt.view, { cell: 19 }); return c; }
+  if (opt.kind === "num")   { const d = el("div", null, String(opt.value)); d.style.cssText = "font-size:32px;font-weight:800;color:#EAEAEA;padding:14px 0;"; return d; }
+  const d = el("div", null, opt.text);
+  d.style.cssText = "font-size:14px;color:#EAEAEA;padding:12px 4px;line-height:1.35;";
+  return d;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 11 — SESJA TRENINGOWA
+   ═══════════════════════════════════════════════════════════════ */
+
+const UI = { screen: "kurs", module: null };
+const DIAG_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8];
+
+const Session = { active: false, mode: "trening", diag: false, queue: null, moduleId: null,
+                  i: 0, len: SESSION_LEN, ok: 0, q: null, answered: false, chosen: -1, summary: null };
+
+/** opts: {mode, queue, moduleId}. Bez kolejki zadania dobiera model ucznia. */
+function startSession(opts) {
+  opts = opts || {};
+  Session.active   = true;
+  Session.mode     = opts.mode || "trening";
+  Session.diag     = Session.mode === "diag";
+  Session.queue    = opts.queue || null;
+  Session.moduleId = opts.moduleId || null;
+  Session.i = 0; Session.ok = 0; Session.summary = null;
+  Session.len = Session.queue ? Session.queue.length : (Session.diag ? DIAG_LEVELS.length : SESSION_LEN);
+  loadQuestion();
+}
+
+function loadQuestion() {
+  if (Session.queue) {
+    const spec = Session.queue[Session.i];
+    Session.q = nextQuestion(spec.skill, spec.level, spec.opts);
+  } else if (Session.diag) {
+    Session.q = nextQuestion("obrot", DIAG_LEVELS[Session.i]);
+  } else {
+    Session.q = nextQuestion();
+  }
+  Session.answered = false; Session.chosen = -1;
+  render();
+}
+
+function answer(idx) {
+  if (Session.answered) return;
+  Session.answered = true; Session.chosen = idx;
+  const correct = idx === Session.q.correct;
+  if (correct) Session.ok++;
+  if (!Session.diag) recordAnswer(Session.q.skill, correct);
+  render();
+}
+
+function nextStep() {
+  Session.i++;
+  if (Session.i >= Session.len) finishSession();
+  else loadQuestion();
+}
+
+function finishSession() {
+  const m = Session.mode;
+  if (m === "diag") {
+    const lvl = clamp(1 + Session.ok, 1, 8);
+    State.diag = { score: Session.ok, total: Session.len, level: lvl, date: Date.now() };
+    State.level = lvl;
+  } else if (m === "trening") {
+    State.sessions++;
+  } else if (m === "kurs-drill") {
+    courseProgress(Session.moduleId).drill = true;
+  } else if (m === "kurs-test") {
+    const mod = COURSE_BY_ID[Session.moduleId];
+    const pr  = courseProgress(Session.moduleId);
+    if (Session.ok > (pr.best || 0)) pr.best = Session.ok;
+    if (mod && Session.ok >= mod.pass) pr.passed = true;
+  } else if (m === "kurs-exam") {
+    const passed = Session.ok >= EXAM.pass;
+    const prev = State.course.exam;
+    if (!prev || Session.ok > prev.score) State.course.exam = { score: Session.ok, total: Session.len, passed: passed, date: Date.now() };
+    else if (passed) State.course.exam.passed = true;
+  }
+  save();
+  Session.summary = { ok: Session.ok, len: Session.len, mode: m, moduleId: Session.moduleId };
+  Session.active = false;
+  render();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 12 — EKRAN TRENINGU
+   ═══════════════════════════════════════════════════════════════ */
+
+function screenTrening(root) {
+  if (Session.active) { renderQuestion(root); return; }
+
+  if (Session.summary && String(Session.summary.mode).indexOf("kurs") !== 0) {
+    const s = Session.summary;
+    const pct = Math.round(s.ok / s.len * 100);
+    const card = el("div", "card center");
+    card.appendChild(el("h2", null, s.mode === "diag" ? "Test wstępny zakończony" : "Sesja zakończona"));
+    const big = el("div", "stat-n", s.ok + " / " + s.len);
+    big.style.fontSize = "42px";
+    card.appendChild(big);
+    card.appendChild(el("p", null, "Skuteczność " + pct + "%."));
+    card.appendChild(el("p", null, s.mode === "diag"
+      ? "Poziom startowy ustawiony na " + State.level + ". Możesz zacząć trening."
+      : "Aktualny poziom trudności: " + State.level + " z 8. Kolejne powtórki materiału zaplanowane są w czasie."));
+    const row = el("div", "row center mt");
+    row.style.justifyContent = "center";
+    const b1 = el("button", "btn", "Następna sesja");
+    b1.onclick = () => { Session.summary = null; startSession({ mode: "trening" }); };
+    row.appendChild(b1);
+    const b2 = el("button", "btn ghost", "Zobacz postępy");
+    b2.onclick = () => { UI.screen = "postepy"; Session.summary = null; render(); };
+    row.appendChild(b2);
+    card.appendChild(row);
+    root.appendChild(card);
+    return;
+  }
+
+  const card = el("div", "card");
+  card.appendChild(el("h2", null, "Trening przestrzenny"));
+  const p = el("p", "lead", "Sesja to " + SESSION_LEN + " zadań z różnych umiejętności, przeplatanych celowo. " +
+    "Trudność dobiera się sama, a materiał wraca do powtórki w rosnących odstępach czasu.");
+  card.appendChild(p);
+
+  if (!State.diag) {
+    const note = el("div", "note");
+    note.textContent = "Nie masz jeszcze wyniku testu wstępnego. Osiem zadań na obroty przestrzenne ustawi poziom startowy, " +
+      "żeby nie zaczynać od zadań zbyt łatwych albo zbyt trudnych. Test można pominąć.";
+    card.appendChild(note);
+  }
+
+  const row = el("div", "row mt");
+  const b1 = el("button", "btn", "Zacznij sesję");
+  b1.onclick = () => startSession({ mode: "trening" });
+  row.appendChild(b1);
+  const b2 = el("button", "btn ghost", State.diag ? "Powtórz test wstępny" : "Test wstępny (8 zadań)");
+  b2.onclick = () => startSession({ mode: "diag" });
+  row.appendChild(b2);
+  card.appendChild(row);
+  root.appendChild(card);
+
+  // Co jest zaplanowane do powtórki
+  const now = Date.now();
+  const due = SKILL_IDS.filter(id => skillOf(id).seen > 0 && skillOf(id).due <= now);
+  if (due.length) {
+    const c2 = el("div", "card");
+    c2.appendChild(el("h3", null, "Do powtórki teraz"));
+    c2.appendChild(el("p", null, due.map(id => SKILLS[id].name).join(" · ")));
+    root.appendChild(c2);
+  }
+}
+
+function renderQuestion(root) {
+  const q = Session.q;
+  const card = el("div", "card");
+
+  const head = el("div", "q-head");
+  head.appendChild(el("div", "q-tag", Session.diag ? "test wstępny" : SKILLS[q.skill].name));
+  const txt = el("div", "q-text");
+  txt.appendChild(document.createTextNode(q.prompt));
+  if (q.hint && !Session.diag) { const h = el("div", "q-hint", q.hint); txt.appendChild(h); }
+  head.appendChild(txt);
+  card.appendChild(head);
+
+  // Jedna skala dla bodźca i wszystkich opcji — porównywalność rysunków
+  const isoSolids = q.options.filter(o => o.kind === "iso").map(o => o.solid)
+    .concat(q.stimulus.filter(s => s.type === "iso").map(s => s.solid));
+  const isoScale = isoSolids.length ? sharedIsoScale(isoSolids, 152, 132, 12) : null;
+
+  card.appendChild(renderStimulus(q.stimulus, isoScale));
+
+  const opts = el("div", "opts");
+  const letters = "ABCDE";
+  q.options.forEach((o, i) => {
+    const d = el("div", "opt");
+    d.appendChild(el("div", "lbl", letters[i] || String(i + 1)));
+    d.appendChild(renderOptionBody(o, isoScale));
+    if (Session.answered) {
+      d.classList.add("locked");
+      if (i === q.correct) d.classList.add("correct");
+      else if (i === Session.chosen) d.classList.add("wrong");
+      else d.classList.add("dim");
+    } else {
+      d.onclick = () => answer(i);
+    }
+    opts.appendChild(d);
+  });
+  card.appendChild(opts);
+
+  if (Session.answered) {
+    const good = Session.chosen === q.correct;
+    const fb = el("div", "fb " + (good ? "ok" : "err"));
+    fb.appendChild(el("div", "fb-title", good ? "✓ Dobrze" : "✗ Niepoprawnie"));
+    const body = el("div", "fb-body");
+    if (Session.diag) {
+      body.textContent = good ? "Poprawna odpowiedź." : "Poprawna była odpowiedź " + letters[q.correct] + ".";
+    } else if (good) {
+      body.textContent = q.note || "Poprawna odpowiedź.";
+    } else {
+      const tag = q.options[Session.chosen].tag;
+      body.innerHTML = "Wybrana odpowiedź: <b>" + (WHY[tag] || "odpowiedź niepoprawna") +
+                       "</b>. Poprawna to <b>" + letters[q.correct] + "</b>." + (q.note ? " " + q.note : "");
+    }
+    fb.appendChild(body);
+    card.appendChild(fb);
+
+    const row = el("div", "row mt");
+    const b = el("button", "btn", Session.i + 1 >= Session.len ? "Zakończ sesję" : "Dalej");
+    b.onclick = nextStep;
+    row.appendChild(b);
+    const prog = el("div", "muted", "Zadanie " + (Session.i + 1) + " z " + Session.len + " · poprawnych " + Session.ok);
+    row.appendChild(prog);
+    card.appendChild(row);
+  } else {
+    const bar = el("div", "bar mt");
+    const fill = el("i");
+    fill.style.width = (Session.i / Session.len * 100) + "%";
+    bar.appendChild(fill);
+    card.appendChild(bar);
+    const m = el("div", "muted", "Zadanie " + (Session.i + 1) + " z " + Session.len +
+                (Session.diag ? "" : " · poziom " + q.level));
+    m.style.marginTop = "8px";
+    card.appendChild(m);
+  }
+  root.appendChild(card);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 13 — TRYB BUDUJ
+   Konstruowanie zamiast rozpoznawania — METODYKA.md, sekcja 3.
+   ═══════════════════════════════════════════════════════════════ */
+
+const Builder = { target: null, hm: null, w: 3, d: 3, maxH: 3, checked: false, ok: false, revealed: false };
+
+function newBuild() {
+  const cfg = cfgFor(State.level);
+  Builder.w = cfg.w; Builder.d = cfg.d; Builder.maxH = cfg.maxH;
+  Builder.target = generateSolid(cfg);
+  Builder.hm = Array.from({ length: cfg.w }, () => new Array(cfg.d).fill(0));
+  Builder.checked = false; Builder.ok = false; Builder.revealed = false;
+}
+
+function builderSolid() {
+  let n = 0;
+  for (let x = 0; x < Builder.w; x++) for (let y = 0; y < Builder.d; y++) n += Builder.hm[x][y];
+  return n === 0 ? null : solidFromHeights(Builder.hm);
+}
+
+function screenBuduj(root) {
+  if (!Builder.target) newBuild();
+  const side = State.method === "E" ? "left" : "right";
+
+  const card = el("div", "card");
+  card.appendChild(el("h2", null, "Zbuduj bryłę z rzutów"));
+  card.appendChild(el("p", null,
+    "Odczytaj rzuty i odtwórz bryłę, wpisując wysokości słupków. Kliknięcie w pole podnosi słupek o jedną kostkę, " +
+    "kliknięcie z klawiszem Shift obniża. Sprawdzenie jest ścisłe — liczy się dokładna zgodność, nie podobieństwo."));
+
+  const top = el("div", "stimulus");
+  top.appendChild(viewsLayout(Builder.target, State.method, side));
+  card.appendChild(top);
+  root.appendChild(card);
+
+  const work = el("div", "card");
+  const wrap = el("div", "stimulus");
+
+  // ── Edytor planu ──
+  const left = el("div", "fig");
+  const grid = el("div", "plan-grid");
+  grid.style.gridTemplateColumns = "repeat(" + Builder.w + ", auto)";
+  for (let r = 0; r < Builder.d; r++) for (let c = 0; c < Builder.w; c++) {
+    const x = c, y = Builder.d - 1 - r;              // górny wiersz = tył
+    const h = Builder.hm[x][y];
+    const cell = el("div", "plan-cell" + (h > 0 ? " set" : ""), h > 0 ? String(h) : "");
+    cell.onclick = (ev) => {
+      if (ev.shiftKey) Builder.hm[x][y] = Math.max(0, Builder.hm[x][y] - 1);
+      else Builder.hm[x][y] = (Builder.hm[x][y] + 1) % (Builder.maxH + 1);
+      Builder.checked = false;
+      render();
+    };
+    cell.oncontextmenu = (ev) => { ev.preventDefault(); Builder.hm[x][y] = Math.max(0, Builder.hm[x][y] - 1); Builder.checked = false; render(); };
+    grid.appendChild(cell);
+  }
+  left.appendChild(grid);
+  left.appendChild(el("div", "fig-cap", "twój plan kodowany — góra siatki to tył"));
+  wrap.appendChild(left);
+
+  // ── Podgląd na żywo ──
+  const cur = builderSolid();
+  if (cur) wrap.appendChild(isoFigure(cur, "twoja bryła · " + cur.count + " kostek", { w: 214, h: 182 }));
+  else {
+    const ph = el("div", "fig");
+    const box = el("div", "canvas-frame");
+    box.style.cssText += "width:214px;height:182px;display:flex;align-items:center;justify-content:center;";
+    box.appendChild(el("div", "muted", "kliknij w siatkę"));
+    ph.appendChild(box); ph.appendChild(el("div", "fig-cap", "twoja bryła"));
+    wrap.appendChild(ph);
+  }
+
+  if (Builder.revealed) wrap.appendChild(isoFigure(Builder.target, "rozwiązanie", { w: 214, h: 182 }));
+  work.appendChild(wrap);
+
+  const row = el("div", "row mt");
+  const bCheck = el("button", "btn", "Sprawdź");
+  bCheck.disabled = !cur;
+  bCheck.onclick = () => {
+    const s = builderSolid();
+    if (!s) return;
+    Builder.checked = true;
+    Builder.ok = s.id === Builder.target.id;
+    recordAnswer("rzuty-bryla", Builder.ok);
+    render();
+  };
+  row.appendChild(bCheck);
+
+  const bClear = el("button", "btn ghost sm", "Wyczyść");
+  bClear.onclick = () => { Builder.hm = Array.from({ length: Builder.w }, () => new Array(Builder.d).fill(0)); Builder.checked = false; render(); };
+  row.appendChild(bClear);
+
+  const bNew = el("button", "btn ghost sm", "Nowa bryła");
+  bNew.onclick = () => { newBuild(); render(); };
+  row.appendChild(bNew);
+
+  const bShow = el("button", "btn ghost sm", "Pokaż rozwiązanie");
+  bShow.onclick = () => { Builder.revealed = true; render(); };
+  row.appendChild(bShow);
+  work.appendChild(row);
+
+  if (Builder.checked) {
+    const fb = el("div", "fb " + (Builder.ok ? "ok" : "err"));
+    fb.appendChild(el("div", "fb-title", Builder.ok ? "✓ Bryła zgadza się co do kostki" : "✗ To jeszcze nie ta bryła"));
+    const b = el("div", "fb-body");
+    if (Builder.ok) {
+      b.textContent = "Zgodność dokładna: " + Builder.target.count + " kostek w tych samych miejscach.";
+    } else {
+      const s = builderSolid();
+      const diff = s ? s.count - Builder.target.count : 0;
+      b.textContent = "Twoja bryła ma " + (s ? s.count : 0) + " kostek, szukana ma " + Builder.target.count + ". " +
+        (diff === 0
+          ? "Liczba kostek się zgadza, więc błąd leży w ich rozmieszczeniu. Porównaj rzut z góry z zarysem swojego planu."
+          : "Różnica: " + Math.abs(diff) + " " + (diff > 0 ? "za dużo" : "za mało") + ". Sprawdź wysokości słupków w rzucie z przodu i z boku.");
+    }
+    fb.appendChild(b);
+    work.appendChild(fb);
+    if (Builder.ok) {
+      const r2 = el("div", "row mt");
+      const nb = el("button", "btn", "Następna bryła");
+      nb.onclick = () => { newBuild(); render(); };
+      r2.appendChild(nb);
+      work.appendChild(r2);
+    }
+  }
+  root.appendChild(work);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 14 — TEORIA
+   ═══════════════════════════════════════════════════════════════ */
+
+function drawIsoAxes(canvas) {
+  const W = 300, H = 210, s = 42;
+  const ctx = setupCanvas(canvas, W, H);
+  const ox = W / 2 - 34, oy = H / 2 + 34;
+  const P = (x, y, z) => { const p = isoPt(x, y, z, s); return [p.x + ox, p.y + oy]; };
+
+  const arrow = (to, label, col) => {
+    const a = P(0, 0, 0), b = P(to[0], to[1], to[2]);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
+    ctx.strokeStyle = col; ctx.lineWidth = 1.6; ctx.setLineDash([4, 3]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = col; ctx.font = "bold 12px system-ui, Arial";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(label, b[0], b[1]);
+  };
+  arrow([2.55, 0, 0], "x", "#FF6B60");
+  arrow([0, 2.55, 0], "y", "#5ED17A");
+  arrow([0, 0, 2.35], "z", "#00C2FF");
+
+  const cube = makeSolid([[0, 0, 0]]);
+  const top = "hsl(199,55%,64%)", front = "hsl(199,55%,45%)", side = "hsl(199,55%,31%)", edge = "hsl(199,45%,14%)";
+  poly(ctx, [P(0, 0, 1), P(1, 0, 1), P(1, 1, 1), P(0, 1, 1)], top, edge, 1);
+  poly(ctx, [P(0, 0, 0), P(1, 0, 0), P(1, 0, 1), P(0, 0, 1)], front, edge, 1);
+  poly(ctx, [P(1, 0, 0), P(1, 1, 0), P(1, 1, 1), P(1, 0, 1)], side, edge, 1);
+  return cube;
+}
+
+function lesson(title, buildBody) {
+  const box = el("div", "lesson");
+  const head = el("div", "lesson-h");
+  head.appendChild(el("span", "caret", "▸"));
+  head.appendChild(el("span", null, title));
+  const body = el("div", "lesson-b");
+  buildBody(body);
+  head.onclick = () => box.classList.toggle("open");
+  box.appendChild(head); box.appendChild(body);
+  return box;
+}
+
+/* ── Wspólne bryły demonstracyjne (stałe, żeby rysunki w teorii się nie zmieniały) ── */
+const DEMO_A = solidFromHeights([[3, 1], [1, 2]]);
+const DEMO_B = solidFromHeights([[2, 1, 0], [1, 3, 1], [0, 1, 2]]);
+
+function stimRow() {
+  const r = el("div", "stimulus");
+  for (let i = 0; i < arguments.length; i++) if (arguments[i]) r.appendChild(arguments[i]);
+  return r;
+}
+function para(b, t) { b.appendChild(el("p", null, t)); }
+function bullets(b, items) {
+  const ul = el("ul");
+  for (const t of items) { const n = el("li"); n.innerHTML = t; ul.appendChild(n); }
+  b.appendChild(ul);
+}
+function noteBox(b, t) { const n = el("div", "note"); n.textContent = t; b.appendChild(n); }
+
+/* ═══ REJESTR LEKCJI ═══
+   Ten sam materiał zasila zakładkę Teoria i moduły kursu. */
+const LESSONS = [
+{
+  id: "osie", title: "Układ osi i rzut izometryczny",
+  build: b => {
+    para(b, "W rzucie izometrycznym trzy osie przestrzeni tworzą na rysunku kąty po 120°. Oś pionowa zostaje pionowa, " +
+      "dwie poziome biegną pod kątem 30° do poziomu. Dzięki temu wszystkie trzy wymiary bryły są na rysunku mierzalne " +
+      "w tej samej skali, w odróżnieniu od rzutu perspektywicznego.");
+    const c = el("canvas"); drawIsoAxes(c);
+    b.appendChild(figure("osie układu: x w prawo, y w głąb, z w górę", c));
+    noteBox(b, "Wzór rzutowania użyty w aplikacji: ekranX = (x + y) · cos30 · s, ekranY = (x − y) · sin30 · s − z · s. " +
+      "Obserwator stoi z przodu, z prawej i od góry, więc każda kostka pokazuje trzy ściany: górną, przednią i prawą.");
+    para(b, "Uwaga terminologiczna: w izometrii znormalizowanej długości wzdłuż osi są skracane do około 0,816 " +
+      "rzeczywistej długości. W rysunku izometrycznym stosowanym w dydaktyce skrótu się nie stosuje, bo nie wpływa " +
+      "on na kształt, a tylko na wielkość rysunku.");
+  }
+},
+{
+  id: "plan", title: "Plan kodowany — pomost między 2D a 3D",
+  build: b => {
+    para(b, "Plan kodowany to siatka rzutu z góry, w której każde pole zawiera liczbę kostek stojących w tym miejscu. " +
+      "Zapisuje bryłę jednoznacznie i pozwala odczytać ją analitycznie, słupek po słupku, zamiast próbować ogarnąć " +
+      "całość naraz.");
+    b.appendChild(stimRow(planFigure(heightsOf(DEMO_B), "plan kodowany"), isoFigure(DEMO_B, "ta sama bryła", { w: 210, h: 180 })));
+    para(b, "Konwencja przyjęta w aplikacji: górny wiersz planu to tył bryły, dolny — przód. Taka sama jak w rzucie " +
+      "z góry, dzięki czemu plan i rzut z góry mają identyczny zarys.");
+    noteBox(b, "Suma wszystkich liczb w planie to liczba kostek bryły. To najszybszy sposób na sprawdzenie objętości, " +
+      "łącznie z kostkami, których nie widać.");
+  }
+},
+{
+  id: "rzuty", title: "Trzy rzuty prostokątne",
+  build: b => {
+    para(b, "Rzut prostokątny to widok bryły z jednego kierunku, rzutowany prostopadle na płaszczyznę. Trzy rzuty " +
+      "wystarczają do opisania większości brył, bo każdy podaje inną parę wymiarów.");
+    b.appendChild(stimRow(
+      isoFigure(DEMO_B, "bryła", { w: 200, h: 172 }),
+      orthoFigure(orthoView(DEMO_B, "front"), "rzut z przodu", 28),
+      orthoFigure(orthoView(DEMO_B, "top"), "rzut z góry", 28),
+      orthoFigure(orthoView(DEMO_B, "left"), "rzut z lewej", 28)));
+    const t = el("table", "tbl");
+    t.innerHTML = "<tr><th>Rzut</th><th>Kierunek patrzenia</th><th>Co pokazuje</th></tr>" +
+      "<tr><td><b>z przodu</b></td><td>od frontu w głąb</td><td>szerokość i wysokość</td></tr>" +
+      "<tr><td><b>z góry</b></td><td>z góry w dół</td><td>szerokość i głębokość</td></tr>" +
+      "<tr><td><b>z boku</b></td><td>od boku poprzecznie</td><td>głębokość i wysokość</td></tr>";
+    b.appendChild(t);
+    para(b, "Rzut nie pokazuje odległości mierzonej wzdłuż kierunku patrzenia. Dlatego jeden rzut nigdy nie opisuje " +
+      "bryły jednoznacznie: wiele różnych brył ma ten sam rzut z przodu.");
+  }
+},
+{
+  id: "uskoki", title: "Uskoki — dlaczego zarys nie wystarcza",
+  build: b => {
+    para(b, "Gruba linia na rzucie to zarys zewnętrzny. Cienka linia wewnątrz zarysu oznacza uskok: miejsce, " +
+      "w którym powierzchnia bryły przeskakuje na inną głębokość.");
+    const flat = solidFromHeights([[2, 2], [2, 2]]);
+    const step = solidFromHeights([[2, 1], [2, 1]]);
+    b.appendChild(stimRow(
+      isoFigure(flat, "bryła pełna", { w: 180, h: 158 }),
+      orthoFigure(orthoView(flat, "front"), "jej rzut z przodu", 30),
+      isoFigure(step, "bryła z uskokiem", { w: 180, h: 158 }),
+      orthoFigure(orthoView(step, "front"), "jej rzut z przodu", 30)));
+    para(b, "Obie bryły mają identyczny zarys rzutu z przodu. Różni je wyłącznie cienka linia, która mówi, " +
+      "że tylny rząd jest niższy. Bez niej rysunek byłby dwuznaczny.");
+    noteBox(b, "To najczęstsze źródło pomyłek przy czytaniu rysunku technicznego: uczeń patrzy na kształt zarysu " +
+      "i pomija linie wewnętrzne, które niosą informację o głębokości.");
+  }
+},
+{
+  id: "czytanie", title: "Czytanie rzutów: procedura odtworzenia bryły",
+  build: b => {
+    para(b, "Odtworzenie bryły z rzutów nie wymaga zgadywania. Istnieje procedura, która działa zawsze " +
+      "dla brył złożonych z kostek. Wykonuje się ją w trzech krokach.");
+    bullets(b, [
+      "<b>Krok 1 — rzut z góry daje zarys podstawy.</b> Zaznacz w planie te pola, które są wypełnione na rzucie z góry. " +
+        "Pozostałe zostają puste i już się nimi nie zajmujesz.",
+      "<b>Krok 2 — rzut z przodu daje maksymalne wysokości kolumn.</b> Każda kolumna rzutu z przodu odpowiada jednej " +
+        "kolumnie planu. Jej wysokość to najwyższy słupek w tej kolumnie.",
+      "<b>Krok 3 — rzut z boku daje maksymalne wysokości rzędów.</b> Analogicznie, ale dla rzędów planu. " +
+        "Przecięcie obu ograniczeń wyznacza wysokość każdego słupka.",
+    ]);
+    b.appendChild(stimRow(
+      orthoFigure(orthoView(DEMO_B, "top"), "1. zarys podstawy", 28),
+      orthoFigure(orthoView(DEMO_B, "front"), "2. wysokości kolumn", 28),
+      orthoFigure(orthoView(DEMO_B, "left"), "3. wysokości rzędów", 28),
+      planFigure(heightsOf(DEMO_B), "wynik: plan kodowany")));
+    para(b, "Jeżeli po trzech krokach pozostaje niejednoznaczność, decydują linie uskoków. " +
+      "Tryb Buduj w tej aplikacji jest ćwiczeniem dokładnie tej procedury.");
+  }
+},
+{
+  id: "obroty-z", title: "Obroty wokół osi pionowej",
+  build: b => {
+    para(b, "Obrót wokół osi pionowej jest najprostszy, bo bryła pozostaje postawiona: wysokości słupków się " +
+      "nie zmieniają, zmienia się tylko ich rozmieszczenie w planie.");
+    const rot = xform(DEMO_B, XF.rotZ);
+    const sc = sharedIsoScale([DEMO_B, rot], 200, 172, 12);
+    b.appendChild(stimRow(
+      isoFigure(DEMO_B, "przed obrotem", { w: 200, h: 172 }, sc),
+      isoFigure(rot, "po obrocie o 90° w prawo", { w: 200, h: 172 }, sc)));
+    para(b, "Widać to najlepiej na rzucie z góry: obrót bryły w prawo obraca cały rzut z góry w prawo.");
+    b.appendChild(stimRow(
+      orthoFigure(orthoView(DEMO_B, "top"), "rzut z góry przed", 28),
+      orthoFigure(orthoView(rot, "top"), "rzut z góry po", 28)));
+    noteBox(b, "Praktyczna reguła: po obrocie w prawo dotychczasowy rzut z prawej strony staje się nowym rzutem " +
+      "z przodu. Po obrocie w lewo — rzut z lewej strony.");
+  }
+},
+{
+  id: "obroty-xy", title: "Obroty wokół osi poziomych",
+  build: b => {
+    para(b, "Obrót wokół osi poziomej kładzie bryłę na bok albo przechyla ją do przodu. To trudniejszy przypadek, " +
+      "bo zamienia wysokość z głębokością albo z szerokością.");
+    const rot = xform(DEMO_A, XF.rotX);
+    const sc = sharedIsoScale([DEMO_A, rot], 200, 172, 12);
+    b.appendChild(stimRow(
+      isoFigure(DEMO_A, "przed obrotem", { w: 200, h: 172 }, sc),
+      isoFigure(rot, "po przechyleniu do przodu", { w: 200, h: 172 }, sc)));
+    noteBox(b, "Po takim obrocie bryła może mieć nawisy, czyli kostki wiszące nad pustką. Plan kodowany przestaje " +
+      "wtedy wystarczać do jej opisania — a to dobra ilustracja tego, że plan jest wygodnym skrótem, nie pełnym zapisem.");
+    bullets(b, [
+      "<b>Przechylenie do przodu</b> — góra bryły jedzie w Twoją stronę, tył wędruje do góry.",
+      "<b>Przechylenie do tyłu</b> — odwrotnie, przód wędruje pod spód.",
+      "<b>Położenie na bok</b> — obrót wokół osi biegnącej w głąb, wysokość zamienia się z szerokością.",
+    ]);
+    para(b, "Strategia, która działa: wybierz jeden narożnik, najlepiej wierzchołek najwyższego słupka, " +
+      "i ustal, gdzie trafia po obrocie. Reszta bryły ułoży się względem niego.");
+  }
+},
+{
+  id: "odbicia", title: "Odbicia i symetria",
+  build: b => {
+    para(b, "Odbicie lustrzane zamienia stronę lewą z prawą. Kluczowa własność: bryły chiralnej nie da się " +
+      "nałożyć na jej odbicie żadnym obrotem. To najczęstsza pułapka w zadaniach przestrzennych.");
+    const mir = xform(DEMO_B, XF.mirX);
+    const rot180 = xform(DEMO_B, XF.rotZ, 2);
+    const sc = sharedIsoScale([DEMO_B, mir, rot180], 190, 164, 12);
+    b.appendChild(stimRow(
+      isoFigure(DEMO_B, "oryginał", { w: 190, h: 164 }, sc),
+      isoFigure(mir, "odbicie lustrzane", { w: 190, h: 164 }, sc),
+      isoFigure(rot180, "obrót o 180°", { w: 190, h: 164 }, sc)));
+    para(b, "Środkowa i prawa bryła bywają mylone, bo obie wyglądają jak „odwrócony oryginał”. " +
+      "Tylko środkowa jest odbiciem. Prawa to nadal ta sama bryła, ustawiona inaczej.");
+    noteBox(b, "Test na odróżnienie: policz kostki wzdłuż jednej krawędzi, idąc od lewej. Obrót zachowa tę kolejność " +
+      "przy odpowiednim ustawieniu, odbicie odwróci ją zawsze.");
+  }
+},
+{
+  id: "przekroje", title: "Przekroje brył",
+  build: b => {
+    para(b, "Przekrój pokazuje tylko materiał leżący dokładnie w płaszczyźnie cięcia. Nie jest widokiem: " +
+      "nie widać na nim tego, co leży za płaszczyzną ani przed nią.");
+    b.appendChild(stimRow(
+      isoFigure(DEMO_B, "bryła", { w: 200, h: 172 }),
+      planFigure(heightsOf(DEMO_B), "plan kodowany"),
+      orthoFigure(sectionView(DEMO_B, "y", 0), "przekrój przez 1. rząd od przodu", 28),
+      orthoFigure(sectionView(DEMO_B, "y", 1), "przekrój przez 2. rząd", 28)));
+    para(b, "Przy cięciu płaszczyzną pionową równoległą do rzutu z przodu wynik odczytuje się wprost z planu: " +
+      "bierzesz jeden rząd planu i rysujesz słupki o podanych wysokościach.");
+    noteBox(b, "Dlatego przekrój przez pierwszy rząd bywa identyczny z rzutem z przodu, ale tylko wtedy, gdy nic " +
+      "za nim nie wystaje ponad ten rząd. W innym wypadku rzut pokaże więcej niż przekrój.");
+  }
+},
+{
+  id: "metoda", title: "Metoda pierwszego i trzeciego kąta",
+  build: b => {
+    para(b, "Obraz każdego rzutu jest w obu metodach taki sam. Różni się wyłącznie ROZMIESZCZENIE rzutów na arkuszu. " +
+      "W metodzie europejskiej (pierwszego kąta) przedmiot znajduje się przed rzutnią, w amerykańskiej " +
+      "(trzeciego kąta) — za rzutnią.");
+    const t = el("table", "tbl");
+    t.innerHTML = "<tr><th>Rzut</th><th>Metoda pierwszego kąta (E)</th><th>Metoda trzeciego kąta (A)</th></tr>" +
+      "<tr><td><b>z góry</b></td><td>pod rzutem głównym</td><td>nad rzutem głównym</td></tr>" +
+      "<tr><td><b>z lewej strony</b></td><td>po prawej stronie</td><td>po lewej stronie</td></tr>" +
+      "<tr><td><b>z prawej strony</b></td><td>po lewej stronie</td><td>po prawej stronie</td></tr>";
+    b.appendChild(t);
+    b.appendChild(stimRow(viewsLayout(DEMO_A, "E", "left"), viewsLayout(DEMO_A, "A", "right")));
+    noteBox(b, "Ten sam rysunek odczytany w niewłaściwej konwencji daje inną bryłę. Dlatego norma PN-EN ISO 5456-2 " +
+      "wymaga umieszczenia na rysunku symbolu graficznego zastosowanej metody — rzutu ściętego stożka. " +
+      "Polska i Europa stosują metodę pierwszego kąta, Ameryka Północna trzeciego.");
+  }
+},
+{
+  id: "strategie", title: "Strategie rozwiązywania zadań",
+  build: b => {
+    para(b, "Badania nad wyobraźnią przestrzenną wyróżniają dwa style pracy. Oba są potrzebne.");
+    bullets(b, [
+      "<b>Całościowy</b> — obracasz bryłę w wyobraźni jako jeden obiekt. Szybki, ale zawodzi przy bryłach złożonych.",
+      "<b>Analityczny</b> — śledzisz pojedynczy element: jeden narożnik, jedną ścianę, jeden słupek. Wolniejszy, " +
+        "ale niezawodny. To on ratuje przy trudnych zadaniach.",
+    ]);
+    para(b, "Praktyczne wskazówki, które warto stosować przy zadaniach w tym trenerze:");
+    bullets(b, [
+      "Przy obrotach wybierz <b>jeden charakterystyczny narożnik</b> i sprawdź, gdzie trafia.",
+      "Przy czytaniu rzutów zacznij od <b>rzutu z góry</b>: on podaje zarys podstawy.",
+      "Potem <b>rzut z przodu</b> podaje maksymalne wysokości w kolumnach, a rzut boczny — w rzędach.",
+      "Odbicie lustrzane <b>nigdy</b> nie jest obrotem. Jeśli bryła wygląda znajomo, ale coś się nie zgadza, sprawdź stronę.",
+      "Przy liczeniu kostek sumuj plan kodowany, nie licz tego, co widać.",
+    ]);
+  }
+},
+{
+  id: "trener", title: "Jak ten trener rozkłada naukę w czasie",
+  build: b => {
+    para(b, "Program nie podaje zadań po kolei tematami. Robi trzy rzeczy naraz, zgodnie z wynikami badań nad uczeniem się:");
+    bullets(b, [
+      "<b>Przeplata typy zadań</b> — dwa razy z rzędu ta sama umiejętność nie wystąpi. Utrudnia to naukę w trakcie, " +
+        "ale poprawia trwałość i przenoszenie umiejętności na nowe przypadki.",
+      "<b>Rozkłada powtórki w czasie</b> — każda umiejętność ma własny licznik. Po poprawnej odpowiedzi odstęp do " +
+        "kolejnej powtórki rośnie, po błędnej wraca do zera.",
+      "<b>Dobiera trudność</b> — poziom rośnie przy skuteczności powyżej 85% i spada poniżej 60%, żeby zadania " +
+        "utrzymywały się w okolicy 75–85% trafień.",
+    ]);
+    para(b, "Kurs w zakładce Kurs prowadzi przez materiał po kolei i sprawdza każdy moduł osobno. Zakładka Trening " +
+      "robi coś innego: miesza wszystko, co już umiesz, i pilnuje powtórek. Oba tryby są potrzebne — kurs buduje " +
+      "wiedzę, trening ją utrwala.");
+    para(b, "Pełne uzasadnienie i lista źródeł znajdują się w pliku METODYKA.md w repozytorium.");
+  }
+},
+];
+
+const LESSON_BY_ID = {};
+for (const L of LESSONS) LESSON_BY_ID[L.id] = L;
+
+function renderLessons(container, ids, openAll) {
+  const wrap = el("div", "card pad0");
+  const list = ids ? ids.map(i => LESSON_BY_ID[i]).filter(Boolean) : LESSONS;
+  list.forEach((L, i) => {
+    const num = ids ? "" : (LESSONS.indexOf(L) + 1) + ". ";
+    const box = lesson(num + L.title, L.build);
+    if (openAll) box.classList.add("open");
+    wrap.appendChild(box);
+  });
+  container.appendChild(wrap);
+  return wrap;
+}
+
+function screenTeoria(root) { renderLessons(root, null, false); }
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 15 — POSTĘPY I USTAWIENIA
+   ═══════════════════════════════════════════════════════════════ */
+
+function fmtDue(due) {
+  const d = due - Date.now();
+  if (d <= 0) return "teraz";
+  const m = Math.round(d / 60000);
+  if (m < 60) return "za " + m + " min";
+  const h = Math.round(m / 60);
+  if (h < 24) return "za " + h + " h";
+  return "za " + Math.round(h / 24) + " dni";
+}
+
+function screenPostepy(root) {
+  const acc = State.seen ? Math.round(State.ok / State.seen * 100) : 0;
+
+  const c1 = el("div", "card");
+  c1.appendChild(el("h2", null, "Postępy"));
+  const st = el("div", "stats");
+  const stat = (n, l) => { const d = el("div", "stat"); d.appendChild(el("div", "stat-n", String(n))); d.appendChild(el("div", "stat-l", l)); return d; };
+  st.appendChild(stat(State.level, "poziom z 8"));
+  st.appendChild(stat(State.seen, "rozwiązanych zadań"));
+  st.appendChild(stat(acc + "%", "skuteczność"));
+  st.appendChild(stat(State.best, "najdłuższa seria"));
+  st.appendChild(stat(State.sessions, "ukończonych sesji"));
+  c1.appendChild(st);
+  if (State.diag) {
+    const p = el("p", null, "Test wstępny: " + State.diag.score + " / " + State.diag.total +
+      " punktów, poziom startowy " + State.diag.level + ". Powtórz go po przerobieniu materiału, żeby zmierzyć przyrost.");
+    p.style.marginTop = "14px";
+    c1.appendChild(p);
+  }
+  root.appendChild(c1);
+
+  const c2 = el("div", "card");
+  c2.appendChild(el("h2", null, "Opanowanie umiejętności"));
+  for (const id of SKILL_IDS) {
+    const s = skillOf(id);
+    const pct = Math.round(s.m * 100);
+    const rowEl = el("div", "skill");
+    const leftCol = el("div");
+    leftCol.appendChild(el("div", "skill-name", SKILLS[id].name));
+    const sub = s.seen
+      ? SKILLS[id].modul + " · " + s.ok + "/" + s.seen + " trafień · powtórka " + fmtDue(s.due)
+      : SKILLS[id].modul + " · jeszcze nie ćwiczone";
+    leftCol.appendChild(el("div", "skill-sub", sub));
+    const bar = el("div", "bar" + (pct >= 70 ? " good" : ""));
+    bar.style.marginTop = "8px";
+    const fill = el("i"); fill.style.width = pct + "%"; bar.appendChild(fill);
+    leftCol.appendChild(bar);
+    rowEl.appendChild(leftCol);
+    rowEl.appendChild(el("div", "skill-pct", pct + "%"));
+    c2.appendChild(rowEl);
+  }
+  root.appendChild(c2);
+
+  const c3 = el("div", "card");
+  c3.appendChild(el("h2", null, "Ustawienia"));
+  c3.appendChild(el("p", null, "Metoda rzutowania używana w zadaniach i w trybie Buduj. " +
+    "Polska norma to metoda pierwszego kąta."));
+  const tg = el("div", "toggle");
+  const mk = (val, txt) => {
+    const b = el("button", State.method === val ? "on" : "", txt);
+    b.onclick = () => { State.method = val; save(); render(); };
+    return b;
+  };
+  tg.appendChild(mk("E", "Pierwszego kąta (E)"));
+  tg.appendChild(mk("A", "Trzeciego kąta (A)"));
+  c3.appendChild(tg);
+
+  const lvlRow = el("div", "row mt");
+  lvlRow.appendChild(el("span", "muted", "Poziom trudności ustawia się sam, ale możesz go zmienić ręcznie:"));
+  const dn = el("button", "btn ghost sm", "−");
+  dn.onclick = () => { State.level = clamp(State.level - 1, 1, 8); State.recent = []; save(); render(); };
+  const up = el("button", "btn ghost sm", "+");
+  up.onclick = () => { State.level = clamp(State.level + 1, 1, 8); State.recent = []; save(); render(); };
+  lvlRow.appendChild(dn); lvlRow.appendChild(el("b", null, String(State.level))); lvlRow.appendChild(up);
+  c3.appendChild(lvlRow);
+
+  const rst = el("div", "row mt");
+  const rb = el("button", "btn danger sm", "Wyczyść wszystkie postępy");
+  rb.onclick = () => {
+    if (!window.confirm("Usunąć cały zapisany postęp? Tej operacji nie da się cofnąć.")) return;
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    State.skills = {}; State.seen = 0; State.ok = 0; State.streak = 0; State.best = 0;
+    State.recent = []; State.lastSkills = []; State.diag = null; State.sessions = 0; State.level = 2;
+    State.course = { mods: {}, exam: null }; UI.module = null;
+    for (const id of SKILL_IDS) skillOf(id);
+    save(); render();
+  };
+  rst.appendChild(rb);
+  c3.appendChild(rst);
+  const note = el("p", "muted");
+  note.style.marginTop = "12px";
+  note.textContent = "Postęp zapisuje się w pamięci przeglądarki na tym urządzeniu. Tryb prywatny i czyszczenie danych witryny go usuwają.";
+  c3.appendChild(note);
+  root.appendChild(c3);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 16 — POWŁOKA I START
+   ═══════════════════════════════════════════════════════════════ */
+
+const TABS = [
+  ["kurs",    "Kurs"],
+  ["trening", "Trening"],
+  ["buduj",   "Buduj"],
+  ["teoria",  "Teoria"],
+  ["postepy", "Postępy"],
+];
+
+function renderNav() {
+  const nav = $("#nav");
+  nav.innerHTML = "";
+  for (const t of TABS) {
+    const b = el("button", UI.screen === t[0] ? "on" : "", t[1]);
+    b.onclick = () => { UI.screen = t[0]; render(); };
+    nav.appendChild(b);
+  }
+}
+
+function renderHud() {
+  const hud = $("#hud");
+  hud.innerHTML = "";
+  const chip = (label, value, hot) => {
+    const c = el("div", "chip" + (hot ? " hot" : ""));
+    c.appendChild(document.createTextNode(label));
+    c.appendChild(el("b", null, String(value)));
+    return c;
+  };
+  hud.appendChild(chip("poziom", State.level + "/8"));
+  hud.appendChild(chip("skuteczność", (State.seen ? Math.round(State.ok / State.seen * 100) : 0) + "%"));
+  hud.appendChild(chip("seria", State.streak, State.streak >= 3));
+  hud.appendChild(chip("metoda", State.method));
+}
+
+function render() {
+  renderHud();
+  renderNav();
+  const root = $("#view");
+  root.innerHTML = "";
+  if (UI.screen === "kurs")         screenKurs(root);
+  else if (UI.screen === "trening") screenTrening(root);
+  else if (UI.screen === "buduj")   screenBuduj(root);
+  else if (UI.screen === "teoria")  screenTeoria(root);
+  else                              screenPostepy(root);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 16 — KURS
+
+   Ścieżka prowadzona: 10 modułów w ustalonej kolejności, każdy
+   zamknięty sprawdzianem, plus egzamin końcowy. Układ modułów
+   odwzorowuje strukturę kursu "Developing Spatial Thinking"
+   (rysunki izometryczne, rzuty, obroty, odbicia, przekroje),
+   przycięty do tego, czego ten silnik potrafi uczciwie uczyć.
+   Trening obok kursu robi co innego: miesza i utrwala.
+   ═══════════════════════════════════════════════════════════════ */
+
+const COURSE = [
+  { id: "m1", title: "Układ osi i rzut izometryczny", time: "10 min",
+    goal: "Odczytasz osie rzutu izometrycznego i policzysz kostki bryły razem z tymi, których nie widać.",
+    lessons: ["osie"],
+    drill: [{ skill: "liczenie", n: 5, level: 2 }],
+    test:  [{ skill: "liczenie", n: 6, level: 3 }], pass: 5 },
+
+  { id: "m2", title: "Plan kodowany", time: "12 min",
+    goal: "Zamienisz plan kodowany na bryłę i z powrotem. To podstawowy zapis używany w całym kursie.",
+    lessons: ["plan"],
+    drill: [{ skill: "plan-bryla", n: 4, level: 2 }, { skill: "liczenie", n: 2, level: 3 }],
+    test:  [{ skill: "plan-bryla", n: 6, level: 3 }], pass: 5 },
+
+  { id: "m3", title: "Trzy rzuty prostokątne", time: "12 min",
+    goal: "Wskażesz, jak wygląda rzut z przodu, z góry i z boku dla zadanej bryły.",
+    lessons: ["rzuty"],
+    drill: [{ skill: "bryla-rzut", n: 6, level: 2, opts: { kinds: ["front", "top"] } }],
+    test:  [{ skill: "bryla-rzut", n: 6, level: 3 }], pass: 5 },
+
+  { id: "m4", title: "Uskoki i linie wewnętrzne", time: "12 min",
+    goal: "Odróżnisz bryły o identycznym zarysie po samych liniach uskoków.",
+    lessons: ["uskoki"],
+    drill: [{ skill: "bryla-rzut", n: 6, level: 4 }],
+    test:  [{ skill: "bryla-rzut", n: 6, level: 4 }], pass: 5 },
+
+  { id: "m5", title: "Czytanie rzutów: od rysunku do bryły", time: "15 min",
+    goal: "Odtworzysz bryłę z trzech rzutów, stosując procedurę: podstawa, kolumny, rzędy.",
+    lessons: ["czytanie", "strategie"],
+    drill: [{ skill: "rzuty-bryla", n: 5, level: 3 }],
+    test:  [{ skill: "rzuty-bryla", n: 6, level: 4 }], pass: 5,
+    tip: "Po sprawdzianie przejdź do zakładki Buduj. Konstruowanie bryły utrwala tę umiejętność mocniej niż wybór z listy." },
+
+  { id: "m6", title: "Obroty wokół osi pionowej", time: "12 min",
+    goal: "Przewidzisz wygląd bryły po obrocie o 90° w prawo lub w lewo, patrząc z góry.",
+    lessons: ["obroty-z"],
+    drill: [{ skill: "obrot", n: 5, level: 3, opts: { axes: ["z"] } }],
+    test:  [{ skill: "obrot", n: 6, level: 4, opts: { axes: ["z"] } }], pass: 5 },
+
+  { id: "m7", title: "Obroty wokół osi poziomych", time: "15 min",
+    goal: "Poradzisz sobie z przechyleniem bryły do przodu, do tyłu i położeniem jej na bok.",
+    lessons: ["obroty-xy"],
+    drill: [{ skill: "obrot", n: 5, level: 3, opts: { axes: ["x", "y"] } }],
+    test:  [{ skill: "obrot", n: 6, level: 4, opts: { axes: ["x", "y"] } }], pass: 5 },
+
+  { id: "m8", title: "Odbicia i symetria", time: "12 min",
+    goal: "Odróżnisz odbicie lustrzane od obrotu — najczęstszą pułapkę w zadaniach przestrzennych.",
+    lessons: ["odbicia"],
+    drill: [{ skill: "odbicie", n: 5, level: 3 }],
+    test:  [{ skill: "odbicie", n: 6, level: 4 }], pass: 5 },
+
+  { id: "m9", title: "Przekroje brył", time: "12 min",
+    goal: "Wyznaczysz przekrój bryły płaszczyzną pionową i poziomą.",
+    lessons: ["przekroje"],
+    drill: [{ skill: "przekroj", n: 5, level: 3, opts: { cuts: ["y", "x"] } }],
+    test:  [{ skill: "przekroj", n: 6, level: 4 }], pass: 5 },
+
+  { id: "m10", title: "Norma: metoda pierwszego i trzeciego kąta", time: "12 min",
+    goal: "Rozmieścisz rzuty zgodnie z PN-EN ISO 5456-2 i odczytasz rysunek w obu konwencjach.",
+    lessons: ["metoda"],
+    drill: [{ skill: "uklad", n: 4 }, { skill: "rzuty-bryla", n: 2, level: 3 }],
+    test:  [{ skill: "uklad", n: 6 }], pass: 5 },
+];
+
+const COURSE_BY_ID = {};
+for (const m of COURSE) COURSE_BY_ID[m.id] = m;
+
+const EXAM = {
+  pass: 9,
+  specs: [
+    { skill: "liczenie",    n: 1, level: 4 },
+    { skill: "plan-bryla",  n: 2, level: 4 },
+    { skill: "bryla-rzut",  n: 2, level: 4 },
+    { skill: "rzuty-bryla", n: 2, level: 4 },
+    { skill: "obrot",       n: 1, level: 4, opts: { axes: ["z"] } },
+    { skill: "obrot",       n: 1, level: 5, opts: { axes: ["x", "y"] } },
+    { skill: "odbicie",     n: 1, level: 4 },
+    { skill: "przekroj",    n: 1, level: 4 },
+    { skill: "uklad",       n: 1 },
+  ],
+};
+
+function courseProgress(id) {
+  if (!State.course.mods[id]) State.course.mods[id] = { drill: false, best: 0, passed: false };
+  return State.course.mods[id];
+}
+function moduleIndex(id) { for (let i = 0; i < COURSE.length; i++) if (COURSE[i].id === id) return i; return -1; }
+function moduleUnlocked(i) { return i === 0 || courseProgress(COURSE[i - 1].id).passed; }
+function passedCount() { let n = 0; for (const m of COURSE) if (courseProgress(m.id).passed) n++; return n; }
+function examUnlocked() { return passedCount() === COURSE.length; }
+function courseDone() { return !!(State.course.exam && State.course.exam.passed); }
+
+function expandQueue(specs, mix) {
+  const out = [];
+  for (const sp of specs) for (let i = 0; i < sp.n; i++) out.push({ skill: sp.skill, level: sp.level, opts: sp.opts });
+  return mix ? shuffle(out) : out;
+}
+
+/* ── Ekran główny kursu ── */
+function screenKurs(root) {
+  if (Session.active && String(Session.mode).indexOf("kurs") === 0) {
+    root.appendChild(courseSessionBar());
+    renderQuestion(root);
+    return;
+  }
+  if (Session.summary && String(Session.summary.mode).indexOf("kurs") === 0) { courseSummary(root); return; }
+  if (UI.module) { moduleDetail(root, UI.module); return; }
+  syllabus(root);
+}
+
+function courseSessionBar() {
+  const m = COURSE_BY_ID[Session.moduleId];
+  const stage = Session.mode === "kurs-drill" ? "Ćwiczenia" : Session.mode === "kurs-test" ? "Sprawdzian" : "Egzamin końcowy";
+  const c = el("div", "card");
+  const row = el("div", "row");
+  row.appendChild(el("div", "q-tag", stage));
+  row.appendChild(el("b", null, m ? m.title : "Egzamin końcowy"));
+  row.appendChild(el("div", "spacer"));
+  const stop = el("button", "btn ghost sm", "Przerwij");
+  stop.onclick = () => {
+    Session.active = false; Session.summary = null;
+    UI.module = Session.moduleId; render();
+  };
+  row.appendChild(stop);
+  row.style.alignItems = "center";
+  c.appendChild(row);
+  c.style.padding = "14px 18px";
+  return c;
+}
+
+/* ── Spis modułów ── */
+function syllabus(root) {
+  const done = passedCount();
+
+  const intro = el("div", "card");
+  intro.appendChild(el("h1", null, "Kurs izometryki"));
+  intro.appendChild(el("p", "lead",
+    "Dziesięć modułów w ustalonej kolejności, każdy zamknięty sprawdzianem, na końcu egzamin. " +
+    "Kolejny moduł otwiera się po zaliczeniu poprzedniego. Całość zajmuje około dwóch godzin."));
+  const bar = el("div", "bar good");
+  bar.style.margin = "16px 0 8px";
+  const fill = el("i"); fill.style.width = (done / COURSE.length * 100) + "%"; bar.appendChild(fill);
+  intro.appendChild(bar);
+  intro.appendChild(el("div", "muted", "Zaliczone moduły: " + done + " z " + COURSE.length +
+    (courseDone() ? " · kurs ukończony" : "")));
+  root.appendChild(intro);
+
+  if (courseDone()) root.appendChild(certificate());
+
+  const list = el("div", "card");
+  COURSE.forEach((m, i) => {
+    const pr = courseProgress(m.id);
+    const unlocked = moduleUnlocked(i);
+    const row = el("div", "mod" + (pr.passed ? " done" : "") + (unlocked ? "" : " locked"));
+    row.appendChild(el("div", "mod-num", pr.passed ? "✓" : String(i + 1)));
+    const body = el("div", "mod-body");
+    body.appendChild(el("div", "mod-title", m.title));
+    body.appendChild(el("div", "mod-meta", m.time + " · " +
+      (pr.passed ? "sprawdzian " + pr.best + "/" + (m.test.reduce((a, t) => a + t.n, 0)) :
+       unlocked ? "gotowy do rozpoczęcia" : "wymaga zaliczenia modułu " + i)));
+    row.appendChild(body);
+    const badge = el("div", "mod-badge " + (pr.passed ? "badge-done" : unlocked ? "badge-open" : "badge-lock"),
+      pr.passed ? "zaliczony" : unlocked ? "otwarty" : "zamknięty");
+    row.appendChild(badge);
+    if (unlocked) row.onclick = () => { UI.module = m.id; render(); };
+    list.appendChild(row);
+  });
+
+  // Egzamin końcowy
+  const ex = State.course.exam;
+  const exOpen = examUnlocked();
+  const exRow = el("div", "mod" + (courseDone() ? " done" : "") + (exOpen ? "" : " locked"));
+  exRow.appendChild(el("div", "mod-num", courseDone() ? "✓" : "★"));
+  const eb = el("div", "mod-body");
+  eb.appendChild(el("div", "mod-title", "Egzamin końcowy"));
+  eb.appendChild(el("div", "mod-meta", "12 zadań ze wszystkich modułów · próg zaliczenia " + EXAM.pass + "/12" +
+    (ex ? " · najlepszy wynik " + ex.score + "/" + ex.total : "")));
+  exRow.appendChild(eb);
+  exRow.appendChild(el("div", "mod-badge " + (courseDone() ? "badge-done" : exOpen ? "badge-open" : "badge-lock"),
+    courseDone() ? "zdany" : exOpen ? "otwarty" : "zamknięty"));
+  if (exOpen) exRow.onclick = () => startSession({ mode: "kurs-exam", queue: expandQueue(EXAM.specs, true) });
+  list.appendChild(exRow);
+  root.appendChild(list);
+}
+
+/* ── Widok pojedynczego modułu ── */
+function moduleDetail(root, id) {
+  const m = COURSE_BY_ID[id];
+  const i = moduleIndex(id);
+  const pr = courseProgress(id);
+  const testTotal = m.test.reduce((a, t) => a + t.n, 0);
+  const drillTotal = m.drill.reduce((a, t) => a + t.n, 0);
+
+  const head = el("div", "card");
+  const back = el("button", "btn ghost sm", "← Spis modułów");
+  back.onclick = () => { UI.module = null; render(); };
+  head.appendChild(back);
+  const h = el("h1"); h.style.marginTop = "14px";
+  h.textContent = "Moduł " + (i + 1) + ". " + m.title;
+  head.appendChild(h);
+  head.appendChild(el("div", "muted", m.time + (pr.passed ? " · moduł zaliczony" : "")));
+  const goal = el("div", "note");
+  goal.textContent = "Cel: " + m.goal;
+  head.appendChild(goal);
+  root.appendChild(head);
+
+  const th = el("div", "card");
+  th.appendChild(el("h3", null, "1. Teoria"));
+  th.style.paddingBottom = "6px";
+  root.appendChild(th);
+  renderLessons(root, m.lessons, true);
+
+  const act = el("div", "card");
+  act.appendChild(el("h3", null, "2. Ćwiczenia i sprawdzian"));
+  act.appendChild(el("p", null,
+    "Ćwiczenia (" + drillTotal + " zadań) mają informację zwrotną po każdej odpowiedzi i nie są oceniane. " +
+    "Sprawdzian (" + testTotal + " zadań) wymaga " + m.pass + " poprawnych odpowiedzi, żeby otworzyć kolejny moduł."));
+  const row = el("div", "row mt");
+  const bd = el("button", "btn" + (pr.drill ? " ghost" : ""), (pr.drill ? "Powtórz ćwiczenia" : "Ćwiczenia") + " (" + drillTotal + ")");
+  bd.onclick = () => startSession({ mode: "kurs-drill", moduleId: id, queue: expandQueue(m.drill, false) });
+  row.appendChild(bd);
+  const bt = el("button", "btn" + (pr.drill ? "" : " ghost"), (pr.passed ? "Popraw sprawdzian" : "Sprawdzian") + " (" + testTotal + ")");
+  bt.onclick = () => startSession({ mode: "kurs-test", moduleId: id, queue: expandQueue(m.test, true) });
+  row.appendChild(bt);
+  act.appendChild(row);
+  if (!pr.drill) act.appendChild(el("div", "muted", "Zalecana kolejność: najpierw ćwiczenia, potem sprawdzian."));
+  if (pr.best) act.appendChild(el("div", "muted", "Najlepszy wynik sprawdzianu: " + pr.best + " / " + testTotal + "."));
+  if (m.tip) { const t = el("div", "note"); t.textContent = m.tip; act.appendChild(t); }
+  root.appendChild(act);
+}
+
+/* ── Podsumowanie etapu kursu ── */
+function courseSummary(root) {
+  const s = Session.summary;
+  const m = COURSE_BY_ID[s.moduleId];
+  const i = m ? moduleIndex(m.id) : -1;
+  const card = el("div", "card center");
+  const back = () => { Session.summary = null; };
+
+  if (s.mode === "kurs-drill") {
+    card.appendChild(el("h2", null, "Ćwiczenia zakończone"));
+    const big = el("div", "stat-n", s.ok + " / " + s.len); big.style.fontSize = "42px";
+    card.appendChild(big);
+    card.appendChild(el("p", null, "Ćwiczenia nie są oceniane. Gdy czujesz się pewnie, przejdź do sprawdzianu."));
+    const row = el("div", "row center mt"); row.style.justifyContent = "center";
+    const b1 = el("button", "btn", "Sprawdzian (" + m.test.reduce((a, t) => a + t.n, 0) + ")");
+    b1.onclick = () => { back(); startSession({ mode: "kurs-test", moduleId: m.id, queue: expandQueue(m.test, true) }); };
+    row.appendChild(b1);
+    const b2 = el("button", "btn ghost", "Powtórz ćwiczenia");
+    b2.onclick = () => { back(); startSession({ mode: "kurs-drill", moduleId: m.id, queue: expandQueue(m.drill, false) }); };
+    row.appendChild(b2);
+    const b3 = el("button", "btn ghost", "Wróć do modułu");
+    b3.onclick = () => { back(); UI.module = m.id; render(); };
+    row.appendChild(b3);
+    card.appendChild(row);
+
+  } else if (s.mode === "kurs-test") {
+    const ok = s.ok >= m.pass;
+    card.appendChild(el("h2", null, ok ? "Moduł zaliczony" : "Sprawdzian niezaliczony"));
+    const big = el("div", "stat-n", s.ok + " / " + s.len);
+    big.style.fontSize = "42px"; big.style.color = ok ? "var(--good)" : "var(--bad)";
+    card.appendChild(big);
+    card.appendChild(el("p", null, ok
+      ? "Próg wynosił " + m.pass + ". Kolejny moduł jest już otwarty."
+      : "Do zaliczenia brakuje " + (m.pass - s.ok) + " poprawnych odpowiedzi. Wróć do ćwiczeń i spróbuj ponownie."));
+    const row = el("div", "row center mt"); row.style.justifyContent = "center";
+    if (ok && i + 1 < COURSE.length) {
+      const b1 = el("button", "btn", "Moduł " + (i + 2) + ": " + COURSE[i + 1].title);
+      b1.onclick = () => { back(); UI.module = COURSE[i + 1].id; render(); };
+      row.appendChild(b1);
+    } else if (ok && examUnlocked()) {
+      const b1 = el("button", "btn", "Egzamin końcowy");
+      b1.onclick = () => { back(); startSession({ mode: "kurs-exam", queue: expandQueue(EXAM.specs, true) }); };
+      row.appendChild(b1);
+    }
+    const b2 = el("button", "btn" + (ok ? " ghost" : ""), ok ? "Powtórz sprawdzian" : "Powtórz ćwiczenia");
+    b2.onclick = () => {
+      back();
+      if (ok) startSession({ mode: "kurs-test", moduleId: m.id, queue: expandQueue(m.test, true) });
+      else    startSession({ mode: "kurs-drill", moduleId: m.id, queue: expandQueue(m.drill, false) });
+    };
+    row.appendChild(b2);
+    const b3 = el("button", "btn ghost", "Spis modułów");
+    b3.onclick = () => { back(); UI.module = null; render(); };
+    row.appendChild(b3);
+    card.appendChild(row);
+
+  } else {
+    const ok = s.ok >= EXAM.pass;
+    card.appendChild(el("h2", null, ok ? "Egzamin zdany" : "Egzamin niezaliczony"));
+    const big = el("div", "stat-n", s.ok + " / " + s.len);
+    big.style.fontSize = "42px"; big.style.color = ok ? "var(--good)" : "var(--bad)";
+    card.appendChild(big);
+    card.appendChild(el("p", null, ok
+      ? "Kurs ukończony. Certyfikat znajdziesz na stronie spisu modułów."
+      : "Próg wynosi " + EXAM.pass + " z " + s.len + ". Wróć do modułów, w których idzie Ci najsłabiej — pokazuje je zakładka Postępy."));
+    const row = el("div", "row center mt"); row.style.justifyContent = "center";
+    const b1 = el("button", "btn", ok ? "Zobacz certyfikat" : "Spis modułów");
+    b1.onclick = () => { back(); UI.module = null; render(); };
+    row.appendChild(b1);
+    if (!ok) {
+      const b2 = el("button", "btn ghost", "Powtórz egzamin");
+      b2.onclick = () => { back(); startSession({ mode: "kurs-exam", queue: expandQueue(EXAM.specs, true) }); };
+      row.appendChild(b2);
+    }
+    card.appendChild(row);
+  }
+  root.appendChild(card);
+}
+
+/* ── Certyfikat ── */
+function certificate() {
+  const ex = State.course.exam;
+  const box = el("div", "card");
+  const c = el("div", "cert");
+  c.appendChild(el("div", "cert-seal", "◆"));
+  c.appendChild(el("h2", null, "KURS UKOŃCZONY"));
+  c.appendChild(el("div", "meta", "Izometryka i czytanie rysunku technicznego"));
+  c.appendChild(el("div", "who", "Zaliczono " + COURSE.length + " modułów oraz egzamin końcowy"));
+  const d = new Date(ex.date);
+  c.appendChild(el("div", "meta", "Wynik egzaminu: " + ex.score + " / " + ex.total +
+    " · data: " + d.toLocaleDateString("pl-PL")));
+  if (State.diag) {
+    const pre = Math.round(State.diag.score / State.diag.total * 100);
+    const post = Math.round(ex.score / ex.total * 100);
+    c.appendChild(el("div", "meta", "Test wstępny " + pre + "% → egzamin " + post + "%" +
+      (post > pre ? " (przyrost " + (post - pre) + " pkt proc.)" : "")));
+  }
+  box.appendChild(c);
+  const row = el("div", "row mt"); row.style.justifyContent = "center";
+  const pr = el("button", "btn ghost sm", "Drukuj / zapisz PDF");
+  pr.onclick = () => window.print();
+  row.appendChild(pr);
+  box.appendChild(row);
+  return box;
+}
+
+load();
+render();
+</script>
+</body>
+</html>
