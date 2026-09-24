@@ -1,11 +1,13 @@
 # ISO Master
 
-Nauka rzutowania izometrycznego i czytania rysunku technicznego.
-Repozytorium zawiera dwie aplikacje, obie bez frameworka i bez kroku budowania.
+Nauka rzutowania izometrycznego i czytania rysunku technicznego oraz
+zaawansowany kurs instalatora pomp ciepła i klimatyzacji.
+Repozytorium zawiera trzy aplikacje, wszystkie bez frameworka i bez kroku budowania.
 
 | Plik | Co to jest | Czego wymaga |
 | --- | --- | --- |
 | `trener.html` | **Trener izometryki** — generator ćwiczeń przestrzennych z adaptacyjną trudnością | nic, działa offline |
+| `pompy.html` | **Kurs instalatora pomp ciepła i klimatyzacji** — 12 modułów, zadania obliczeniowe, kalkulatory, egzamin | nic, działa offline |
 | `index.html` | Powłoka SaaS: logowanie, subskrypcja, prosty quiz | konta Supabase i Stripe |
 
 Metodyka, na której oparto trener, wraz ze źródłami: [METODYKA.md](METODYKA.md).
@@ -85,12 +87,34 @@ PN-EN ISO 5456-2). W ustawieniach można przełączyć na metodę trzeciego kąt
 ./testy/uruchom.sh --all    # dodatkowo przebieg w przeglądarce (Playwright)
 ```
 
-Testy logiki działają na kodzie wyciętym z `trener.html`, więc aplikacja nie
-zawiera żadnych ułatwień pod kątem testowania. Najmocniejszy z nich jest test
+Skrypt testuje obie aplikacje: trenera i kurs pomp ciepła. Testy logiki
+działają na kodzie wyciętym z plików HTML, więc aplikacje nie zawierają
+żadnych ułatwień pod kątem testowania. Opis testów kursu pomp ciepła jest
+w sekcji 4 pliku [KURS-POMPY.md](KURS-POMPY.md). Najmocniejszy z nich jest test
 krzyżowy: sprawdza, że obrót bryły w prawo faktycznie obraca jej rzut z góry
 w prawo, czyli że dwa niezależne fragmenty kodu opisują tę samą geometrię.
 Test przeglądarkowy przechodzi cały kurs od pierwszego modułu po certyfikat
 i potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu.
+
+---
+
+## Kurs pomp ciepła i klimatyzacji (`pompy.html`)
+
+Otwórz plik w przeglądarce. Kurs ma pięć zakładek: **Kurs**, **Trening**,
+**Kalkulatory**, **Ściąga** i **Postępy**.
+
+Dwanaście modułów w czterech częściach: fizyka i czynniki, projekt
+i dobór, montaż i uruchomienie, automatyka i serwis. Każdy moduł to
+teoria ze schematami, ćwiczenia i sprawdzian z progiem 6 z 8, który
+otwiera kolejny moduł. Egzamin końcowy ma 24 zadania i próg 19.
+
+Zadania obliczeniowe (przegrzanie, próba azotem, punkt biwalentny, limit
+napełnienia R290, hałas, sondy gruntowe i inne) są generowane za każdym
+razem od nowa. Błędne odpowiedzi odpowiadają typowym pomyłkom
+instalatorów. Przepisy obejmują rozporządzenie (UE) 2024/573, UDT i CRO.
+
+Zakres, pochodzenie danych, źródła i ograniczenia: [KURS-POMPY.md](KURS-POMPY.md).
+Zaświadczenie z aplikacji nie jest certyfikatem UDT.
 
 ---
 

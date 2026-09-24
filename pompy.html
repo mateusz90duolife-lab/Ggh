@@ -1,0 +1,2298 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kurs instalatora pomp ciepła i klimatyzacji</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   KURS INSTALATORA POMP CIEPŁA I KLIMATYZACJI — POZIOM ZAAWANSOWANY
+   Aplikacja jednoplikowa, bez zależności, działa offline.
+   Opis kursu, zakres i źródła: KURS-POMPY.md
+   ═══════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0D0D0D;
+  --bg-soft:   #151515;
+  --card:      #1a1a1a;
+  --card-hi:   #202028;
+  --line:      #2a2a2a;
+  --line-hi:   #3a3a48;
+  --txt:       #EAEAEA;
+  --txt-dim:   #9a9a9a;
+  --txt-faint: #666;
+  --accent:    #00C2FF;
+  --accent-dk: #007ea8;
+  --hot:       #FF7A45;
+  --cold:      #4DA3FF;
+  --good:      #30D158;
+  --bad:       #FF453A;
+  --warn:      #FFD60A;
+  --radius:    10px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg); color: var(--txt);
+  min-height: 100vh; font-size: 15px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell { max-width: 1080px; margin: 0 auto; padding: 0 16px 80px; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13,13,13,0.92); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0; margin-bottom: 20px; flex-wrap: wrap;
+}
+.brand { font-weight: 800; letter-spacing: 1.2px; font-size: 15px; }
+.brand span { color: var(--hot); }
+.brand em { font-style: normal; color: var(--cold); }
+.spacer { flex: 1; }
+.hud { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 12px; font-size: 12px; color: var(--txt-dim);
+  white-space: nowrap;
+}
+.chip b { color: var(--txt); font-size: 13px; }
+
+.nav { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 22px; }
+.nav button {
+  background: transparent; border: 1px solid transparent; color: var(--txt-dim);
+  padding: 9px 15px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; font-family: inherit; transition: all .15s;
+}
+.nav button:hover { background: var(--bg-soft); color: var(--txt); }
+.nav button.on { background: #10222e; border-color: #1d4a63; color: var(--accent); font-weight: 600; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin-bottom: 16px; }
+.center { text-align: center; }
+.mt { margin-top: 14px; }
+.muted { color: var(--txt-faint); font-size: 13px; margin-top: 8px; }
+
+h1 { font-size: 24px; margin-bottom: 6px; letter-spacing: -0.3px; }
+h2 { font-size: 19px; margin-bottom: 12px; letter-spacing: -0.2px; }
+h3 { font-size: 15px; margin-bottom: 10px; }
+h4 { font-size: 14px; margin: 16px 0 8px; color: var(--txt); }
+p  { color: var(--txt-dim); margin-bottom: 10px; }
+p.lead { color: var(--txt); }
+b, strong { color: var(--txt); }
+a { color: var(--accent); }
+code, .f {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.92em;
+  background: #000; padding: 2px 6px; border-radius: 4px; color: var(--accent);
+}
+.f { display: block; padding: 10px 14px; margin: 10px 0; overflow-x: auto; white-space: pre; line-height: 1.6; }
+
+button.btn {
+  background: var(--accent); border: none; color: #062a38;
+  padding: 11px 20px; border-radius: 8px; cursor: pointer;
+  font-size: 14px; font-weight: 700; font-family: inherit;
+  transition: opacity .15s, transform .08s;
+}
+button.btn:hover:not(:disabled) { opacity: .88; }
+button.btn:active:not(:disabled) { transform: scale(.975); }
+button.btn:disabled { opacity: .35; cursor: not-allowed; }
+button.btn.ghost { background: transparent; border: 1px solid var(--line-hi); color: var(--txt); }
+button.btn.ghost:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+button.btn.danger { background: transparent; border: 1px solid #4a2020; color: #c05a52; }
+button.btn.sm { padding: 7px 13px; font-size: 13px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* ───── ZADANIE ───── */
+.q-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.q-tag {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  color: var(--accent); background: #0d2230; border: 1px solid #1d4a63;
+  padding: 4px 10px; border-radius: 5px; white-space: nowrap;
+}
+.q-tag.calc { color: var(--hot); background: #2a150c; border-color: #6a3418; }
+.q-text { font-size: 17px; color: var(--txt); flex: 1; min-width: 220px; line-height: 1.5; }
+.q-count { font-size: 12px; color: var(--txt-faint); white-space: nowrap; }
+.opts { display: grid; gap: 10px; margin-top: 16px; }
+.opt {
+  background: var(--bg-soft); border: 2px solid var(--line); border-radius: var(--radius);
+  padding: 12px 16px; cursor: pointer; text-align: left; color: var(--txt);
+  font-size: 15px; font-family: inherit; line-height: 1.45;
+  transition: border-color .12s, background .12s;
+}
+.opt:hover:not(:disabled) { border-color: var(--line-hi); background: var(--card-hi); }
+.opt:disabled { cursor: default; }
+.opt.ok  { border-color: var(--good); background: #0f2616; }
+.opt.no  { border-color: var(--bad);  background: #2a1110; }
+.opt .k { display: inline-block; width: 22px; color: var(--txt-faint); font-weight: 700; }
+.fb { margin-top: 16px; padding: 14px 16px; border-radius: 8px; border-left: 4px solid; background: var(--bg-soft); }
+.fb.good { border-color: var(--good); }
+.fb.bad  { border-color: var(--bad); }
+.fb b.t { display: block; margin-bottom: 6px; font-size: 15px; }
+.fb.good b.t { color: var(--good); }
+.fb.bad b.t  { color: var(--bad); }
+.fb p { margin: 6px 0 0; color: var(--txt); }
+.fb p.why-wrong { color: #ffb4ae; }
+
+.bar { height: 8px; background: #000; border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+.bar.good i { background: var(--good); }
+
+/* ───── MODUŁY ───── */
+.mod {
+  display: flex; align-items: center; gap: 14px; padding: 13px 12px;
+  border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 8px;
+}
+.mod:last-child { border-bottom: none; }
+.mod:hover { background: var(--bg-soft); }
+.mod.locked { cursor: not-allowed; opacity: .5; }
+.mod.locked:hover { background: transparent; }
+.mod-num {
+  width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #000; border: 1px solid var(--line-hi); font-weight: 700; font-size: 14px;
+}
+.mod.done .mod-num { background: #0f2616; border-color: var(--good); color: var(--good); }
+.mod-body { flex: 1; min-width: 0; }
+.mod-title { font-weight: 600; color: var(--txt); }
+.mod-meta { font-size: 12px; color: var(--txt-faint); }
+.mod-badge { font-size: 11px; padding: 3px 9px; border-radius: 99px; border: 1px solid; white-space: nowrap; }
+.badge-done { color: var(--good); border-color: #1f5a2e; }
+.badge-open { color: var(--accent); border-color: #1d4a63; }
+.badge-lock { color: var(--txt-faint); border-color: var(--line); }
+.part-h { font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--txt-faint); margin: 14px 12px 4px; }
+.part-h:first-child { margin-top: 0; }
+
+/* ───── LEKCJE ───── */
+.lesson { border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 12px; background: var(--card); overflow: hidden; }
+.lesson-h {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  padding: 15px 18px; font-weight: 600; color: var(--txt);
+}
+.lesson-h:hover { background: var(--card-hi); }
+.lesson-h::after { content: "+"; margin-left: auto; color: var(--txt-faint); font-size: 18px; }
+.lesson.open .lesson-h::after { content: "−"; }
+.lesson-b { display: none; padding: 4px 20px 18px; }
+.lesson.open .lesson-b { display: block; }
+.lesson-b ul, .lesson-b ol { margin: 6px 0 12px 22px; color: var(--txt-dim); }
+.lesson-b li { margin-bottom: 5px; }
+.note { background: #0d2230; border: 1px solid #1d4a63; border-radius: 8px; padding: 11px 14px; margin: 12px 0; color: var(--txt); font-size: 14px; }
+.note.warn { background: #2a2208; border-color: #6a5510; }
+.note.danger { background: #2a1110; border-color: #6a2420; }
+.tbl { overflow-x: auto; margin: 10px 0 14px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: #111; color: var(--txt); font-weight: 600; }
+td { color: var(--txt-dim); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.fig { margin: 12px 0; text-align: center; }
+.fig svg { max-width: 100%; height: auto; }
+.fig .cap { font-size: 12px; color: var(--txt-faint); margin-top: 6px; }
+svg text { font-family: inherit; }
+
+/* ───── KALKULATORY ───── */
+.calc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px; }
+.calc-grid .card { margin-bottom: 0; }
+.fld { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.fld label { font-size: 12px; color: var(--txt-dim); }
+.fld input, .fld select {
+  background: #000; border: 1px solid var(--line-hi); color: var(--txt);
+  border-radius: 7px; padding: 8px 10px; font-size: 14px; font-family: inherit; width: 100%;
+}
+.fld input:focus, .fld select:focus { outline: none; border-color: var(--accent); }
+.fld.chk { flex-direction: row; align-items: center; gap: 8px; }
+.fld.chk input { width: auto; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.out { background: #000; border-radius: 8px; padding: 12px 14px; margin-top: 6px; font-size: 14px; color: var(--txt-dim); }
+.out b.big { display: block; font-size: 22px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.out .ok { color: var(--good); }
+.out .no { color: var(--bad); }
+.out .wn { color: var(--warn); }
+
+/* ───── STATYSTYKI / CERTYFIKAT ───── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.stat { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+.stat-n { font-size: 26px; font-weight: 800; color: var(--txt); }
+.stat-l { font-size: 12px; color: var(--txt-faint); }
+.cert {
+  border: 2px solid var(--hot); border-radius: 12px; padding: 34px 22px; text-align: center;
+  background: radial-gradient(circle at 50% 0%, #2a150c 0%, var(--card) 70%);
+}
+.cert h2 { font-size: 22px; letter-spacing: 3px; color: var(--hot); margin: 8px 0; }
+.cert .who { font-size: 24px; font-weight: 800; color: var(--txt); margin: 14px 0 6px; }
+.cert .meta { color: var(--txt-dim); font-size: 13px; margin-top: 4px; }
+.cert .disc { color: var(--txt-faint); font-size: 11px; margin-top: 16px; }
+.cert-seal { font-size: 30px; color: var(--hot); }
+
+@media (max-width: 560px) {
+  .card { padding: 16px; }
+  .lesson-b { padding: 4px 14px 14px; }
+  .two { grid-template-columns: 1fr; }
+  .q-text { font-size: 16px; }
+  h1 { font-size: 21px; }
+}
+@media print {
+  body { background: #fff; }
+  .topbar, .nav, .no-print, button { display: none !important; }
+  .card { border: none; background: #fff; }
+  .cert { background: #fff; border-color: #000; }
+  .cert h2, .cert-seal { color: #000; }
+  .cert .who, .cert .meta, .cert .disc { color: #000; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand"><span>POMPY</span> CIEPŁA <em>&amp; KLIMA</em> · kurs zaawansowany</div>
+    <div class="spacer"></div>
+    <div class="hud" id="hud"></div>
+  </div>
+  <div class="nav" id="nav"></div>
+  <div id="app"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   1. NARZĘDZIA
+   ═══════════════════════════════════════════════════════════════ */
+function shuffle(a) {
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function randInt(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+/** Liczba w zapisie polskim: przecinek dziesiętny, bez „-0”. */
+function fmt(x, d) {
+  const s = Number(x).toFixed(d == null ? 1 : d);
+  return (/^-0(\.0+)?$/.test(s) ? s.slice(1) : s).replace(".", ",");
+}
+function el(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+}
+function html(tag, cls, markup) { const e = el(tag, cls); e.innerHTML = markup; return e; }
+
+/* ═══════════════════════════════════════════════════════════════
+   2. CZYNNIKI CHŁODNICZE
+   GWP: wartości 100-letnie wg IPCC AR4, stosowane w przepisach
+   F-gazowych UE do przeliczeń na ekwiwalent CO2. Do dokumentacji
+   urzędowej używaj wartości z tabliczki znamionowej urządzenia.
+   LFL: dolna granica palności wg EN 378-1 / ISO 817 [kg/m³].
+   Ciśnienia nasycenia [bar abs] co 5 K od −30 do +60 °C,
+   wygładzone równaniem Antoine'a. Dla R410A: ciśnienie wrzenia
+   (poślizg < 0,2 K, pomijalny w praktyce serwisowej).
+   ═══════════════════════════════════════════════════════════════ */
+const PT_T = [-30, -25, -20, -15, -10, -5, 0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+const REF = {
+  R32:   { gwp: 675,  cls: "A2L", lfl: 0.307, fgas: true,  note: "czysty związek (HFC), bez poślizgu",
+           pt: [2.72, 3.33, 4.04, 4.86, 5.81, 6.89, 8.13, 9.52, 11.08, 12.84, 14.79, 16.95, 19.34, 21.96, 24.84, 27.97, 31.39, 35.09, 39.08] },
+  R410A: { gwp: 2088, cls: "A1",  lfl: null,  fgas: true,  note: "mieszanina prawie azeotropowa R32/R125",
+           pt: [2.69, 3.29, 3.99, 4.79, 5.72, 6.78, 7.99, 9.35, 10.87, 12.58, 14.48, 16.57, 18.89, 21.43, 24.21, 27.24, 30.53, 34.09, 37.94] },
+  R290:  { gwp: 3,    cls: "A3",  lfl: 0.038, fgas: false, note: "propan, czynnik naturalny, skrajnie łatwopalny",
+           pt: [1.67, 2.03, 2.44, 2.91, 3.44, 4.05, 4.74, 5.51, 6.37, 7.32, 8.37, 9.53, 10.81, 12.20, 13.71, 15.36, 17.14, 19.06, 21.12] },
+  R454B: { gwp: 466,  cls: "A2L", lfl: 0.296, fgas: true,  note: "mieszanina R32/R1234yf, poślizg ok. 1 K" },
+  R407C: { gwp: 1774, cls: "A1",  lfl: null,  fgas: true,  note: "mieszanina zeotropowa, poślizg ok. 5–7 K" },
+  R134a: { gwp: 1430, cls: "A1",  lfl: null,  fgas: true,  note: "czysty związek (HFC)" },
+  R744:  { gwp: 1,    cls: "A1",  lfl: null,  fgas: false, note: "CO₂, praca nadkrytyczna, bardzo wysokie ciśnienia" },
+};
+const PT_REFS = ["R32", "R410A", "R290"];
+const P_ATM = 1.013;   // bar — do przeliczeń manometr ↔ ciśnienie bezwzględne
+
+/** Temperatura nasycenia [°C] przy ciśnieniu bezwzględnym [bar] — interpolacja ln p. */
+function tsat(ref, pAbs) {
+  const pt = REF[ref].pt, lp = Math.log(pAbs);
+  let i = 0;
+  if (pAbs <= pt[0]) i = 0;
+  else if (pAbs >= pt[pt.length - 1]) i = pt.length - 2;
+  else while (pt[i + 1] < pAbs) i++;
+  const a = Math.log(pt[i]), b = Math.log(pt[i + 1]);
+  return PT_T[i] + (lp - a) / (b - a) * (PT_T[i + 1] - PT_T[i]);
+}
+/** Ciśnienie nasycenia [bar abs] w temperaturze [°C]. */
+function psat(ref, t) {
+  const pt = REF[ref].pt;
+  let i = Math.min(PT_T.length - 2, Math.max(0, Math.floor((t - PT_T[0]) / 5)));
+  const f = (t - PT_T[i]) / 5;
+  return Math.exp(Math.log(pt[i]) + f * (Math.log(pt[i + 1]) - Math.log(pt[i])));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3. WZORY INSTALATORA
+   ═══════════════════════════════════════════════════════════════ */
+const K0 = 273.15;
+
+/** Ekwiwalent CO2 [t] */
+function co2e(ref, kg) { return kg * REF[ref].gwp / 1000; }
+
+/** Częstotliwość kontroli szczelności wg art. 5 rozp. (UE) 2024/573.
+    Zwraca { months, t, reason }; months = 0 oznacza brak obowiązku. */
+function leakCheck(ref, kg, hermetic, detection) {
+  const r = REF[ref];
+  if (!r.fgas) return { months: 0, t: 0, reason: "czynnik nie jest fluorowanym gazem cieplarnianym" };
+  const t = co2e(ref, kg);
+  if (hermetic && t < 10) return { months: 0, t, reason: "urządzenie hermetyczne poniżej 10 t CO₂e (oznakowane jako hermetyczne)" };
+  if (t < 5) return { months: 0, t, reason: "poniżej 5 t CO₂e" };
+  let m = t >= 500 ? 3 : t >= 50 ? 6 : 12;
+  if (detection) m *= 2;
+  return { months: m, t, reason: t >= 500 ? "500 t CO₂e lub więcej" : t >= 50 ? "od 50 do 500 t CO₂e" : "od 5 do 50 t CO₂e" };
+}
+
+/** Współczynnik wydajności obiegu Carnota (grzanie) */
+function carnotCOP(tCond, tEvap) { return (tCond + K0) / (tCond - tEvap); }
+
+/** Przepływ wody [m³/h] dla mocy [kW] i różnicy temperatur [K] (woda: 0,86) */
+function flowM3h(kW, dT) { return kW * 0.86 / dT; }
+
+/** Prędkość [m/s] dla przepływu [m³/h] i średnicy wewnętrznej [mm] */
+function velocity(m3h, dmm) { const d = dmm / 1000; return m3h / 3600 / (Math.PI * d * d / 4); }
+
+/** Punkt biwalentny: przecięcie liniowego obciążenia budynku
+    (qd przy td, zero przy tLim) z liniową charakterystyką mocy
+    pompy ciepła zadaną w dwóch punktach (t1, p1) i (t2, p2). */
+function bivalent(qd, td, tLim, t1, p1, t2, p2) {
+  const a1 = -qd / (tLim - td), b1 = qd * tLim / (tLim - td);   // obciążenie: a1·t + b1
+  const a2 = (p2 - p1) / (t2 - t1), b2 = p1 - a2 * t1;          // pompa:      a2·t + b2
+  return (b2 - b1) / (a1 - a2);
+}
+function loadAt(qd, td, tLim, t) { return Math.max(0, qd * (tLim - t) / (tLim - td)); }
+
+/** Długość sond pionowych [m]: moc dolnego źródła / moc jednostkowa */
+function boreholeLength(kWheat, cop, wPerM) { return kWheat * (1 - 1 / cop) * 1000 / wPerM; }
+
+/** Doładowanie czynnika [g] */
+function addCharge(lenM, preM, gPerM) { return Math.max(0, lenM - preM) * gPerM; }
+
+/** Próba azotem: ciśnienie manometryczne po zmianie temperatury (przemiana izochoryczna) */
+function pressureAt(p1g, t1, t2) { return (p1g + P_ATM) * (t2 + K0) / (t1 + K0) - P_ATM; }
+
+/** Maksymalne napełnienie czynnikiem palnym w pomieszczeniu (EN 378-1, zał. C / EN IEC 60335-2-40) [kg] */
+function chargeLimit(lfl, h0, area) { return 2.5 * Math.pow(lfl, 1.25) * h0 * Math.sqrt(area); }
+function minArea(lfl, h0, kg) { const k = kg / (2.5 * Math.pow(lfl, 1.25) * h0); return k * k; }
+const H0 = { podloga: 0.6, okno: 1.0, sciana: 1.8, sufit: 2.2 };
+
+/** Prąd [A] odbiornika o mocy [kW]: fazy 1 (230 V) lub 3 (400 V) */
+function current(kW, phases, cosphi) {
+  return phases === 3 ? kW * 1000 / (Math.sqrt(3) * 400 * cosphi) : kW * 1000 / (230 * cosphi);
+}
+
+/** Liniowa krzywa grzewcza */
+function heatCurve(tRoom, tDesign, tSupDesign, tOut) {
+  if (tOut >= tRoom) return tRoom;
+  return tRoom + (tSupDesign - tRoom) * (tRoom - tOut) / (tRoom - tDesign);
+}
+
+/** 1 mikron słupa rtęci = 0,1333 Pa */
+function micronToPa(um) { return um * 0.13332; }
+
+/* ═══════════════════════════════════════════════════════════════
+   4. BUDOWA ZADAŃ
+   Błędne odpowiedzi nie są losowe: każda koduje typową pomyłkę,
+   a informacja zwrotna nazywa ją, zamiast tylko odnotować błąd.
+   ═══════════════════════════════════════════════════════════════ */
+
+/** Zadanie z odpowiedzią poprawną i listą błędnych (z objaśnieniem każdej). */
+function mkQ(tag, text, correct, wrongs, why, wrongWhy, calc) {
+  const items = [{ t: correct, ok: true, w: null }];
+  const seen = new Set([correct]);
+  wrongs.forEach((w, i) => {
+    if (items.length < 4 && !seen.has(w)) { seen.add(w); items.push({ t: w, ok: false, w: wrongWhy ? wrongWhy[i] || null : null }); }
+  });
+  const sh = shuffle(items);
+  return { tag, text, calc: !!calc, why, options: sh.map(x => x.t), correct: sh.findIndex(x => x.ok), wrongWhy: sh.map(x => x.w) };
+}
+
+/** Zadanie obliczeniowe: dystraktory dopełniane do trzech, gdy pomyłki dają tę samą liczbę. */
+function numQ(tag, text, value, dec, unit, wrongs, why, wrongWhy) {
+  const f = v => fmt(v, dec) + (unit ? " " + unit : "");
+  const c = f(value);
+  const ws = [], wy = [];
+  wrongs.forEach((w, i) => { const s = f(w); if (s !== c && ws.indexOf(s) < 0 && isFinite(w)) { ws.push(s); wy.push(wrongWhy ? wrongWhy[i] : null); } });
+  for (const k of [1.25, 0.8, 1.5, 0.6, 2, 0.5]) {
+    if (ws.length >= 3) break;
+    const s = f(value * k);
+    if (s !== c && ws.indexOf(s) < 0) { ws.push(s); wy.push(null); }
+  }
+  return mkQ(tag, text, c, ws, why, wy, true);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5. GENERATORY ZADAŃ OBLICZENIOWYCH
+   Każde wywołanie daje nowe dane, więc pula się nie wyczerpuje.
+   ═══════════════════════════════════════════════════════════════ */
+const GEN = {
+
+  carnot() {
+    const tc = pick([35, 45, 55]), te = pick([-15, -7, 2, 7]);
+    const v = carnotCOP(tc, te);
+    return numQ("COP Carnota",
+      `Pompa ciepła skrapla czynnik w ${tc} °C i odparowuje w ${te} °C. Jaki jest teoretyczny (Carnota) COP grzania?`,
+      v, 2, "", [tc / (tc - te), (te + K0) / (tc - te), v * 0.5],
+      `COP_C = T_skr / (T_skr − T_par) = ${fmt(tc + K0, 2)} K / ${tc - te} K = ${fmt(v, 2)}. Temperatury bezwzględne, w kelwinach. Rzeczywisty COP to zwykle 45–55% tej wartości.`,
+      ["Podstawiono temperaturę w °C zamiast w kelwinach. Różnica temperatur jest taka sama w obu skalach, ale licznik musi być w K.",
+       "To wartość dla chłodzenia (EER Carnota), bo w liczniku jest temperatura parowania. Dla grzania w liczniku jest temperatura skraplania.",
+       "To szacunek rzeczywistego COP (ok. 50% Carnota), a pytanie dotyczyło wartości teoretycznej."]);
+  },
+
+  co2e() {
+    const ref = pick(["R32", "R410A", "R454B", "R407C", "R134a"]);
+    const kg = pick([0.8, 1.1, 1.45, 2.3, 3.2, 4.6, 7.5, 12]);
+    const v = co2e(ref, kg);
+    const other = ref === "R32" ? "R410A" : "R32";
+    return numQ("Ekwiwalent CO₂",
+      `Urządzenie zawiera ${fmt(kg, 2)} kg czynnika ${ref} (GWP ${REF[ref].gwp}). Ile wynosi ekwiwalent CO₂?`,
+      v, 2, "t CO₂e", [v * 10, kg * REF[other].gwp / 1000, kg / REF[ref].gwp * 1000],
+      `Masa [kg] × GWP / 1000 = ${fmt(kg, 2)} × ${REF[ref].gwp} / 1000 = ${fmt(v, 2)} t CO₂e.`,
+      ["Przesunięty przecinek: dzielnik to 1000 (kg → t), nie 100.",
+       `Użyto GWP czynnika ${other} (${REF[other].gwp}) zamiast ${ref}.`,
+       "Masę podzielono przez GWP zamiast pomnożyć."]);
+  },
+
+  leak() {
+    const cases = [
+      { ref: "R410A", kg: pick([2.8, 3.6, 4.2]), herm: false },
+      { ref: "R32",   kg: pick([2.1, 3.4, 5.9]), herm: false },
+      { ref: "R32",   kg: pick([8.5, 11, 16]),   herm: false },
+      { ref: "R410A", kg: pick([26, 30]),        herm: false },
+      { ref: "R410A", kg: pick([3.5, 4.5]),      herm: true },
+      { ref: "R290",  kg: pick([0.9, 1.5]),      herm: true },
+      { ref: "R407C", kg: pick([30, 45]),        herm: false },
+      { ref: "R410A", kg: pick([245, 260]),      herm: false },
+    ];
+    const c = pick(cases);
+    const r = leakCheck(c.ref, c.kg, c.herm, false);
+    const label = m => m === 0 ? "Nie podlega obowiązkowej kontroli szczelności" : "Co najmniej co " + m + " miesięcy";
+    const all = [0, 12, 6, 3];
+    const wrong = all.filter(m => m !== r.months).map(label);
+    return mkQ("Kontrola szczelności",
+      `${c.herm ? "Monoblok hermetyczny (oznakowany)" : c.kg > 20 ? "Instalacja VRF" : "Klimatyzator typu split"} zawiera ${fmt(c.kg, 1)} kg ${c.ref}` +
+      ` i nie ma systemu wykrywania wycieków. Jak często trzeba sprawdzać jego szczelność?`,
+      label(r.months), wrong,
+      (REF[c.ref].fgas ? `${fmt(c.kg, 1)} kg × ${REF[c.ref].gwp} / 1000 = ${fmt(r.t, 2)} t CO₂e. ` : "") +
+      `Wynik: ${r.reason}. Progi: 5 t → co 12 mies., 50 t → co 6 mies., 500 t → co 3 mies.; system wykrywania wycieków wydłuża okres dwukrotnie; urządzenia hermetyczne są zwolnione poniżej 10 t CO₂e.`,
+      null);
+  },
+
+  chargeLimit() {
+    const ref = pick(["R32", "R290", "R454B"]);
+    const pos = pick([["sciana", "na ścianie (h₀ = 1,8 m)"], ["podloga", "przy podłodze (h₀ = 0,6 m)"], ["sufit", "pod sufitem (h₀ = 2,2 m)"]]);
+    const A = pick([12, 16, 20, 25, 30]);
+    const h0 = H0[pos[0]], lfl = REF[ref].lfl;
+    const v = chargeLimit(lfl, h0, A);
+    const h0w = pos[0] === "sciana" ? H0.sufit : H0.sciana;
+    const dec = ref === "R290" ? 3 : 2;
+    return numQ("Limit napełnienia",
+      `Jednostka wewnętrzna z ${ref} (LFL = ${fmt(lfl, 3)} kg/m³) ma być zamontowana ${pos[1]} w pomieszczeniu o powierzchni ${A} m². ` +
+      `Jakie jest maksymalne napełnienie wg wzoru m = 2,5 · LFL^1,25 · h₀ · √A?`,
+      v, dec, "kg", [2.5 * Math.pow(lfl, 1.25) * h0 * A, chargeLimit(lfl, h0w, A), 2.5 * lfl * h0 * Math.sqrt(A)],
+      `m_max = 2,5 × ${fmt(lfl, 3)}^1,25 × ${fmt(h0, 1)} × √${A} = ${fmt(v, dec)} kg. Limit rośnie z pierwiastkiem powierzchni i liniowo z wysokością montażu.`,
+      ["Pominięto pierwiastek z powierzchni: A wchodzi do wzoru jako √A.",
+       "Przyjęto wysokość montażu h₀ niezgodną z położeniem jednostki.",
+       "Pominięto wykładnik 1,25 przy LFL."]);
+  },
+
+  bivalent() {
+    const zone = pick([[-16, "I"], [-18, "II"], [-20, "III"], [-22, "IV"], [-24, "V"]]);
+    const qd = pick([6, 7, 8, 9, 10, 12]);
+    const p1 = qd * pick([0.55, 0.6, 0.65, 0.7]);   // moc przy −7 °C
+    const p2 = p1 * pick([1.35, 1.45, 1.55]);        // moc przy +7 °C
+    const v = bivalent(qd, zone[0], 15, -7, p1, 7, p2);
+    const tEq = (qd - p1) / ((p2 - p1) / 14) - 7;   // gdzie moc pompy zrównuje się z obciążeniem projektowym
+    return numQ("Punkt biwalentny",
+      `Budynek w strefie ${zone[1]} (θe = ${zone[0]} °C) ma obciążenie cieplne ${qd} kW i granicę ogrzewania +15 °C (obciążenie liniowe). ` +
+      `Pompa ciepła daje ${fmt(p1, 1)} kW przy −7 °C i ${fmt(p2, 1)} kW przy +7 °C (charakterystyka liniowa). W jakiej temperaturze zewnętrznej leży punkt biwalentny?`,
+      v, 1, "°C", [zone[0], tEq, -v],
+      `Obciążenie: Q(t) = ${qd} · (15 − t) / (15 − (${zone[0]})). Moc pompy: P(t) = ${fmt(p1, 1)} + ${fmt((p2 - p1) / 14, 3)} · (t + 7). ` +
+      `Q(t) = P(t) dla t = ${fmt(v, 1)} °C. Poniżej tej temperatury potrzebne jest źródło szczytowe (grzałka lub kocioł).`,
+      ["To projektowa temperatura zewnętrzna — punkt, w którym obciążenie jest największe, a nie punkt zrównania mocy.",
+       "To temperatura, w której pompa osiąga pełne obciążenie projektowe, bez uwzględnienia, że zapotrzebowanie budynku maleje wraz z temperaturą.",
+       "Pomylony znak temperatury."]);
+  },
+
+  cost() {
+    const q = pick([9000, 12000, 15000, 18000, 22000]);
+    const scop = pick([3.2, 3.6, 4.0, 4.4, 4.8]);
+    const price = pick([0.9, 1.1, 1.25]);
+    const v = q / scop * price;
+    return numQ("Koszt eksploatacji",
+      `Budynek potrzebuje ${q.toLocaleString("pl-PL")} kWh ciepła rocznie. Pompa ciepła ma SCOP ${fmt(scop, 1)}, a energia kosztuje ${fmt(price, 2)} zł/kWh. Jaki jest roczny koszt energii elektrycznej?`,
+      v, 0, "zł", [q * scop * price, q * price, q / scop],
+      `Energia elektryczna = ${q} / ${fmt(scop, 1)} = ${fmt(q / scop, 0)} kWh; koszt = ${fmt(q / scop, 0)} × ${fmt(price, 2)} = ${fmt(v, 0)} zł.`,
+      ["Ciepło pomnożono przez SCOP zamiast podzielić.", "Pominięto SCOP — to koszt ogrzewania grzałką elektryczną.", "To zużycie energii w kWh, nie koszt."]);
+  },
+
+  flow() {
+    const P = pick([4, 6, 8, 10, 12, 14, 16]);
+    const dT = pick([5, 7, 10]);
+    const v = flowM3h(P, dT);
+    return numQ("Przepływ",
+      `Pompa ciepła o mocy ${P} kW pracuje z różnicą temperatur zasilanie–powrót ${dT} K. Jaki przepływ wody trzeba zapewnić?`,
+      v, 2, "m³/h", [P / dT, P * 0.86 * dT, v * 1000 / 60],
+      `V = P · 0,86 / ΔT = ${P} × 0,86 / ${dT} = ${fmt(v, 2)} m³/h (≈ ${fmt(v * 1000 / 60, 1)} l/min). Współczynnik 0,86 = 3600 / (4,19 kJ/kgK · 1000 kg/m³).`,
+      ["Pominięto współczynnik 0,86 wynikający z ciepła właściwego wody.", "Pomnożono przez ΔT zamiast podzielić.", "To ten sam przepływ wyrażony w l/min, a pytanie dotyczyło m³/h."]);
+  },
+
+  velocity() {
+    const pipes = [["Cu 22×1", 20, 22], ["Cu 28×1", 26, 28], ["Cu 35×1,5", 32, 35], ["PEX 25×2,3", 20.4, 25], ["PEX 32×2,9", 26.2, 32]];
+    const p = pick(pipes);
+    const V = pick([0.8, 1.0, 1.2, 1.5, 1.8, 2.2]);
+    const v = velocity(V, p[1]);
+    return numQ("Prędkość w rurze",
+      `Przez rurę ${p[0]} (średnica wewnętrzna ${fmt(p[1], 1)} mm) płynie ${fmt(V, 1)} m³/h wody. Jaka jest prędkość przepływu?`,
+      v, 2, "m/s", [v / 4, velocity(V, p[2]), v * 3.6],
+      `v = V / A = (${fmt(V, 1)} / 3600) m³/s / (π · ${fmt(p[1] / 1000, 4)}² / 4) m² = ${fmt(v, 2)} m/s. W instalacjach z pompą ciepła celuj w 0,5–1,0 m/s: szybciej rośnie hałas i opór.`,
+      ["Pole przekroju policzono jako πd² zamiast πd²/4, czyli średnicę potraktowano jak promień.", "Podstawiono średnicę zewnętrzną. Przepływ zależy od średnicy wewnętrznej, a różnica przy rurach PEX jest duża.", "Pomylone jednostki: wynik przeliczono tak, jakby był w km/h."]);
+  },
+
+  borehole() {
+    const Q = pick([6, 8, 10, 12, 14]);
+    const cop = pick([4.2, 4.5, 4.8]);
+    const q = pick([40, 45, 50, 55]);
+    const v = boreholeLength(Q, cop, q);
+    return numQ("Dolne źródło",
+      `Gruntowa pompa ciepła ma moc grzewczą ${Q} kW i COP ${fmt(cop, 1)} (B0/W35). Przyjęto moc jednostkową gruntu ${q} W/m. Jaka łączna długość sond jest potrzebna?`,
+      v, 0, "m", [Q * 1000 / q, Q / cop * 1000 / q, Q * (1 + 1 / cop) * 1000 / q],
+      `Z gruntu pobierana jest moc parownika: Q · (1 − 1/COP) = ${Q} × ${fmt(1 - 1 / cop, 3)} = ${fmt(Q * (1 - 1 / cop), 2)} kW. Długość = ${fmt(Q * (1 - 1 / cop) * 1000, 0)} W / ${q} W/m = ${fmt(v, 0)} m.`,
+      ["Użyto pełnej mocy grzewczej. Część ciepła pochodzi z energii elektrycznej sprężarki, grunt dostarcza tylko resztę.",
+       "To moc elektryczna sprężarki, a nie moc pobierana z gruntu.",
+       "Moc sprężarki dodano zamiast odjąć."]);
+  },
+
+  gains() {
+    const n = pick([1, 2, 3, 4]);
+    const eq = pick([150, 250, 400, 600]);
+    const win = pick([2, 3, 4, 6]);
+    const qs = pick([150, 200, 250]);
+    const walls = pick([200, 300, 400]);
+    const v = (n * 120 + eq + win * qs + walls) / 1000;
+    return numQ("Zyski ciepła",
+      `Biuro: ${n} os. (przyjmij 120 W/os. łącznie jawne i utajone), sprzęt ${eq} W, okna ${win} m² z zyskiem słonecznym ${qs} W/m², przenikanie przez przegrody ${walls} W. Jakie jest łączne obciążenie chłodnicze?`,
+      v, 2, "kW", [(n * 75 + eq + win * qs + walls) / 1000, (n * 120 + eq + walls) / 1000, (n * 120 + eq + win * qs) / 1000],
+      `${n}×120 + ${eq} + ${win}×${qs} + ${walls} = ${fmt(v * 1000, 0)} W = ${fmt(v, 2)} kW. Dobierz urządzenie o mocy nominalnej najbliższej tej wartości od góry.`,
+      ["Uwzględniono tylko ciepło jawne osób (ok. 75 W). Ciepło utajone (wilgoć) też obciąża klimatyzator.",
+       "Pominięto zyski słoneczne przez okna, często największą pozycję.",
+       "Pominięto przenikanie przez przegrody."]);
+  },
+
+  charge() {
+    const pre = pick([5, 7.5, 10]);
+    const L = pre + pick([3, 4.5, 6, 8, 12]);
+    const g = pick([12, 15, 20, 25]);
+    const v = addCharge(L, pre, g);
+    return numQ("Doładowanie czynnika",
+      `Jednostka zewnętrzna jest fabrycznie napełniona na ${fmt(pre, 1)} m instalacji. Instrukcja: doładować ${g} g na każdy metr ponad tę długość. Instalacja ma ${fmt(L, 1)} m. Ile czynnika trzeba dodać?`,
+      v, 0, "g", [L * g, pre * g, v * 2],
+      `(${fmt(L, 1)} − ${fmt(pre, 1)}) m × ${g} g/m = ${fmt(v, 0)} g. Doładowanie odmierza się wagą, nie manometrem.`,
+      ["Policzono doładowanie dla całej długości, choć jednostka ma już czynnik na pierwsze metry.",
+       "To ilość czynnika w fabrycznym napełnieniu, a nie doładowanie.",
+       "Doładowanie liczy się na długość trasy, a nie na sumę długości rury cieczowej i gazowej."]);
+  },
+
+  pressure() {
+    const p1 = pick([30, 35, 40, 41.5]);
+    const t1 = pick([22, 25, 28, 30]);
+    const t2 = t1 - pick([8, 10, 12, 15]);
+    const v = pressureAt(p1, t1, t2);
+    return numQ("Próba ciśnieniowa",
+      `Instalację napełniono azotem do ${fmt(p1, 1)} bar (manometr) przy ${t1} °C. Następnego dnia temperatura spadła do ${t2} °C. Jakiego wskazania manometru należy się spodziewać, jeśli instalacja jest szczelna?`,
+      v, 1, "bar", [p1 * t2 / t1, p1 * (t2 + K0) / (t1 + K0), p1],
+      `p₂ = (p₁ + 1,013) · T₂/T₁ − 1,013 = ${fmt(p1 + P_ATM, 2)} × ${fmt(t2 + K0, 2)}/${fmt(t1 + K0, 2)} − 1,013 = ${fmt(v, 1)} bar. ` +
+      `Spadek o ${fmt(p1 - v, 1)} bar wynika z temperatury, a nie z nieszczelności.`,
+      ["Temperatury podstawiono w °C. Prawo gazowe działa na temperaturach bezwzględnych.",
+       "Pominięto przeliczenie ciśnienia manometrycznego na bezwzględne. Błąd jest niewielki, ale systematyczny.",
+       "Ciśnienie gazu w stałej objętości zależy od temperatury, więc spadek temperatury musi obniżyć wskazanie."]);
+  },
+
+  micron() {
+    const um = pick([250, 500, 1000, 1500, 2000]);
+    const v = micronToPa(um);
+    return numQ("Próżnia",
+      `Wakuometr pokazuje ${um} mikronów (µm Hg). Ile to paskali?`,
+      v, 1, "Pa", [um * 133.32, v / 100, um * 1.3332],
+      `1 mikron = 1/1000 mm Hg = 0,1333 Pa, więc ${um} µm × 0,1333 = ${fmt(v, 1)} Pa (${fmt(v / 100, 3)} mbar).`,
+      ["Pomylono mikron z mm Hg: 1 mm Hg to 133,3 Pa, a mikron jest tysiąc razy mniejszy.",
+       "To wynik w milibarach, a pytanie dotyczyło paskali (1 mbar = 100 Pa).",
+       "Błąd rzędu wielkości: 1 mikron to 0,1333 Pa, a nie 1,333 Pa."]);
+  },
+
+  superheat() {
+    const ref = pick(PT_REFS);
+    const tEv = pick([-8, -4, 0, 3, 6, 9]);
+    const pg = Math.round((psat(ref, tEv) - P_ATM) * 10) / 10;
+    const ts = tsat(ref, pg + P_ATM);
+    const sh = pick([3, 5, 7, 9, 12]);
+    const tl = Math.round((ts + sh) * 10) / 10;
+    const v = tl - ts;
+    const tWrong = tsat(ref, pg);
+    return numQ("Przegrzanie",
+      `Instalacja ${ref}, tryb chłodzenia. Manometr na zaworze serwisowym ssania: ${fmt(pg, 1)} bar. Termometr na rurze ssawnej: ${fmt(tl, 1)} °C. Ile wynosi przegrzanie?`,
+      v, 1, "K", [tl - tWrong, ts - tl, tl],
+      `Ciśnienie bezwzględne: ${fmt(pg, 1)} + 1,013 = ${fmt(pg + P_ATM, 2)} bar → temperatura nasycenia ${fmt(ts, 1)} °C. Przegrzanie = ${fmt(tl, 1)} − (${fmt(ts, 1)}) = ${fmt(v, 1)} K.`,
+      ["Odczytano temperaturę nasycenia dla ciśnienia manometrycznego jak dla bezwzględnego. Tabele czynników podają zwykle ciśnienie bezwzględne.",
+       "Odejmowanie w złą stronę: przegrzanie to temperatura rury minus temperatura nasycenia.",
+       "To sama temperatura rury. Przegrzanie jest różnicą między nią a temperaturą nasycenia."]);
+  },
+
+  subcool() {
+    const ref = pick(PT_REFS);
+    const tC = pick([35, 40, 45, 50]);
+    const pg = Math.round((psat(ref, tC) - P_ATM) * 10) / 10;
+    const ts = tsat(ref, pg + P_ATM);
+    const sc = pick([2, 4, 5, 6, 8]);
+    const tl = Math.round((ts - sc) * 10) / 10;
+    const v = ts - tl;
+    return numQ("Dochłodzenie",
+      `Instalacja ${ref}. Ciśnienie skraplania (manometr): ${fmt(pg, 1)} bar. Temperatura rury cieczowej za skraplaczem: ${fmt(tl, 1)} °C. Ile wynosi dochłodzenie?`,
+      v, 1, "K", [tsat(ref, pg) - tl, tl - ts, ts],
+      `${fmt(pg, 1)} + 1,013 = ${fmt(pg + P_ATM, 2)} bar abs → temperatura skraplania ${fmt(ts, 1)} °C. Dochłodzenie = ${fmt(ts, 1)} − ${fmt(tl, 1)} = ${fmt(v, 1)} K.`,
+      ["Tabelę odczytano dla ciśnienia manometrycznego zamiast bezwzględnego.",
+       "Odejmowanie w złą stronę: dochłodzenie to temperatura nasycenia minus temperatura cieczy.",
+       "To temperatura skraplania, a nie dochłodzenie."]);
+  },
+
+  current() {
+    const ph = pick([1, 3]);
+    const P = ph === 1 ? pick([1.2, 1.8, 2.4, 3.0]) : pick([3.5, 4.5, 6, 8]);
+    const cf = pick([0.9, 0.95, 0.98]);
+    const v = current(P, ph, cf);
+    return numQ("Prąd zasilania",
+      `Pompa ciepła ${ph === 1 ? "jednofazowa (230 V)" : "trójfazowa (400 V)"} pobiera ${fmt(P, 1)} kW mocy czynnej przy cos φ = ${fmt(cf, 2)}. Jaki prąd płynie w przewodzie fazowym?`,
+      v, 1, "A", ph === 3 ? [P * 1000 / (400 * cf), P * 1000 / (230 * cf), P * 1000 / (Math.sqrt(3) * 230 * cf)] : [P * 1000 / 230, P * 1000 / (400 * cf), P * 1000 * cf / 230],
+      ph === 3
+        ? `I = P / (√3 · U · cos φ) = ${fmt(P * 1000, 0)} / (1,732 × 400 × ${fmt(cf, 2)}) = ${fmt(v, 1)} A.`
+        : `I = P / (U · cos φ) = ${fmt(P * 1000, 0)} / (230 × ${fmt(cf, 2)}) = ${fmt(v, 1)} A.`,
+      ph === 3
+        ? ["Pominięto √3 we wzorze dla układu trójfazowego.", "Podstawiono napięcie fazowe 230 V i pominięto √3.", "Napięcie fazowe z √3: taki wzór daje prąd zawyżony o √3."]
+        : ["Pominięto cos φ.", "Podstawiono 400 V dla odbiornika jednofazowego.", "cos φ przeniesiono do licznika."]);
+  },
+
+  heatcurve() {
+    const td = pick([-16, -18, -20, -22, -24]);
+    const tsup = pick([35, 40, 45, 50]);
+    const tout = pick([-10, -5, 0, 5]);
+    const v = heatCurve(20, td, tsup, tout);
+    return numQ("Krzywa grzewcza",
+      `Projekt: zasilanie ${tsup} °C przy ${td} °C na zewnątrz, pokój 20 °C. Krzywa grzewcza jest liniowa i przechodzi przez 20 °C przy 20 °C na zewnątrz. Jaka temperatura zasilania przy ${tout} °C?`,
+      v, 1, "°C", [tsup * (20 - tout) / (20 - td), tsup, 20 + (tsup - 20) * (tout - td) / (20 - td)],
+      `T_z = 20 + (${tsup} − 20) · (20 − (${tout})) / (20 − (${td})) = ${fmt(v, 1)} °C. Niższa temperatura zasilania w cieplejsze dni to główne źródło wysokiego SCOP.`,
+      ["Pominięto punkt stały krzywej: przy 20 °C na zewnątrz zasilanie ma 20 °C, a nie 0 °C.",
+       "To temperatura projektowa, obowiązująca tylko przy θe. Krzywa obniża zasilanie w cieplejsze dni.",
+       "Proporcję odwrócono: im zimniej, tym zasilanie ma być wyższe."]);
+  },
+};
+const GEN_IDS = Object.keys(GEN);
+
+/* Dwa dodatkowe generatory: hałas jednostki zewnętrznej i punkt rosy */
+function soundAt(lw, r, q) { return lw + 10 * Math.log10(q / (4 * Math.PI * r * r)); }
+function dewPoint(t, rh) {
+  const g = Math.log(rh / 100) + 17.62 * t / (243.12 + t);
+  return 243.12 * g / (17.62 - g);
+}
+GEN.noise = function () {
+  const lw = pick([52, 55, 58, 62]);
+  const r = pick([3, 4, 5, 8, 10]);
+  const pl = pick([["wolnostojąca na gruncie (Q = 2)", 2], ["przy ścianie budynku (Q = 4)", 4], ["w narożniku między ścianami (Q = 8)", 8]]);
+  const v = soundAt(lw, r, pl[1]);
+  return numQ("Hałas",
+    `Jednostka zewnętrzna o mocy akustycznej L_W = ${lw} dB(A) stoi ${pl[0]}. Jaki poziom ciśnienia akustycznego wystąpi w odległości ${r} m?`,
+    v, 1, "dB(A)", [soundAt(lw, r, 1), lw + 10 * Math.log10(pl[1] / (4 * Math.PI * r)), lw - 20 * Math.log10(r)],
+    `L_p = L_W + 10·log(Q / (4π r²)) = ${lw} + 10·log(${pl[1]} / (4π · ${r}²)) = ${fmt(v, 1)} dB(A). Każde podwojenie odległości obniża poziom o 6 dB, każda dodatkowa ściana odbijająca podnosi go o 3 dB.`,
+    ["Pominięto współczynnik kierunkowości Q. Odbicia od gruntu i ścian podnoszą poziom hałasu.",
+     "Odległość nie została podniesiona do kwadratu. Energia rozkłada się na powierzchni rosnącej z r².",
+     "Pominięto człon 4π i współczynnik Q, zostało samo tłumienie odległością."]);
+};
+GEN.dewpoint = function () {
+  const t = pick([22, 24, 26, 28]);
+  const rh = pick([45, 50, 55, 60, 65, 70]);
+  const v = dewPoint(t, rh);
+  return numQ("Punkt rosy",
+    `W pomieszczeniu jest ${t} °C i wilgotność względna ${rh}%. Jaka jest temperatura punktu rosy? Poniżej niej na zimnych powierzchniach wykrapla się woda.`,
+    v, 1, "°C", [t * rh / 100, t - (100 - rh) / 10, t - rh / 10],
+    `Wzór Magnusa: γ = ln(${rh}/100) + 17,62·${t}/(243,12 + ${t}); t_r = 243,12·γ/(17,62 − γ) = ${fmt(v, 1)} °C. ` +
+    `Rury z zimnym czynnikiem, kanały i powierzchnie chłodzące poniżej tej temperatury muszą mieć izolację paroszczelną albo sterowanie zasilaniem powyżej punktu rosy.`,
+    ["Wilgotność względna nie przekłada się proporcjonalnie na temperaturę. Zależność jest wykładnicza (wzór Magnusa).",
+     "Zbyt mała poprawka. Punkt rosy leży zwykle kilka do kilkunastu stopni poniżej temperatury powietrza.",
+     "To nie jest wzór na punkt rosy. Użyj wzoru Magnusa albo wykresu i-x."]);
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   6. RYSUNKI (SVG)
+   ═══════════════════════════════════════════════════════════════ */
+const ARROW = `<defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#bbb"/></marker>
+  <marker id="ahh" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#FF7A45"/></marker>
+  <marker id="ahc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#4DA3FF"/></marker>
+</defs>`;
+
+const SVG_CYCLE = `<svg viewBox="0 0 560 330" width="560" role="img" aria-label="Schemat obiegu sprężarkowego">${ARROW}
+  <rect x="170" y="22" width="220" height="56" rx="8" fill="#2a150c" stroke="#FF7A45" stroke-width="2"/>
+  <text x="280" y="46" fill="#EAEAEA" font-size="15" text-anchor="middle" font-weight="700">Skraplacz</text>
+  <text x="280" y="66" fill="#FFB08A" font-size="12" text-anchor="middle">oddaje ciepło: Q_skr = Q_par + P_el</text>
+  <rect x="170" y="252" width="220" height="56" rx="8" fill="#0c1a2a" stroke="#4DA3FF" stroke-width="2"/>
+  <text x="280" y="276" fill="#EAEAEA" font-size="15" text-anchor="middle" font-weight="700">Parownik</text>
+  <text x="280" y="296" fill="#9CC8FF" font-size="12" text-anchor="middle">pobiera ciepło z otoczenia: Q_par</text>
+  <circle cx="470" cy="165" r="38" fill="#1a1a1a" stroke="#EAEAEA" stroke-width="2"/>
+  <text x="470" y="162" fill="#EAEAEA" font-size="13" text-anchor="middle" font-weight="700">Sprężarka</text>
+  <text x="470" y="180" fill="#9a9a9a" font-size="11" text-anchor="middle">P_el</text>
+  <path d="M70 140 L95 165 L70 190 L45 165 Z" fill="#1a1a1a" stroke="#EAEAEA" stroke-width="2"/>
+  <text x="102" y="160" fill="#EAEAEA" font-size="12">Zawór</text>
+  <text x="102" y="175" fill="#EAEAEA" font-size="12">rozprężny</text>
+  <path d="M470 127 L470 50 L396 50" fill="none" stroke="#FF7A45" stroke-width="3" marker-end="url(#ahh)"/>
+  <text x="478" y="92" fill="#FF7A45" font-size="11">gorąca para</text>
+  <path d="M170 50 L70 50 L70 136" fill="none" stroke="#FFB08A" stroke-width="3" marker-end="url(#ahh)"/>
+  <text x="78" y="100" fill="#FFB08A" font-size="11">ciecz</text>
+  <text x="78" y="114" fill="#FFB08A" font-size="11">dochłodzona</text>
+  <path d="M70 194 L70 280 L166 280" fill="none" stroke="#4DA3FF" stroke-width="3" marker-end="url(#ahc)"/>
+  <text x="78" y="258" fill="#9CC8FF" font-size="11">mieszanina</text>
+  <path d="M390 280 L470 280 L470 207" fill="none" stroke="#4DA3FF" stroke-width="3" marker-end="url(#ahc)"/>
+  <text x="478" y="250" fill="#9CC8FF" font-size="11">para</text>
+  <text x="478" y="264" fill="#9CC8FF" font-size="11">przegrzana</text>
+  <line x1="175" y1="165" x2="428" y2="165" stroke="#3a3a48" stroke-dasharray="5 5"/>
+  <text x="250" y="158" fill="#FF7A45" font-size="11">strona wysokiego ciśnienia</text>
+  <text x="250" y="180" fill="#4DA3FF" font-size="11">strona niskiego ciśnienia</text>
+</svg>`;
+
+const SVG_PH = `<svg viewBox="0 0 560 320" width="560" role="img" aria-label="Obieg na wykresie log p-h">${ARROW}
+  <line x1="50" y1="285" x2="540" y2="285" stroke="#9a9a9a" marker-end="url(#ah)"/>
+  <line x1="50" y1="285" x2="50" y2="20" stroke="#9a9a9a" marker-end="url(#ah)"/>
+  <text x="530" y="305" fill="#9a9a9a" font-size="12" text-anchor="end">entalpia h [kJ/kg]</text>
+  <text x="60" y="28" fill="#9a9a9a" font-size="12">log p</text>
+  <path d="M95 285 C 110 120, 190 42, 265 40 C 335 38, 395 110, 420 285" fill="none" stroke="#666" stroke-width="2"/>
+  <text x="265" y="32" fill="#9a9a9a" font-size="11" text-anchor="middle">punkt krytyczny</text>
+  <text x="58" y="170" fill="#9a9a9a" font-size="11">ciecz</text>
+  <text x="250" y="170" fill="#9a9a9a" font-size="11" text-anchor="middle">para mokra</text>
+  <text x="445" y="250" fill="#9a9a9a" font-size="11">para</text>
+  <path d="M125 215 L440 215" stroke="#4DA3FF" stroke-width="3" fill="none"/>
+  <path d="M440 215 L500 95" stroke="#EAEAEA" stroke-width="3" fill="none"/>
+  <path d="M500 95 L125 95" stroke="#FF7A45" stroke-width="3" fill="none"/>
+  <path d="M125 95 L125 215" stroke="#EAEAEA" stroke-width="3" fill="none" stroke-dasharray="6 4"/>
+  <circle cx="440" cy="215" r="5" fill="#4DA3FF"/><text x="446" y="233" fill="#EAEAEA" font-size="12">1</text>
+  <circle cx="500" cy="95" r="5" fill="#FF7A45"/><text x="506" y="90" fill="#EAEAEA" font-size="12">2</text>
+  <circle cx="125" cy="95" r="5" fill="#FF7A45"/><text x="108" y="90" fill="#EAEAEA" font-size="12">3</text>
+  <circle cx="125" cy="215" r="5" fill="#4DA3FF"/><text x="109" y="233" fill="#EAEAEA" font-size="12">4</text>
+  <text x="280" y="208" fill="#9CC8FF" font-size="12" text-anchor="middle">parowanie (p = const)</text>
+  <text x="300" y="88" fill="#FFB08A" font-size="12" text-anchor="middle">skraplanie (p = const)</text>
+  <text x="478" y="170" fill="#EAEAEA" font-size="12">sprężanie</text>
+  <path d="M407 228 L440 228" stroke="#4DA3FF" stroke-width="1.5" marker-start="url(#ahc)" marker-end="url(#ahc)"/>
+  <text x="423" y="246" fill="#9CC8FF" font-size="11" text-anchor="middle">SH</text>
+  <path d="M127 108 L148 108" stroke="#FF7A45" stroke-width="1.5" marker-start="url(#ahh)" marker-end="url(#ahh)"/>
+  <text x="137" y="125" fill="#FFB08A" font-size="11" text-anchor="middle">SC</text>
+</svg>`;
+
+const SVG_HYDRO = `<svg viewBox="0 0 580 300" width="580" role="img" aria-label="Schemat hydrauliczny pompy ciepła">${ARROW}
+  <rect x="16" y="100" width="110" height="100" rx="8" fill="#1a1a1a" stroke="#EAEAEA" stroke-width="2"/>
+  <text x="71" y="140" fill="#EAEAEA" font-size="13" text-anchor="middle" font-weight="700">Pompa</text>
+  <text x="71" y="157" fill="#EAEAEA" font-size="13" text-anchor="middle" font-weight="700">ciepła</text>
+  <text x="71" y="178" fill="#9a9a9a" font-size="10" text-anchor="middle">pompa obiegowa</text>
+  <path d="M126 125 L200 125" stroke="#FF7A45" stroke-width="3" marker-end="url(#ahh)"/>
+  <text x="140" y="117" fill="#FFB08A" font-size="11">zasilanie</text>
+  <path d="M200 110 L226 125 L200 140 Z M252 110 L226 125 L252 140 Z" fill="#1a1a1a" stroke="#EAEAEA" stroke-width="1.5"/>
+  <text x="226" y="100" fill="#EAEAEA" font-size="11" text-anchor="middle">zawór 3D</text>
+  <path d="M226 140 L226 205 L262 205" stroke="#FF7A45" stroke-width="3" fill="none" marker-end="url(#ahh)"/>
+  <rect x="265" y="170" width="92" height="116" rx="44" fill="#141414" stroke="#FF7A45" stroke-width="2"/>
+  <text x="311" y="222" fill="#EAEAEA" font-size="12" text-anchor="middle" font-weight="700">zasobnik</text>
+  <text x="311" y="238" fill="#EAEAEA" font-size="12" text-anchor="middle" font-weight="700">c.w.u.</text>
+  <path d="M252 125 L382 125" stroke="#FF7A45" stroke-width="3" marker-end="url(#ahh)"/>
+  <rect x="386" y="80" width="72" height="104" rx="30" fill="#141414" stroke="#9a9a9a" stroke-width="2"/>
+  <text x="422" y="128" fill="#EAEAEA" font-size="12" text-anchor="middle" font-weight="700">bufor</text>
+  <text x="422" y="144" fill="#9a9a9a" font-size="10" text-anchor="middle">(opcjonalnie)</text>
+  <path d="M458 110 L486 110" stroke="#FF7A45" stroke-width="3" fill="none" marker-end="url(#ahh)"/>
+  <rect x="490" y="70" width="84" height="110" rx="8" fill="#141414" stroke="#9a9a9a" stroke-width="2"/>
+  <path d="M500 100 h64 M500 115 h64 M500 130 h64 M500 145 h64" stroke="#555" stroke-width="2"/>
+  <text x="532" y="88" fill="#EAEAEA" font-size="11" text-anchor="middle" font-weight="700">obieg</text>
+  <text x="532" y="168" fill="#EAEAEA" font-size="11" text-anchor="middle" font-weight="700">grzewczy</text>
+  <path d="M532 180 L532 250 L140 250 L140 204" stroke="#4DA3FF" stroke-width="3" fill="none" marker-end="url(#ahc)"/>
+  <path d="M357 262 L400 262 L400 250" stroke="#4DA3FF" stroke-width="3" fill="none"/>
+  <text x="470" y="280" fill="#9CC8FF" font-size="11" text-anchor="middle">powrót: filtr + separator</text>
+</svg>`;
+
+const SVG_VACUUM = `<svg viewBox="0 0 560 280" width="560" role="img" aria-label="Test utrzymania próżni">${ARROW}
+  <line x1="60" y1="240" x2="540" y2="240" stroke="#9a9a9a" marker-end="url(#ah)"/>
+  <line x1="60" y1="240" x2="60" y2="20" stroke="#9a9a9a" marker-end="url(#ah)"/>
+  <text x="535" y="262" fill="#9a9a9a" font-size="12" text-anchor="end">czas od odcięcia pompy</text>
+  <text x="68" y="28" fill="#9a9a9a" font-size="12">µm Hg</text>
+  <line x1="60" y1="205" x2="540" y2="205" stroke="#30D158" stroke-dasharray="5 5"/>
+  <text x="535" y="199" fill="#30D158" font-size="11" text-anchor="end">500 µm</text>
+  <line x1="60" y1="170" x2="540" y2="170" stroke="#FFD60A" stroke-dasharray="5 5"/>
+  <text x="535" y="164" fill="#FFD60A" font-size="11" text-anchor="end">≈ 1000 µm</text>
+  <path d="M60 212 C 110 190, 150 185, 540 184" fill="none" stroke="#30D158" stroke-width="3"/>
+  <text x="300" y="228" fill="#30D158" font-size="12">szczelna i sucha: lekki wzrost, stabilizacja</text>
+  <path d="M60 212 C 110 120, 170 100, 540 96" fill="none" stroke="#FFD60A" stroke-width="3"/>
+  <text x="535" y="120" fill="#FFD60A" font-size="12" text-anchor="end">wilgoć: wzrost i stabilizacja wysoko</text>
+  <path d="M60 212 L400 30" fill="none" stroke="#FF453A" stroke-width="3"/>
+  <text x="408" y="38" fill="#FF453A" font-size="12">nieszczelność: stały wzrost</text>
+</svg>`;
+
+const SVG_BIVAL = `<svg viewBox="0 0 560 312" width="560" role="img" aria-label="Punkt biwalentny">${ARROW}
+  <line x1="60" y1="260" x2="540" y2="260" stroke="#9a9a9a" marker-end="url(#ah)"/>
+  <line x1="60" y1="260" x2="60" y2="20" stroke="#9a9a9a" marker-end="url(#ah)"/>
+  <text x="535" y="304" fill="#9a9a9a" font-size="12" text-anchor="end">temperatura zewnętrzna</text>
+  <text x="68" y="28" fill="#9a9a9a" font-size="12">moc [kW]</text>
+  <path d="M80 50 L470 260" stroke="#FF7A45" stroke-width="3"/>
+  <text x="96" y="44" fill="#FFB08A" font-size="12">obciążenie budynku</text>
+  <path d="M80 190 L520 60" stroke="#4DA3FF" stroke-width="3"/>
+  <text x="430" y="118" fill="#9CC8FF" font-size="12">moc pompy ciepła</text>
+  <path d="M80 50 L80 190 L207 152 Z" fill="#FF453A" opacity=".25"/>
+  <text x="92" y="130" fill="#FF8A80" font-size="11">źródło</text>
+  <text x="92" y="144" fill="#FF8A80" font-size="11">szczytowe</text>
+  <circle cx="207" cy="152" r="6" fill="#FFD60A"/>
+  <line x1="207" y1="152" x2="207" y2="260" stroke="#FFD60A" stroke-dasharray="4 4"/>
+  <text x="207" y="276" fill="#FFD60A" font-size="12" text-anchor="middle">θ biw</text>
+  <text x="80" y="276" fill="#9a9a9a" font-size="11" text-anchor="middle">θe</text>
+  <text x="470" y="276" fill="#9a9a9a" font-size="11" text-anchor="middle">+15 °C</text>
+  <text x="305" y="148" fill="#9a9a9a" font-size="11">nadwyżka mocy: modulacja</text>
+  <text x="305" y="162" fill="#9a9a9a" font-size="11">lub praca cykliczna</text>
+</svg>`;
+
+function fig(svg, cap) { return `<div class="fig">${svg}<div class="cap">${cap}</div></div>`; }
+function tbl(head, rows) {
+  return `<div class="tbl"><table><tr>${head.map(h => `<th>${h}</th>`).join("")}</tr>` +
+    rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("") + `</table></div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   7. KURS — MODUŁY, LEKCJE, BANKI PYTAŃ
+   Struktura modułu:
+     lessons: [{ t: tytuł, h: treść HTML }]
+     gens:    generatory zadań obliczeniowych (sekcja 5)
+     bank:    pytania stałe { q, a: [poprawna, błędna, …], why, e: [null, objaśnienie błędnej, …] }
+   ═══════════════════════════════════════════════════════════════ */
+const COURSE = [];
+
+/* ───────────── MODUŁ 1 ───────────── */
+COURSE.push({ id: "m1", part: "I. Fizyka i czynniki", title: "Obieg sprężarkowy i termodynamika", time: "50 min",
+  goal: "Opiszesz obieg na wykresie log p-h, odróżnisz przegrzanie od dochłodzenia i policzysz granicę Carnota dla zadanych temperatur.",
+  gens: ["carnot"],
+  lessons: [
+  { t: "Cztery elementy obiegu", h: `
+<p class="lead">Pompa ciepła i klimatyzator to ta sama maszyna: obieg sprężarkowy przenoszący ciepło z miejsca chłodniejszego do cieplejszego. Różni je tylko to, która strona jest użyteczna.</p>
+${fig(SVG_CYCLE, "Obieg sprężarkowy. W trybie grzania ciepło użyteczne oddaje skraplacz, w trybie chłodzenia pobiera je parownik.")}
+<ol>
+<li><b>Sprężarka</b> zasysa parę przegrzaną o niskim ciśnieniu i spręża ją. Rośnie ciśnienie i temperatura, a do czynnika trafia praca napędu P_el.</li>
+<li><b>Skraplacz</b> odbiera ciepło od gorącej pary. Para się schładza, skrapla przy stałym ciśnieniu, a na końcu ciecz zostaje dochłodzona.</li>
+<li><b>Element rozprężny</b> (zawór elektroniczny EEV, termostatyczny TXV albo kapilara) dławi ciecz. Ciśnienie spada, część cieczy odparowuje natychmiast i mieszanina się schładza.</li>
+<li><b>Parownik</b> pobiera ciepło z otoczenia: z powietrza, gruntu albo wody. Czynnik wrze w niskiej temperaturze i wychodzi jako para przegrzana.</li>
+</ol>
+<p>Bilans energii obiegu jest prosty i przydatny przy każdym doborze:</p>
+<div class="f">Q_skr = Q_par + P_el</div>
+<p>W pompie ciepła o mocy 8 kW i COP 4 sprężarka pobiera 2 kW, a 6 kW pochodzi z dolnego źródła. To dlatego sondę gruntową wymiaruje się na moc parownika, a nie na moc grzewczą.</p>
+<div class="note"><b>Zawór czterodrogowy</b> odwraca kierunek przepływu: skraplacz staje się parownikiem i odwrotnie. Dzięki niemu jedno urządzenie grzeje i chłodzi, a w zimie odszrania wymiennik zewnętrzny, na chwilę pracując „na odwrót”.</div>` },
+
+  { t: "Ciśnienie, temperatura nasycenia i wykres log p-h", h: `
+<p>Podczas wrzenia i skraplania ciśnienie jednoznacznie wyznacza temperaturę. To temperatura nasycenia. Manometr na zaworze serwisowym jest więc termometrem, jeśli wiesz, jakim czynnikiem napełniono instalację.</p>
+<div class="f">p_abs = p_man + 1,013 bar</div>
+<p>Tabele i aplikacje podają zwykle ciśnienie <b>bezwzględne</b>, a manometr pokazuje <b>nadciśnienie</b>. Pomylenie tych dwóch wielkości przesuwa odczytaną temperaturę nasycenia o kilka kelwinów. To najczęstszy błąd przy liczeniu przegrzania.</p>
+${fig(SVG_PH, "Obieg na wykresie log p-h: 1–2 sprężanie, 2–3 schładzanie pary, skraplanie i dochłodzenie, 3–4 dławienie, 4–1 parowanie i przegrzanie.")}
+${tbl(["Wielkość", "Definicja", "Po co jest"], [
+  ["Przegrzanie SH", "T rury ssawnej − T nasycenia przy ciśnieniu parowania", "Chroni sprężarkę przed zassaniem cieczy (uderzenie hydrauliczne, wymywanie oleju)."],
+  ["Dochłodzenie SC", "T nasycenia przy ciśnieniu skraplania − T rury cieczowej", "Gwarantuje, że do zaworu rozprężnego dopływa sama ciecz, bez pęcherzy pary."],
+])}
+<p>Zbyt małe przegrzanie oznacza ryzyko cieczy w sprężarce. Zbyt duże oznacza, że część parownika nie pracuje, bo czynnika brakuje albo zawór za mocno dławi. Rośnie też temperatura tłoczenia.</p>` },
+
+  { t: "COP, EER, SCOP i granica Carnota", h: `
+<div class="f">COP = Q_grzewcze / P_el        EER = Q_chłodnicze / P_el
+COP_Carnota = T_skr / (T_skr − T_par)      (temperatury w K)</div>
+<p>Granica Carnota pokazuje najważniejszą zależność w całej branży: <b>wydajność zależy od różnicy temperatur</b>, którą obieg musi pokonać. Rzeczywiste urządzenia osiągają zwykle 45–55% wartości Carnota.</p>
+${tbl(["Zasilanie", "T_skr (zasilanie + 5 K)", "T_par (−7 °C na zewnątrz, −5 K)", "COP Carnota", "COP realny (≈ 50%)"],
+  [35, 45, 55].map(ts => { const c = carnotCOP(ts + 5, -12); return [ts + " °C", (ts + 5) + " °C", "−12 °C", fmt(c, 2), fmt(c / 2, 1)]; }))}
+<p>Stąd praktyczna reguła: każdy kelwin niższej temperatury zasilania poprawia COP o około 2–3%. Ogrzewanie podłogowe i duże grzejniki są dla pompy ciepła ważniejsze niż kilka punktów różnicy w katalogowym COP.</p>
+<h4>Który wskaźnik porównywać</h4>
+<ul>
+<li><b>COP wg PN-EN 14511</b> jest mierzony w jednym punkcie pracy, np. A7/W35 (powietrze 7 °C, woda 35 °C) albo A2/W35. Porównuj urządzenia tylko w tym samym punkcie.</li>
+<li><b>SCOP wg PN-EN 14825</b> to wskaźnik sezonowy. Uwzględnia zmienność temperatur w roku, pracę przy częściowym obciążeniu i grzałkę. Na etykiecie ErP podaje się go dla 35 °C i 55 °C.</li>
+<li>Na tych samych warunkach teoretyczny COP grzania jest o 1 większy od EER chłodzenia, bo ciepło oddawane zawiera energię napędu.</li>
+</ul>` },
+
+  { t: "Sprężarki i elementy rozprężne", h: `
+${tbl(["Typ", "Gdzie", "Cechy"], [
+  ["Rotacyjna (rolling piston, twin rotary)", "splity, małe monobloki", "prosta, tania, dobrze moduluje w inwerterze"],
+  ["Spiralna (scroll)", "większe pompy ciepła, VRF", "cicha, wysoka sprawność, odporna na niewielkie ilości cieczy"],
+  ["Z wtryskiem pary (EVI)", "pompy ciepła do mroźnego klimatu", "dodatkowy obieg ekonomizera utrzymuje moc i ogranicza temperaturę tłoczenia przy −15…−25 °C"],
+])}
+<p><b>Inwerter</b> zmienia obroty silnika sprężarki (zwykle BLDC). Moc dopasowuje się do obciążenia, więc urządzenie rzadziej się wyłącza. Cykl pracy start–stop to straty i zużycie.</p>
+<p><b>Elektroniczny zawór rozprężny (EEV)</b> steruje przegrzaniem na podstawie czujników temperatury i ciśnienia. Kiedy urządzenie ma EEV, pomiar przegrzania mówi więcej o pracy sterownika niż o ilości czynnika. Dlatego napełnienie ustala się wagą, a przegrzanie służy do diagnostyki.</p>
+<div class="note warn">Olej sprężarki krąży razem z czynnikiem. Zbyt niska prędkość gazu w pionach albo bardzo długie instalacje mogą zatrzymywać olej w rurach. Limity długości i różnicy wysokości z instrukcji wynikają właśnie z powrotu oleju.</div>` },
+  ],
+  bank: [
+  { q: "Który element obiegu podnosi ciśnienie i temperaturę pary czynnika?", a: ["Sprężarka", "Zawór rozprężny", "Parownik", "Skraplacz"], why: "Sprężarka wykonuje pracę na parze. Zawór rozprężny robi coś odwrotnego: obniża ciśnienie przez dławienie." },
+  { q: "W trybie grzania powietrznej pompy ciepła woda instalacji grzewczej odbiera ciepło w:", a: ["skraplaczu", "parowniku", "sprężarce", "zaworze czterodrogowym"], why: "Czynnik skrapla się, oddając ciepło wodzie. Parownik jest w jednostce zewnętrznej i pobiera ciepło z powietrza." },
+  { q: "Pompa ciepła o mocy 10 kW pracuje z COP 4. Ile mocy pochodzi z dolnego źródła?", a: ["7,5 kW", "10 kW", "2,5 kW", "12,5 kW"], why: "P_el = 10 / 4 = 2,5 kW; Q_par = Q_skr − P_el = 7,5 kW.", e: [null, "To moc grzewcza, a część niej pochodzi z energii elektrycznej sprężarki.", "To moc elektryczna sprężarki.", "Moc elektryczną dodano zamiast odjąć."] },
+  { q: "Przegrzanie to różnica:", a: ["temperatury rury ssawnej i temperatury nasycenia przy ciśnieniu parowania", "temperatury nasycenia skraplania i temperatury rury cieczowej", "temperatury tłoczenia i temperatury skraplania", "temperatury powietrza wlotowego i wylotowego parownika"], why: "Przegrzanie dotyczy pary po stronie ssawnej. Druga odpowiedź to definicja dochłodzenia.", e: [null, "To definicja dochłodzenia.", "To przegrzanie tłoczenia. Mówi coś o pracy sprężarki, ale nie jest przegrzaniem ssania.", "To różnica temperatur powietrza, mówi o przepływie i obciążeniu."] },
+  { q: "Jaki jest główny cel utrzymywania przegrzania na ssaniu?", a: ["Ochrona sprężarki przed zassaniem ciekłego czynnika", "Zwiększenie ciśnienia skraplania", "Zmniejszenie poślizgu temperaturowego", "Ułatwienie odszraniania"], why: "Ciecz jest nieściśliwa. Jej zassanie grozi uszkodzeniem sprężarki i wymywa olej." },
+  { q: "Manometr pokazuje 8,0 bar. Jakie ciśnienie trzeba przyjąć do tabeli nasycenia podającej wartości bezwzględne?", a: ["ok. 9,0 bar", "8,0 bar", "ok. 7,0 bar", "ok. 16 bar"], why: "p_abs = p_man + 1,013 bar.", e: [null, "Manometr pokazuje nadciśnienie. Tabela podaje ciśnienie bezwzględne.", "Ciśnienie atmosferyczne dodaje się, a nie odejmuje.", "Nie ma takiej reguły przeliczeniowej."] },
+  { q: "Jak zmieni się COP po obniżeniu temperatury zasilania z 55 °C do 35 °C przy tych samych warunkach zewnętrznych?", a: ["Wyraźnie wzrośnie, bo maleje różnica temperatur pokonywana przez obieg", "Nie zmieni się, bo COP zależy tylko od sprężarki", "Spadnie, bo niższa temperatura to mniej ciepła", "Wzrośnie tylko w urządzeniach bez inwertera"], why: "COP zależy od różnicy temperatur między źródłem dolnym i górnym. Mniejsza różnica daje wyższy COP." },
+  { q: "Do czego służy zawór czterodrogowy?", a: ["Do odwracania kierunku obiegu: grzanie, chłodzenie, odszranianie", "Do regulacji przegrzania", "Do przełączania między c.w.u. a c.o.", "Do odcinania jednostki przy serwisie"], why: "Zawór czterodrogowy zamienia funkcje wymienników. Przełączanie c.w.u./c.o. to zawór trójdrogowy po stronie wody." },
+  { q: "Czemu służy sprężarka z wtryskiem pary (EVI)?", a: ["Utrzymaniu mocy i ograniczeniu temperatury tłoczenia przy niskich temperaturach zewnętrznych", "Ograniczeniu hałasu przy małym obciążeniu", "Zastąpieniu zaworu rozprężnego", "Pracy z czynnikami palnymi"], why: "Wtrysk pary z ekonomizera zwiększa masę czynnika i chłodzi sprężanie. Pompa zachowuje moc przy dużym sprężu." },
+  { q: "COP punktowy dwóch pomp ciepła porównasz rzetelnie, gdy:", a: ["oba podano w tym samym punkcie pracy wg PN-EN 14511, np. A7/W35", "jeden podano dla A7/W35, a drugi dla A2/W35", "jeden jest z etykiety ErP, a drugi z karty katalogowej", "oba dotyczą maksymalnej mocy"], why: "COP silnie zależy od temperatur. Wartości z różnych punktów pracy są nieporównywalne." },
+  { q: "Przy tych samych temperaturach pracy teoretyczny COP grzania w porównaniu z EER chłodzenia jest:", a: ["o 1 większy", "równy", "o 1 mniejszy", "dwa razy większy"], why: "Q_skr = Q_par + P_el, więc COP = EER + 1." },
+  { q: "Instalacja ma elektroniczny zawór rozprężny. Co jest podstawową metodą ustalenia prawidłowej ilości czynnika w splicie?", a: ["Napełnienie wagą wg instrukcji (fabryczne + doładowanie na długość)", "Dobicie czynnika do uzyskania przegrzania 5 K", "Napełnianie do ustabilizowania ciśnienia ssania", "Napełnianie do zniknięcia oszronienia rury ssawnej"], why: "EEV sam reguluje przegrzanie, więc przegrzanie przestaje być wskaźnikiem napełnienia. Obowiązuje waga." },
+  ] });
+
+/* ───────────── MODUŁ 2 ───────────── */
+COURSE.push({ id: "m2", part: "I. Fizyka i czynniki", title: "Czynniki chłodnicze i bezpieczeństwo", time: "55 min",
+  goal: "Dobierzesz sposób pracy do klasy bezpieczeństwa czynnika i policzysz dopuszczalne napełnienie czynnikiem palnym w pomieszczeniu.",
+  gens: ["co2e", "chargeLimit"],
+  lessons: [
+  { t: "GWP, ekwiwalent CO₂ i czynniki w praktyce", h: `
+<p><b>GWP</b> (współczynnik ocieplenia globalnego) mówi, ile razy silniej niż CO₂ dany gaz ogrzewa klimat w horyzoncie 100 lat. Przepisy liczą ilość czynnika w <b>tonach ekwiwalentu CO₂</b>:</p>
+<div class="f">t CO₂e = masa [kg] × GWP / 1000</div>
+${tbl(["Czynnik", "GWP", "Klasa", "Uwagi"], Object.keys(REF).map(k => [k, String(REF[k].gwp), REF[k].cls, REF[k].note]))}
+<p>Przykład: 1,2 kg R32 to 1,2 × 675 / 1000 = 0,81 t CO₂e. Te same 1,2 kg R410A to 2,51 t CO₂e, ponad trzy razy więcej.</p>
+<div class="note">Wartości GWP pochodzą z IV raportu IPCC (AR4), na którym oparto przeliczenia w przepisach F-gazowych. Na tabliczce znamionowej producent podaje ilość czynnika w kg i w t CO₂e. Do dokumentacji i CRO przepisuj dane z tabliczki.</div>` },
+
+  { t: "Klasy bezpieczeństwa i czynniki palne", h: `
+<p>Normy ISO 817 i PN-EN 378 klasyfikują czynniki dwoma znakami. Litera opisuje toksyczność: <b>A</b> niższa, <b>B</b> wyższa. Cyfra opisuje palność:</p>
+${tbl(["Klasa", "Znaczenie", "Przykłady"], [
+  ["1", "brak rozprzestrzeniania płomienia", "R410A, R134a, R407C, R744"],
+  ["2L", "słabo palne, prędkość spalania ≤ 10 cm/s", "R32, R454B, R1234yf"],
+  ["2", "palne", "R152a"],
+  ["3", "skrajnie łatwopalne", "R290 (propan), R600a (izobutan)"],
+])}
+<p><b>LFL</b> (dolna granica palności) to najmniejsze stężenie, przy którym mieszanina z powietrzem może się zapalić. Dla R32 to 0,307 kg/m³, dla R290 zaledwie 0,038 kg/m³, około 2% objętościowo.</p>
+<h4>Zasady pracy z A2L i A3</h4>
+<ul>
+<li>Przed pracą i w jej trakcie kontroluj atmosferę detektorem gazu właściwym dla czynnika. Zapewnij wentylację.</li>
+<li>Usuń źródła zapłonu. Używaj pompy próżniowej, stacji odzysku i detektora dopuszczonych do czynników palnych.</li>
+<li>Nigdy nie lutuj instalacji zawierającej czynnik. Najpierw odzysk, potem przedmuch azotem, dopiero wtedy płomień.</li>
+<li>Propan jest cięższy od powietrza i zbiera się nisko: w studzienkach, piwnicach, zagłębieniach terenu. Monobloki R290 mają <b>strefę ochronną</b> wokół jednostki zewnętrznej. Nie może w niej być otworów do budynku, wpustów kanalizacyjnych ani źródeł zapłonu. Wymiary strefy podaje producent.</li>
+</ul>
+<div class="note danger">Czynnik palny wymaga przeszkolenia z pracy z czynnikami palnymi oraz narzędzi do nich przeznaczonych. Kurs daje wiedzę, ale nie zastępuje praktycznego szkolenia BHP ani instrukcji producenta.</div>` },
+
+  { t: "Dopuszczalne napełnienie w pomieszczeniu", h: `
+<p>Gdy cały czynnik wycieknie do pomieszczenia, jego stężenie nie może zbliżyć się do granicy palności. PN-EN 378-1 (załącznik C) i PN-EN IEC 60335-2-40 dają wzór na maksymalne napełnienie bez dodatkowych środków ochronnych:</p>
+<div class="f">m_max = 2,5 · LFL^1,25 · h₀ · √A        [kg]
+A_min = ( m / (2,5 · LFL^1,25 · h₀) )²       [m²]</div>
+<p>A to powierzchnia pomieszczenia w m², h₀ to wysokość montażu jednostki, która decyduje o tym, jak wysoko sięgnie chmura czynnika:</p>
+${tbl(["Położenie jednostki", "h₀ [m]"], [["przy podłodze", "0,6"], ["okienna", "1,0"], ["ścienna", "1,8"], ["sufitowa", "2,2"]])}
+${tbl(["Czynnik", "Jednostka ścienna, 20 m²", "Jednostka podłogowa, 20 m²"],
+  ["R32", "R454B", "R290"].map(r => [r, fmt(chargeLimit(REF[r].lfl, 1.8, 20), 2) + " kg", fmt(chargeLimit(REF[r].lfl, 0.6, 20), 2) + " kg"]))}
+<p>Różnica rzędu wielkości wyjaśnia, dlaczego R290 trafia głównie do monobloków stojących na zewnątrz, a R32 do splitów.</p>
+<div class="note warn">Aktualne wydanie PN-EN IEC 60335-2-40 pozwala zwiększyć napełnienie po zastosowaniu środków dodatkowych: wymuszonej cyrkulacji, detektora z odcięciem, wentylacji. Obowiązuje metoda wskazana w instrukcji konkretnego urządzenia. Wzór powyżej to podstawa do sprawdzenia, czy projekt w ogóle ma sens.</div>` },
+
+  { t: "Mieszaniny, poślizg temperaturowy i oleje", h: `
+<ul>
+<li><b>Czysty związek</b> (R32, R290, R134a) wrze w jednej temperaturze przy danym ciśnieniu.</li>
+<li><b>Mieszanina azeotropowa lub prawie azeotropowa</b> (R410A) zachowuje się praktycznie jak czysty związek, bo poślizg nie przekracza kilku dziesiątych kelwina.</li>
+<li><b>Mieszanina zeotropowa</b> (R407C, w mniejszym stopniu R454B) wrze w zakresie temperatur. <b>Poślizg</b> to różnica między temperaturą początku i końca wrzenia przy tym samym ciśnieniu.</li>
+</ul>
+<p>Z poślizgu wynikają dwie zasady serwisowe:</p>
+<ol>
+<li>Mieszaniny zeotropowe napełnia się <b>w fazie ciekłej</b>. Pobór pary z butli zmienia skład, bo lżej wrzące składniki odparowują pierwsze.</li>
+<li>Po dużym wycieku mieszaniny zeotropowej skład w instalacji może się zmienić. Bezpieczniej odzyskać resztę czynnika i napełnić instalację od nowa.</li>
+</ol>
+<p><b>Oleje.</b> Czynniki HFC i HFO współpracują z olejami POE lub PVE. Oba są silnie higroskopijne: chłoną wilgoć z powietrza w ciągu minut. Zaślepiaj rury, nie zostawiaj otwartych butelek z olejem i zawsze wykonuj pełną próżnię.</p>
+<p><b>R744 (CO₂)</b> pracuje przy ciśnieniach kilkukrotnie wyższych niż R32, po stronie wysokiej zwykle nadkrytycznie, bez klasycznego skraplania. Świetnie nadaje się do przygotowania c.w.u. o wysokiej temperaturze. Wymaga osprzętu na odpowiednie ciśnienia.</p>` },
+  ],
+  bank: [
+  { q: "Do jakiej klasy bezpieczeństwa należy R32?", a: ["A2L", "A1", "A3", "B2L"], why: "R32 ma niską toksyczność (A) i jest słabo palny (2L)." },
+  { q: "Do jakiej klasy bezpieczeństwa należy R290 (propan)?", a: ["A3", "A2L", "A1", "B3"], why: "Propan ma niską toksyczność, ale jest skrajnie łatwopalny." },
+  { q: "Mieszaninę zeotropową, np. R407C, napełnia się:", a: ["w fazie ciekłej", "w fazie gazowej", "dowolnie, jeśli butla stoi pionowo", "wyłącznie przez stronę ssawną w fazie gazowej"], why: "Pobór pary zmienia skład, bo składniki odparowują w różnym tempie." },
+  { q: "Poślizg temperaturowy to:", a: ["różnica temperatur początku i końca wrzenia mieszaniny przy stałym ciśnieniu", "różnica między przegrzaniem a dochłodzeniem", "spadek temperatury czynnika w zaworze rozprężnym", "różnica temperatur wody zasilania i powrotu"], why: "Poślizg występuje w mieszaninach zeotropowych, których składniki wrą w różnych temperaturach." },
+  { q: "Który z czynników nie jest fluorowanym gazem cieplarnianym?", a: ["R290", "R32", "R454B", "R134a"], why: "Propan to węglowodór, czynnik naturalny. Pozostałe to HFC albo mieszaniny HFC/HFO." },
+  { q: "Jak zmienia się dopuszczalne napełnienie czynnikiem palnym, gdy powierzchnia pomieszczenia wzrośnie czterokrotnie?", a: ["Rośnie dwukrotnie", "Rośnie czterokrotnie", "Nie zmienia się", "Rośnie szesnastokrotnie"], why: "Wzór zawiera √A: √4 = 2." },
+  { q: "Jednostkę z R32 przeniesiono ze ściany (h₀ = 1,8 m) na podłogę (h₀ = 0,6 m). Dopuszczalne napełnienie:", a: ["spada trzykrotnie", "rośnie trzykrotnie", "nie zmienia się", "spada o 1,2 kg"], why: "m_max jest proporcjonalne do h₀. Wyciek z jednostki podłogowej tworzy stężenie przy podłodze szybciej." },
+  { q: "Co oznacza litera L w klasie A2L?", a: ["Niską prędkość spalania (nie więcej niż 10 cm/s)", "Niską toksyczność", "Niski GWP", "Niskie ciśnienie robocze"], why: "L (lower flammability) oznacza czynnik palny, ale spalający się wolno i trudno zapalny." },
+  { q: "Dlaczego nie wolno zostawiać otwartej butelki oleju POE?", a: ["Olej silnie chłonie wilgoć z powietrza", "Olej szybko odparowuje", "Olej utlenia się do kwasu w kilka sekund", "Olej jest palny w kontakcie z powietrzem"], why: "Wilgoć w oleju estrowym powoduje hydrolizę, kwasy i uszkodzenie izolacji uzwojeń sprężarki." },
+  { q: "Gdzie propan z nieszczelnego monobloku będzie się gromadził?", a: ["Nisko: w studzienkach, piwnicach, zagłębieniach", "Pod okapem dachu", "Równomiernie w całej przestrzeni", "Nigdzie, bo natychmiast się rozprasza"], why: "Propan jest ok. 1,5 raza cięższy od powietrza. Stąd strefa ochronna bez otworów i wpustów przy gruncie." },
+  { q: "Przed lutowaniem rury w instalacji, która zawierała R32, należy:", a: ["odzyskać czynnik i przedmuchać instalację azotem", "wystarczy otworzyć zawory serwisowe na kilka minut", "obniżyć ciśnienie do ok. 1 bar i lutować", "schłodzić rurę mokrą szmatą"], why: "Płomień i czynnik palny to ryzyko zapłonu. Otwieranie zaworów to też zakazane uwalnianie F-gazu." },
+  { q: "Który czynnik pracuje zwykle nadkrytycznie po stronie wysokiego ciśnienia?", a: ["R744 (CO₂)", "R290", "R32", "R410A"], why: "Temperatura krytyczna CO₂ wynosi ok. 31 °C, więc przy typowym oddawaniu ciepła czynnik nie skrapla się, tylko schładza w chłodnicy gazu." },
+  ] });
+
+/* ───────────── MODUŁ 3 ───────────── */
+COURSE.push({ id: "m3", part: "I. Fizyka i czynniki", title: "Przepisy: F-gazy, UDT, CRO", time: "45 min",
+  goal: "Ustalisz obowiązki operatora i instalatora dla konkretnego urządzenia: kontrole szczelności, zakazy, certyfikaty i wpisy do CRO.",
+  gens: ["leak", "co2e"],
+  lessons: [
+  { t: "Rozporządzenie (UE) 2024/573", h: `
+<p>Od 11 marca 2024 r. obowiązuje rozporządzenie (UE) 2024/573 w sprawie fluorowanych gazów cieplarnianych. Uchyliło rozporządzenie 517/2014. Najważniejsze dla instalatora:</p>
+<ul>
+<li><b>Zakaz celowego uwalniania</b> F-gazów. Czynnik z instalacji się odzyskuje, a nie wypuszcza.</li>
+<li><b>Stopniowe wycofywanie HFC</b> z rynku UE przez system kwot, do zera w 2050 r. Czynniki o wysokim GWP drożeją i znikają.</li>
+<li><b>Kontrole szczelności</b> urządzeń zależne od ilości czynnika w t CO₂e.</li>
+<li><b>Etykietowanie</b> urządzeń: rodzaj czynnika, ilość w kg i w t CO₂e.</li>
+<li>Szkolenia i certyfikacja obejmują także <b>technologie alternatywne</b>: czynniki palne i CO₂.</li>
+</ul>
+<h4>Kontrole szczelności (art. 5)</h4>
+${tbl(["Ilość F-gazu", "Bez systemu wykrywania wycieków", "Z systemem wykrywania wycieków"], [
+  ["< 5 t CO₂e", "nie podlega", "nie podlega"],
+  ["5 do < 50 t CO₂e", "co najmniej co 12 miesięcy", "co 24 miesiące"],
+  ["50 do < 500 t CO₂e", "co 6 miesięcy", "co 12 miesięcy"],
+  ["≥ 500 t CO₂e", "co 3 miesiące", "co 6 miesięcy"],
+])}
+<p>Urządzenia <b>hermetyczne</b>, oznakowane jako takie, są zwolnione, jeśli zawierają mniej niż 10 t CO₂e. Po naprawie wycieku urządzenie sprawdza się ponownie, najpóźniej w ciągu miesiąca.</p>
+<p>Przykład: split z 3,0 kg R410A zawiera 3,0 × 2088 / 1000 = 6,26 t CO₂e i podlega kontroli co 12 miesięcy. Ta sama ilość R32 to 2,03 t CO₂e i kontrola nie jest obowiązkowa.</p>` },
+
+  { t: "Zakazy wprowadzania do obrotu", h: `
+<p>Zakazy dotyczą <b>wprowadzania do obrotu nowych urządzeń</b>. Zainstalowane urządzenia można nadal użytkować i serwisować. Wyjątek od zakazu jest dopuszczony, gdy wymagają tego przepisy bezpieczeństwa w miejscu instalacji.</p>
+${tbl(["Od", "Urządzenia", "Zakaz"], [
+  ["1.01.2025", "pojedyncze split, poniżej 3 kg czynnika", "GWP ≥ 750, czyli koniec R410A w małych splitach"],
+  ["1.01.2027", "monobloki klimatyzacyjne i pompy ciepła ≤ 12 kW", "GWP ≥ 150"],
+  ["1.01.2029", "split powietrze–powietrze ≤ 12 kW", "GWP ≥ 150, co obejmuje też R32"],
+  ["1.01.2029", "split > 12 kW", "GWP ≥ 750"],
+  ["1.01.2032", "monobloki ≤ 12 kW", "wszystkie F-gazy"],
+  ["1.01.2033", "split > 12 kW", "GWP ≥ 150"],
+  ["1.01.2035", "split ≤ 12 kW", "wszystkie F-gazy"],
+])}
+<p>Wniosek praktyczny: rynek małych pomp ciepła przechodzi na R290, a splitów na czynniki o GWP poniżej 150 i czynniki naturalne. Instalator bez przygotowania do pracy z A3 za kilka lat nie zamontuje większości nowych urządzeń.</p>
+<div class="note warn">Tabela streszcza załącznik IV rozporządzenia. Przed decyzją projektową sprawdź pełne brzmienie przepisu: kategorie urządzeń mają szczegółowe definicje.</div>` },
+
+  { t: "Polska: UDT, certyfikaty i CRO", h: `
+<p>W Polsce przepisy UE uzupełnia ustawa z 15 maja 2015 r. o substancjach zubożających warstwę ozonową oraz o niektórych fluorowanych gazach cieplarnianych. Jednostką certyfikującą jest <b>Urząd Dozoru Technicznego</b>.</p>
+<h4>Certyfikat dla personelu (FGAZ-O)</h4>
+${tbl(["Kategoria", "Zakres czynności (urządzenia stacjonarne)"], [
+  ["I", "wszystkie czynności: instalacja, naprawa, konserwacja, serwis, likwidacja, odzysk, kontrola szczelności, bez limitu napełnienia"],
+  ["II", "instalacja, naprawa, serwis, likwidacja i odzysk w urządzeniach poniżej 3 kg (hermetycznych poniżej 6 kg); kontrola szczelności bez ingerencji w obieg"],
+  ["III", "odzysk czynnika z urządzeń poniżej 3 kg (hermetycznych poniżej 6 kg)"],
+  ["IV", "kontrola szczelności bez ingerencji w obieg chłodniczy"],
+])}
+<p>Zakresy kategorii określa rozporządzenie wykonawcze Komisji (UE) 2015/2067. Nowe przepisy wykonawcze do rozporządzenia 2024/573 mogą je aktualizować, więc sprawdzaj komunikaty UDT.</p>
+<h4>Certyfikat dla przedsiębiorcy (FGAZ-P)</h4>
+<p>Firma, która instaluje, serwisuje lub odzyskuje czynnik, potrzebuje certyfikatu UDT dla przedsiębiorców. Warunkiem jest zatrudnienie osób z certyfikatem kategorii I lub II oraz odpowiednie narzędzia i procedury.</p>
+<h4>Centralny Rejestr Operatorów (CRO)</h4>
+<ul>
+<li>Operator, czyli najczęściej właściciel urządzenia, zakłada w CRO <b>kartę urządzenia</b>, gdy urządzenie podlega kontrolom szczelności.</li>
+<li>Termin to 15 dni: dla urządzeń niehermetycznych od 5 t CO₂e liczony od uruchomienia, dla hermetycznych od 10 t CO₂e liczony od dostarczenia.</li>
+<li>Certyfikowany technik dokonuje w karcie wpisów o wykonanych czynnościach: instalacji, kontroli szczelności, serwisie, odzysku. Termin wpisu określa ustawa.</li>
+</ul>
+<div class="note">Kurs przygotowuje do części teoretycznej, ale <b>nie jest certyfikatem UDT</b>. Egzamin państwowy ma część teoretyczną i praktyczną, zdawaną przed komisją UDT.</div>` },
+  ],
+  bank: [
+  { q: "Od kiedy obowiązuje rozporządzenie (UE) 2024/573?", a: ["Od 11 marca 2024 r.", "Od 1 stycznia 2015 r.", "Od 1 stycznia 2027 r.", "Od 1 stycznia 2030 r."], why: "Rozporządzenie 2024/573 zastąpiło 517/2014 w marcu 2024 r." },
+  { q: "Od jakiej ilości czynnika urządzenie niehermetyczne podlega obowiązkowej kontroli szczelności?", a: ["5 t CO₂e", "3 kg niezależnie od czynnika", "10 t CO₂e", "1 t CO₂e"], why: "Próg wyrażony jest w ekwiwalencie CO₂: 5 t." },
+  { q: "Split z 3,0 kg R32 (GWP 675), bez systemu wykrywania wycieków. Kontrola szczelności:", a: ["nie jest obowiązkowa (2,03 t CO₂e)", "co 12 miesięcy", "co 6 miesięcy", "co 3 miesiące"], why: "3,0 × 675 / 1000 = 2,03 t CO₂e, czyli poniżej 5 t.", e: [null, "Tak byłoby dla R410A: 6,26 t CO₂e.", null, null] },
+  { q: "Jak system wykrywania wycieków wpływa na częstotliwość kontroli?", a: ["Wydłuża odstęp między kontrolami dwukrotnie", "Zwalnia z kontroli całkowicie", "Nie ma wpływu", "Skraca odstęp dwukrotnie"], why: "Np. dla 5–50 t CO₂e: co 24 miesiące zamiast co 12." },
+  { q: "W jakim terminie trzeba ponownie sprawdzić szczelność po naprawie wycieku?", a: ["W ciągu miesiąca", "Przy następnej kontroli okresowej", "W ciągu roku", "Nie trzeba, jeśli naprawę wykonał certyfikowany technik"], why: "Kontrola po naprawie potwierdza jej skuteczność." },
+  { q: "Który zakaz obowiązuje od 1 stycznia 2025 r.?", a: ["Wprowadzania do obrotu pojedynczych splitów poniżej 3 kg z czynnikiem o GWP ≥ 750", "Serwisowania istniejących klimatyzatorów R410A", "Wprowadzania do obrotu splitów z R32", "Stosowania R290 w budynkach mieszkalnych"], why: "To koniec R410A (GWP 2088) w nowych małych splitach. Istniejące urządzenia można serwisować." },
+  { q: "Od 2027 r. zakaz GWP ≥ 150 obejmuje monobloki do 12 kW. Co to oznacza dla R32 (GWP 675)?", a: ["Nowe monobloki do 12 kW nie mogą już zawierać R32", "Nic, bo R32 jest A2L", "Trzeba wymienić R32 w pracujących monoblokach", "R32 zostanie dopuszczony do 2035 r."], why: "675 > 150. Zakaz dotyczy nowych urządzeń wprowadzanych do obrotu, nie pracujących instalacji." },
+  { q: "Kto zakłada kartę urządzenia w CRO?", a: ["Operator urządzenia", "Producent urządzenia", "UDT", "Hurtownia, która sprzedała czynnik"], why: "Obowiązek ciąży na operatorze. Technik dokonuje wpisów o czynnościach." },
+  { q: "Jaki jest termin założenia karty urządzenia w CRO?", a: ["15 dni", "3 dni", "30 dni", "12 miesięcy"], why: "Liczony od uruchomienia albo dostarczenia, zależnie od rodzaju urządzenia." },
+  { q: "Który certyfikat personalny uprawnia do instalacji splitu z 4,5 kg R32?", a: ["Kategoria I", "Kategoria II", "Kategoria III", "Kategoria IV"], why: "Kategoria II obejmuje prace przy urządzeniach poniżej 3 kg. Powyżej potrzebna jest kategoria I." },
+  { q: "Warunkiem uzyskania certyfikatu UDT dla przedsiębiorcy jest między innymi:", a: ["zatrudnienie osób z certyfikatem kategorii I lub II", "posiadanie butli z każdym czynnikiem", "wpis do rejestru BDO", "co najmniej 5 lat działalności"], why: "Firma musi mieć certyfikowany personel, narzędzia i procedury." },
+  { q: "Czy zakazy z załącznika IV zmuszają właściciela do wymiany pracującego klimatyzatora z R410A?", a: ["Nie, dotyczą wprowadzania do obrotu nowych urządzeń", "Tak, do 2027 r.", "Tak, gdy zawiera ponad 3 kg", "Tak, przy najbliższej kontroli szczelności"], why: "Istniejące urządzenia pracują dalej. Ograniczenia serwisowe mogą dotyczyć dostępności świeżego czynnika." },
+  ] });
+
+/* ───────────── MODUŁ 4 ───────────── */
+COURSE.push({ id: "m4", part: "II. Projekt i dobór", title: "Obciążenie cieplne i dobór pompy ciepła", time: "60 min",
+  goal: "Wyznaczysz punkt biwalentny, dobierzesz moc pompy ciepła do budynku i oszacujesz koszt eksploatacji z SCOP.",
+  gens: ["bivalent", "cost"],
+  lessons: [
+  { t: "Projektowe obciążenie cieplne", h: `
+<p>Punktem wyjścia każdego doboru jest <b>projektowe obciążenie cieplne</b> budynku wg PN-EN 12831-1. To moc potrzebna do utrzymania temperatury wewnętrznej przy projektowej temperaturze zewnętrznej θe. Składa się ze strat przez przenikanie i strat na wentylację.</p>
+${tbl(["Strefa klimatyczna", "θe", "Przykładowe miasta"], [
+  ["I", "−16 °C", "Szczecin"], ["II", "−18 °C", "Poznań, Wrocław"], ["III", "−20 °C", "Warszawa, Łódź, Kraków"],
+  ["IV", "−22 °C", "Białystok"], ["V", "−24 °C", "Suwałki, Zakopane"],
+])}
+<p>Temperatura wewnętrzna projektowa to zwykle 20 °C, w łazienkach 24 °C.</p>
+<h4>Szacunki kontrolne</h4>
+<ul>
+<li><b>Z zużycia paliwa</b> w istniejącym budynku: roczna energia na ogrzewanie podzielona przez liczbę godzin pracy z pełnym obciążeniem, w Polsce zwykle ok. 1800–2200 h. 20 000 kWh / 2000 h ≈ 10 kW.</li>
+<li><b>Wskaźniki na m²</b> są wyłącznie orientacyjne. Budynek wg WT 2021: ok. 30–50 W/m², ocieplony dom z lat 90.: ok. 70–100 W/m², nieocieplony: powyżej 150 W/m².</li>
+<li><b>Ciepła woda użytkowa</b>: dodatek rzędu 0,2–0,25 kW na osobę albo osobny bilans zasobnika.</li>
+</ul>
+<div class="note warn">Wskaźniki nie zastąpią obliczeń. Przewymiarowana pompa ciepła częściej się wyłącza, pracuje z gorszą sprawnością i szybciej się zużywa. Niedowymiarowana zbyt często korzysta z grzałki.</div>` },
+
+  { t: "Dobór mocy i punkt biwalentny", h: `
+<p>Moc powietrznej pompy ciepła spada, gdy robi się zimniej, a zapotrzebowanie budynku rośnie. Obie linie przecinają się w <b>punkcie biwalentnym</b> θbiw. Poniżej niego brakującą moc daje źródło szczytowe: grzałka w układzie monoenergetycznym albo kocioł w układzie biwalentnym.</p>
+${fig(SVG_BIVAL, "Punkt biwalentny: przecięcie obciążenia budynku z charakterystyką pompy ciepła.")}
+<p>Obciążenie zmienia się liniowo od wartości projektowej przy θe do zera przy granicy ogrzewania (zwykle +15 °C, bo resztę pokrywają zyski wewnętrzne i słoneczne):</p>
+<div class="f">Q(t) = Q_proj · (15 − t) / (15 − θe)</div>
+<ul>
+<li>W polskim klimacie typowy dobór to θbiw około −5…−10 °C. Temperatury poniżej trwają krótko, więc grzałka dostarcza zwykle tylko kilka procent rocznej energii.</li>
+<li>Sprawdź <b>minimalną moc modulacji</b>. Jeśli w okresie przejściowym zapotrzebowanie jest niższe, pompa będzie często się wyłączać. Pomaga zład instalacji albo bufor.</li>
+<li>Uwzględnij moc na c.w.u. i czas, w którym pompa nie grzeje budynku: ładowanie zasobnika i odszranianie.</li>
+</ul>` },
+
+  { t: "Dane katalogowe i ich pułapki", h: `
+<ul>
+<li>Moc „nominalna” podawana jest zwykle dla A7/W35, czyli w cieple. Do doboru potrzebna jest moc przy θe albo przy −7 °C. Szukaj tabel mocy maksymalnej w funkcji temperatury zewnętrznej i temperatury zasilania.</li>
+<li>Moc przy W55 jest wyraźnie niższa niż przy W35. Dla instalacji grzejnikowej dobieraj z tabel dla rzeczywistej temperatury zasilania.</li>
+<li>Katalogi podają moc bez strat na odszranianie albo z nimi. Sprawdź przypis w karcie produktu.</li>
+<li><b>SCOP</b> z etykiety ErP liczony jest dla umownego klimatu umiarkowanego. To dobre porównanie urządzeń, ale tylko przybliżona prognoza kosztów konkretnego domu.</li>
+</ul>
+<h4>Koszt eksploatacji</h4>
+<div class="f">E_el = Q_roczne / SCOP        koszt = E_el · cena energii</div>
+<p>Przykład: 15 000 kWh ciepła przy SCOP 4,0 to 3750 kWh energii elektrycznej. Przy 1,10 zł/kWh daje to 4125 zł rocznie. Taryfa dwustrefowa i magazynowanie ciepła w zasobniku lub buforze mogą ten koszt obniżyć, a fotowoltaika pokryć część zużycia w okresach przejściowych.</p>` },
+  ],
+  bank: [
+  { q: "Jaka jest projektowa temperatura zewnętrzna dla III strefy klimatycznej (np. Warszawa)?", a: ["−20 °C", "−16 °C", "−18 °C", "−24 °C"], why: "Strefy: I −16, II −18, III −20, IV −22, V −24 °C." },
+  { q: "Punkt biwalentny to temperatura zewnętrzna, w której:", a: ["moc pompy ciepła zrównuje się z zapotrzebowaniem budynku", "pompa ciepła osiąga maksymalny COP", "następuje pierwsze odszranianie", "budynek przestaje wymagać ogrzewania"], why: "Poniżej tej temperatury pompa nie pokrywa całego zapotrzebowania i potrzebne jest źródło szczytowe." },
+  { q: "Budynek zużywał rocznie 18 000 kWh ciepła. Jakie jest szacunkowe obciążenie cieplne przy 2000 h pracy z pełnym obciążeniem?", a: ["ok. 9 kW", "ok. 18 kW", "ok. 4,5 kW", "ok. 36 kW"], why: "18 000 kWh / 2000 h = 9 kW. To tylko szacunek kontrolny, nie zastępuje obliczeń wg PN-EN 12831-1." },
+  { q: "Jaki jest główny skutek znacznego przewymiarowania pompy ciepła?", a: ["Częste cykle start–stop, gorsza sprawność i szybsze zużycie", "Wyższy SCOP", "Brak potrzeby odszraniania", "Niższa temperatura zasilania"], why: "Gdy minimalna moc modulacji przekracza zapotrzebowanie, pompa co chwilę się wyłącza." },
+  { q: "Moc nominalna pompy ciepła w katalogu podana jest dla A7/W35. Do doboru budynku w strefie III potrzebujesz przede wszystkim:", a: ["mocy przy niskiej temperaturze zewnętrznej i rzeczywistej temperaturze zasilania", "mocy przy A7/W35", "mocy akustycznej", "SCOP dla klimatu cieplejszego"], why: "Przy A7 pompa ma dużo mocy, a budynek potrzebuje mało. Dobór robi się dla warunków mroźnych." },
+  { q: "Po co przyjmuje się granicę ogrzewania +15 °C w modelu obciążenia?", a: ["Zyski wewnętrzne i słoneczne pokrywają zapotrzebowanie przy cieplejszej pogodzie", "Tak wymaga etykieta ErP", "Pompy ciepła nie pracują powyżej 15 °C", "To temperatura punktu rosy"], why: "Przy kilkunastu stopniach na zewnątrz budynek zwykle nie potrzebuje ogrzewania." },
+  { q: "Który wskaźnik najlepiej nadaje się do porównania rocznej efektywności dwóch pomp ciepła?", a: ["SCOP wg PN-EN 14825 dla tej samej temperatury zasilania", "COP przy A7/W35", "Maksymalny prąd rozruchowy", "Moc akustyczna"], why: "SCOP uwzględnia cały sezon i pracę przy częściowym obciążeniu." },
+  { q: "15 000 kWh ciepła, SCOP 3,0, cena 1,0 zł/kWh. Ile kosztuje energia elektryczna?", a: ["5000 zł", "45 000 zł", "15 000 zł", "3000 zł"], why: "15 000 / 3 = 5000 kWh × 1 zł = 5000 zł.", e: [null, "Pomnożono przez SCOP zamiast podzielić.", "Pominięto SCOP.", null] },
+  { q: "W układzie monoenergetycznym źródłem szczytowym jest:", a: ["grzałka elektryczna", "kocioł gazowy", "kominek z płaszczem wodnym", "kolektor słoneczny"], why: "Monoenergetyczny oznacza jeden nośnik energii, czyli prąd. Kocioł to układ biwalentny." },
+  { q: "Pompa ciepła do instalacji grzejnikowej 55 °C. Moc do doboru bierzesz z tabeli dla:", a: ["W55", "W35, bo to punkt normowy", "dowolnej, bo inwerter i tak moduluje", "W45 jako średniej"], why: "Moc i COP maleją wraz z temperaturą zasilania. Dobór musi odpowiadać rzeczywistej instalacji." },
+  { q: "Typowy punkt biwalentny w polskim klimacie mieści się zwykle w zakresie:", a: ["−5…−10 °C", "+5…+10 °C", "−20…−25 °C", "0…+2 °C"], why: "Taki dobór daje rozsądny kompromis między ceną urządzenia a udziałem grzałki." },
+  ] });
+
+/* ───────────── MODUŁ 5 ───────────── */
+const PIPES = [["Cu 22×1", 20], ["Cu 28×1", 26], ["Cu 35×1,5", 32], ["PEX 25×2,3", 20.4], ["PEX 32×2,9", 26.2], ["PEX 40×3,7", 32.6]];
+COURSE.push({ id: "m5", part: "II. Projekt i dobór", title: "Hydraulika instalacji z pompą ciepła", time: "60 min",
+  goal: "Policzysz przepływ i prędkość, dobierzesz średnicę rur i wybierzesz układ hydrauliczny z buforem lub bez niego.",
+  gens: ["flow", "velocity"],
+  lessons: [
+  { t: "Przepływ, ΔT i średnice", h: `
+<div class="f">V [m³/h] = P [kW] · 0,86 / ΔT [K]        v [m/s] = V / 3600 / (π·d²/4)</div>
+<p>Kocioł pracuje często z ΔT 15–20 K, pompa ciepła z ΔT 5–7 K. Przy tej samej mocy przepływ jest więc <b>trzy do czterech razy większy</b>. Instalacje przerabiane z kotła mają za małe średnice częściej niż jakikolwiek inny błąd.</p>
+${tbl(["Rura", "d_wewn [mm]", "Przepływ przy 0,8 m/s", "Moc przy ΔT = 5 K"],
+  PIPES.map(p => { const V = 0.8 * 3600 * Math.PI * Math.pow(p[1] / 1000, 2) / 4; return [p[0], fmt(p[1], 1), fmt(V, 2) + " m³/h", fmt(V * 5 / 0.86, 1) + " kW"]; }))}
+<ul>
+<li>Celuj w prędkość 0,5–1,0 m/s w przewodach głównych. Wyżej rośnie hałas i opór, niżej rura jest przewymiarowana.</li>
+<li>Pompa obiegowa w pompie ciepła ma ograniczony <b>spręż dyspozycyjny</b>. Zsumuj opory rur, wymiennika, filtra, zaworów i pętli podłogówki. Jeśli suma przekracza spręż, potrzebne jest sprzęgło albo bufor z drugą pompą.</li>
+<li>Producent podaje <b>minimalny przepływ</b>. Poniżej niego sterownik zgłosi błąd przepływu, a w trybie chłodzenia grozi zamarznięcie płytowego wymiennika.</li>
+</ul>` },
+
+  { t: "Układy hydrauliczne", h: `
+${fig(SVG_HYDRO, "Typowy układ: pompa ciepła, zawór trójdrogowy z priorytetem c.w.u., opcjonalny bufor i obieg grzewczy.")}
+${tbl(["Układ", "Kiedy", "Uwagi"], [
+  ["Bezpośredni, bez bufora", "jeden obieg podłogowy, duży zład, pętle bez zaworów strefowych", "najwyższa sprawność, wymaga zapewnienia minimalnego zładu i przepływu"],
+  ["Bufor szeregowy (na powrocie)", "mały zład, potrzeba energii do odszraniania", "zwiększa pojemność bez mieszania temperatur"],
+  ["Bufor równoległy lub sprzęgło", "kilka obiegów z własnymi pompami, zawory strefowe, obiegi o różnych temperaturach", "rozdziela hydraulicznie; źle ustawione przepływy mieszają wodę i obniżają COP"],
+])}
+<p><b>Odszranianie</b> odwróconym obiegiem pobiera ciepło z instalacji. Producent podaje minimalną pojemność wodną instalacji, a przy jej braku trzeba dodać bufor. Zamknięte zawory termostatyczne mogą w tym czasie odciąć pojemność grzejników, więc liczy się tylko zład, który zawsze pozostaje otwarty.</p>
+<h4>Ciepła woda użytkowa</h4>
+<ul>
+<li>Zasobnik do pompy ciepła ma <b>dużą wężownicę</b>, znacznie większą niż do kotła, bo pompa pracuje z małą różnicą temperatur między wodą grzewczą a c.w.u. Powierzchnię dobierz do mocy pompy wg producenta.</li>
+<li>Warunki techniczne wymagają 55–60 °C w punktach czerpalnych i możliwości dezynfekcji termicznej instalacji c.w.u. w co najmniej 70 °C. Pompa ciepła zwykle realizuje przegrzew cykliczny z pomocą grzałki.</li>
+<li>Zawór trójdrogowy przełącza pompę na zasobnik z priorytetem. Czas ładowania c.w.u. to czas bez grzania budynku, co trzeba uwzględnić w doborze.</li>
+</ul>` },
+
+  { t: "Naczynie wzbiorcze, zabezpieczenia, jakość wody", h: `
+<div class="f">V_n ≥ (V_e + V_wr) · (p_e + 1) / (p_e − p_0)     V_e = V_inst · n</div>
+<p>V_inst to pojemność instalacji, n to przyrost objętości wody, V_wr to rezerwa wodna, p_e to ciśnienie otwarcia zaworu bezpieczeństwa pomniejszone o zapas, a p_0 to ciśnienie wstępne naczynia (wysokość statyczna/10 + ok. 0,2 bar).</p>
+${tbl(["Temperatura wody", "40 °C", "55 °C", "70 °C"], [["Przyrost objętości od 10 °C", "≈ 0,8%", "≈ 1,4%", "≈ 2,3%"]])}
+<ul>
+<li>Zawór bezpieczeństwa w obiegu grzewczym zwykle na 2,5–3 bar, zgodnie z dokumentacją urządzenia.</li>
+<li>Na powrocie montuj <b>filtr siatkowy i separator magnetyczny</b>. Płytowy wymiennik pompy ciepła zapycha się szybko magnetytem ze starej instalacji. Starą instalację najpierw przepłucz.</li>
+<li>Jakość wody wg VDI 2035: ograniczona twardość, pH typowo 8,2–10 (przy aluminium niżej, zwykle do 9), niskie zasolenie. Odpowietrz instalację starannie, bo powietrze zaburza przepływ.</li>
+<li><b>Ochrona przed zamarzaniem</b> monobloku: glikol propylenowy albo zawory antyzamarzaniowe, zależnie od producenta. Glikol obniża ciepło właściwe i podnosi lepkość, więc wymaga większego przepływu i mocniejszej pompy.</li>
+</ul>
+<h4>Chłodzenie przez instalację wodną</h4>
+<p>Chłodzenie podłogowe działa tylko, gdy zasilanie jest <b>powyżej punktu rosy</b> w pomieszczeniu, zwykle 18–20 °C, z czujnikiem rosy lub wilgotności. Klimakonwektory z wodą 7 °C wymagają odpływu skroplin i izolacji paroszczelnej wszystkich rur.</p>` },
+  ],
+  bank: [
+  { q: "Pompa ciepła i kocioł mają tę samą moc. Pompa pracuje z ΔT 5 K, kocioł z ΔT 20 K. Przepływ w obiegu pompy ciepła jest:", a: ["4 razy większy", "4 razy mniejszy", "taki sam", "2 razy większy"], why: "Przepływ jest odwrotnie proporcjonalny do ΔT: 20/5 = 4." },
+  { q: "Zalecana prędkość wody w przewodach głównych instalacji z pompą ciepła:", a: ["ok. 0,5–1,0 m/s", "ok. 2–3 m/s", "ok. 0,05–0,1 m/s", "dowolna, byle był przepływ minimalny"], why: "Kompromis między oporami i hałasem a wielkością rur." },
+  { q: "Po co montuje się bufor szeregowy na powrocie?", a: ["By zwiększyć pojemność wodną, np. na potrzeby odszraniania, bez mieszania temperatur", "By rozdzielić hydraulicznie kilka obiegów z własnymi pompami", "By podnieść temperaturę zasilania", "By zastąpić naczynie wzbiorcze"], why: "Rozdział hydrauliczny to zadanie bufora równoległego albo sprzęgła." },
+  { q: "Bufor równoległy przy źle zestrojonych przepływach (obieg odbiorników większy niż obieg pompy) powoduje:", a: ["mieszanie wody powrotnej z zasilaniem i konieczność podnoszenia temperatury, co obniża COP", "wzrost COP", "zamarzanie wymiennika", "brak wpływu na pracę"], why: "Gdy odbiorniki pobierają więcej wody, niż dostarcza pompa ciepła, do zasilania domieszana zostaje woda z powrotu." },
+  { q: "Co trzeba zamontować na powrocie przy podłączaniu pompy ciepła do starej instalacji grzejnikowej?", a: ["Filtr i separator magnetyczny, po wcześniejszym przepłukaniu instalacji", "Tylko zawór zwrotny", "Nic, wymiennik płytowy jest samoczyszczący", "Drugi zawór bezpieczeństwa"], why: "Magnetyt i szlam szybko zapychają wymiennik płytowy." },
+  { q: "Jakie wymagania dotyczą temperatury c.w.u. według warunków technicznych?", a: ["55–60 °C w punktach czerpalnych i możliwość dezynfekcji termicznej w co najmniej 70 °C", "45 °C bez dezynfekcji", "Co najmniej 80 °C stale", "Wystarczy temperatura ustawiona przez użytkownika"], why: "Chodzi o ochronę przed bakteriami Legionella." },
+  { q: "Dlaczego zasobnik c.w.u. do pompy ciepła ma większą wężownicę niż do kotła?", a: ["Pompa pracuje z niższą temperaturą zasilania, więc wymiennik potrzebuje większej powierzchni", "By zmieścić grzałkę", "By zmniejszyć przepływ", "Tak wymaga etykieta ErP"], why: "Moc wymiennika to iloczyn powierzchni, współczynnika przenikania i różnicy temperatur. Mniejsza różnica wymaga większej powierzchni." },
+  { q: "Dodatek glikolu do obiegu monobloku powoduje:", a: ["spadek ciepła właściwego i wzrost lepkości, więc potrzebny jest większy przepływ i mocniejsza pompa", "wzrost COP", "brak zmian hydraulicznych", "konieczność stosowania naczynia do c.w.u."], why: "Roztwór glikolu przenosi mniej ciepła na jednostkę objętości i stawia większy opór." },
+  { q: "Chłodzenie podłogowe wymaga utrzymywania temperatury zasilania:", a: ["powyżej punktu rosy w pomieszczeniu", "poniżej 7 °C", "równej temperaturze zewnętrznej", "zawsze 12 °C"], why: "Poniżej punktu rosy wilgoć skrapla się na posadzce." },
+  { q: "Instalacja ma wiele zaworów strefowych, które mogą zamknąć większość pętli. Czego to wymaga?", a: ["Zapewnienia minimalnego przepływu i zładu, np. przez bufor lub stale otwarte pętle", "Nic, inwerter sam się dostosuje", "Większego naczynia wzbiorczego", "Podniesienia ciśnienia w instalacji"], why: "Zamknięte strefy obniżają przepływ i pojemność, co daje błędy przepływu i częste wyłączenia." },
+  { q: "Ciśnienie wstępne naczynia wzbiorczego dobiera się przede wszystkim na podstawie:", a: ["wysokości statycznej instalacji", "mocy pompy ciepła", "temperatury c.w.u.", "średnicy rur"], why: "p_0 ≈ wysokość statyczna/10 + ok. 0,2 bar." },
+  ] });
+
+/* ───────────── MODUŁ 6 ───────────── */
+COURSE.push({ id: "m6", part: "II. Projekt i dobór", title: "Dolne źródło: powietrze i grunt", time: "55 min",
+  goal: "Zaplanujesz lokalizację jednostki zewnętrznej z bilansem hałasu i odpływem skroplin oraz zwymiarujesz sondy gruntowe.",
+  gens: ["noise", "borehole"],
+  lessons: [
+  { t: "Jednostka zewnętrzna: lokalizacja, skropliny, odszranianie", h: `
+<ul>
+<li><b>Swobodny przepływ powietrza.</b> Zachowaj odległości z instrukcji. Nie montuj we wnękach i pod zadaszeniami, gdzie wydmuchiwane zimne powietrze wraca na wlot. Takie zawracanie obniża moc i COP.</li>
+<li><b>Podniesienie nad teren</b> ponad spodziewaną pokrywę śnieżną, na stopach antywibracyjnych. Nie montuj pod krawędzią dachu, z której spada śnieg i woda.</li>
+<li><b>Wiatr.</b> Silny wiatr wiejący na wydmuch zaburza pracę wentylatora. Ustaw jednostkę tak, żeby wiatr wiał w bok albo z tyłu.</li>
+<li><b>Skropliny.</b> Przy odszranianiu powstają dziesiątki litrów wody na dobę. Odprowadź je do drenażu żwirowego poniżej strefy przemarzania albo do kanalizacji przez syfon. Kabel grzejny w odpływie zapobiega zamarzaniu. Źle odprowadzone skropliny tworzą lód, który niszczy wymiennik.</li>
+</ul>
+<p><b>Odszranianie.</b> Przy temperaturze około 0–7 °C i wysokiej wilgotności na parowniku osadza się szron. Sterownik odwraca obieg i topi go ciepłem pobranym z instalacji. Stąd wymóg minimalnego zładu wody. W tym czasie pompa nie grzeje budynku.</p>` },
+
+  { t: "Hałas", h: `
+<p>Karta produktu podaje <b>moc akustyczną L_W</b>, cechę samego urządzenia. Sąsiad słyszy <b>ciśnienie akustyczne L_p</b> w swoim miejscu. Zależy ono od odległości i od powierzchni odbijających:</p>
+<div class="f">L_p = L_W + 10 · log( Q / (4π · r²) )</div>
+${tbl(["Ustawienie", "Q", "L_p w 5 m przy L_W = 55 dB(A)"], [
+  ["wolnostojąca na gruncie", "2", fmt(soundAt(55, 5, 2), 1) + " dB(A)"],
+  ["przy ścianie", "4", fmt(soundAt(55, 5, 4), 1) + " dB(A)"],
+  ["w narożniku", "8", fmt(soundAt(55, 5, 8), 1) + " dB(A)"],
+])}
+<ul>
+<li>Podwojenie odległości obniża poziom o 6 dB. Każda dodatkowa ściana odbijająca podnosi go o 3 dB. Dwa jednakowe urządzenia obok siebie dają +3 dB.</li>
+<li>Dopuszczalne poziomy hałasu w środowisku dla terenów zabudowy jednorodzinnej to 50 dB(A) w dzień i <b>40 dB(A) w nocy</b>. Decyduje noc, a pompa ciepła pracuje w nocy najciężej.</li>
+<li>Nocny tryb cichy producenta obniża hałas kosztem mocy. Uwzględnij to w doborze.</li>
+</ul>` },
+
+  { t: "Gruntowe pompy ciepła: sondy i kolektory", h: `
+<p>Grunt dostarcza <b>moc parownika</b>, a nie moc grzewczą:</p>
+<div class="f">Q_gruntu = Q_grz · (1 − 1/COP)        L_sond = Q_gruntu / q_jedn</div>
+${tbl(["Rodzaj gruntu (sondy pionowe, ok. 1800 h/rok)", "Moc jednostkowa q"], [
+  ["żwir, piasek suchy", "< 20 W/m"], ["glina, ił wilgotne", "30–40 W/m"], ["piasek, żwir nawodniony", "55–65 W/m"], ["skały lite (wapień, piaskowiec, granit)", "45–70 W/m"],
+])}
+<p>Wartości orientacyjne za VDI 4640. Przy dłuższej pracy w roku (c.w.u., duże obciążenie) moc jednostkowa spada. Dla większych instalacji wykonuje się test reakcji termicznej gruntu (TRT).</p>
+<ul>
+<li>Rozstaw sond co najmniej ok. 6 m, żeby się wzajemnie nie wychładzały.</li>
+<li>Otwory głębsze niż 30 m wymagają projektu robót geologicznych zgłaszanego organowi administracji geologicznej.</li>
+<li><b>Kolektor poziomy</b>: 1,2–1,5 m pod powierzchnią, rozstaw rur ok. 0,5–0,8 m, ok. 10–35 W/m² zależnie od gruntu. Nad kolektorem nie buduje się ani nie utwardza terenu.</li>
+<li>Latem chłodzenie pasywne (free cooling) przez wymiennik oddaje ciepło do gruntu i częściowo go regeneruje.</li>
+</ul>
+<p><b>Woda–woda</b>: studnia czerpalna i chłonna w odległości kilkunastu metrów, chłonna z prądem wód gruntowych. Przed doborem wykonaj analizę wody: żelazo i mangan zatykają wymiennik i studnię chłonną. Pobór wód podziemnych wymaga załatwienia spraw wodnoprawnych.</p>` },
+  ],
+  bank: [
+  { q: "Jednostka zewnętrzna stoi w głębokiej wnęce, a zimne powietrze z wydmuchu wraca na wlot. Skutek:", a: ["spadek mocy i COP, częstsze odszranianie", "wzrost COP", "cichsza praca bez innych skutków", "szybsze odszranianie"], why: "Parownik zasysa coraz zimniejsze powietrze, więc temperatura parowania spada." },
+  { q: "Przy odszranianiu odwróconym obiegiem ciepło do stopienia szronu pochodzi:", a: ["z instalacji grzewczej budynku", "z grzałki w zasobniku c.w.u.", "z otoczenia", "z oleju sprężarki"], why: "Dlatego producent wymaga minimalnej pojemności wodnej instalacji." },
+  { q: "Jak odprowadzić skropliny z jednostki zewnętrznej pompy ciepła?", a: ["Do drenażu poniżej strefy przemarzania albo do kanalizacji przez syfon, z ochroną przed zamarzaniem", "Na chodnik obok jednostki", "Do rynny dachowej", "Nie trzeba, odparują"], why: "Przy odszranianiu powstaje dużo wody, która zimą zamarza." },
+  { q: "O ile zmieni się poziom ciśnienia akustycznego po podwojeniu odległości od jednostki?", a: ["spadnie o 6 dB", "spadnie o 3 dB", "spadnie o połowę, np. z 40 do 20 dB", "nie zmieni się"], why: "L_p maleje o 20·log(2) ≈ 6 dB." },
+  { q: "Jak zmieni się hałas po przeniesieniu jednostki z wolnej przestrzeni pod ścianę budynku?", a: ["wzrośnie o ok. 3 dB", "spadnie o ok. 3 dB", "wzrośnie o ok. 10 dB", "nie zmieni się"], why: "Q rośnie z 2 do 4, czyli 10·log 2 ≈ 3 dB." },
+  { q: "Które kryterium hałasu jest zwykle decydujące dla pompy ciepła przy zabudowie jednorodzinnej?", a: ["Nocne 40 dB(A)", "Dzienne 50 dB(A)", "Hałas wewnątrz kotłowni", "Moc akustyczna w karcie"], why: "W nocy wymagania są ostrzejsze, a pompa ma wtedy największe obciążenie." },
+  { q: "Gruntowa pompa ciepła 10 kW, COP 5. Jaką moc musi dostarczyć grunt?", a: ["8 kW", "10 kW", "2 kW", "12 kW"], why: "10 × (1 − 1/5) = 8 kW.", e: [null, "To moc grzewcza, część pochodzi z energii elektrycznej.", "To moc elektryczna sprężarki.", "Moc elektryczną dodano zamiast odjąć."] },
+  { q: "Jaki minimalny rozstaw sond pionowych przyjmuje się typowo?", a: ["ok. 6 m", "ok. 1 m", "ok. 30 m", "bez znaczenia"], why: "Zbyt bliskie sondy wychładzają się nawzajem i spada ich wydajność." },
+  { q: "Od jakiej głębokości otwory na sondy wymagają projektu robót geologicznych?", a: ["powyżej 30 m", "powyżej 5 m", "powyżej 100 m", "zawsze, niezależnie od głębokości"], why: "Tak stanowi Prawo geologiczne i górnicze." },
+  { q: "Co ogranicza wydajność sond w suchym piasku lub żwirze?", a: ["niska przewodność cieplna suchego gruntu", "zbyt wysoka temperatura gruntu", "zbyt duża wilgotność", "nic, grunt suchy jest najlepszy"], why: "Woda w porach znacznie poprawia przewodzenie ciepła. Suchy grunt daje poniżej 20 W/m." },
+  { q: "Przed doborem pompy ciepła woda–woda należy przede wszystkim:", a: ["wykonać analizę wody (m.in. żelazo i mangan) i próbne pompowanie", "zamówić zasobnik c.w.u.", "sprawdzić hałas", "wykonać test TRT"], why: "Skład wody decyduje o zapychaniu wymiennika i studni chłonnej, a pompowanie potwierdza wydajność." },
+  ] });
+
+/* ───────────── MODUŁ 7 ───────────── */
+COURSE.push({ id: "m7", part: "II. Projekt i dobór", title: "Klimatyzacja: bilans, dobór, skropliny", time: "50 min",
+  goal: "Sporządzisz uproszczony bilans zysków ciepła, wybierzesz system klimatyzacji i poprowadzisz odpływ skroplin bez zawilgocenia.",
+  gens: ["gains", "dewpoint"],
+  lessons: [
+  { t: "Bilans zysków ciepła", h: `
+<p>Klimatyzator dobiera się do <b>obciążenia chłodniczego</b>, czyli sumy zysków ciepła w najgorętszej porze. Każdy zysk ma część <b>jawną</b>, która podnosi temperaturę, a część zysków także część <b>utajoną</b>, czyli wilgoć do wykroplenia.</p>
+${tbl(["Źródło", "Orientacyjnie", "Uwagi"], [
+  ["Osoba, praca biurowa", "ok. 75 W jawne + ok. 45 W utajone", "w sumie ok. 120 W"],
+  ["Sprzęt, oświetlenie", "moc rzeczywista", "komputer z monitorem ok. 100–200 W"],
+  ["Słońce przez okna", "100–400 W/m² okna", "zależy od strony świata, szyby i osłon; osłony zewnętrzne ograniczają zysk kilkukrotnie"],
+  ["Przenikanie przez przegrody", "z różnicy temperatur", "dach nad poddaszem bywa dominujący"],
+  ["Wentylacja i infiltracja", "z przepływu i entalpii powietrza", "latem ciepłe i wilgotne powietrze zewnętrzne"],
+])}
+<p><b>SHR</b> to udział ciepła jawnego w całym obciążeniu. Pomieszczenia z dużą liczbą osób mają niski SHR i potrzebują urządzenia, które dobrze osusza.</p>
+<p>Moc nominalną klimatyzatora podaje się dla warunków PN-EN 14511: 35 °C na zewnątrz, 27 °C (termometr suchy) i 19 °C (termometr mokry) wewnątrz. Sezonową efektywność opisuje SEER.</p>
+<div class="note warn">Wskaźniki typu „100 W/m²” prowadzą do błędów w obie strony. Poddasze z oknami dachowymi od południa może potrzebować dwa razy więcej, a zacienione biuro od północy o połowę mniej.</div>` },
+
+  { t: "Systemy i lokalizacja jednostek", h: `
+${tbl(["System", "Zastosowanie", "Cechy"], [
+  ["Split (1:1)", "pojedyncze pomieszczenia", "najprostszy, najlepsza efektywność"],
+  ["Multi-split", "kilka pomieszczeń, jedna jednostka zewnętrzna", "mniej jednostek na elewacji; przy małym obciążeniu jednej jednostki wewnętrznej sprawność spada"],
+  ["Kanałowy", "rozprowadzenie kanałami, np. z sufitu podwieszanego", "potrzebny spręż dyspozycyjny i projekt kanałów"],
+  ["VRF/VRV", "biura, hotele", "zmienny przepływ czynnika, długie instalacje; wersje z odzyskiem ciepła jednocześnie grzeją i chłodzą"],
+])}
+<ul>
+<li>Jednostka wewnętrzna nawiewa wzdłuż sufitu, nie na miejsca pracy i łóżka. Nie montuj jej nad źródłem ciepła ani tam, gdzie wlot blokują zasłony lub meble.</li>
+<li>Jednostka zewnętrzna: cień, swobodny przepływ, dostęp serwisowy, bilans hałasu. Na elewacji budynku wielorodzinnego potrzebna jest zgoda wspólnoty, a na zabytku konserwatora.</li>
+<li>Sprawdź limity długości instalacji i różnicy poziomów. Przy multi-splitach limity dotyczą każdej gałęzi i sumy.</li>
+</ul>` },
+
+  { t: "Skropliny i punkt rosy", h: `
+<p>Parownik klimatyzatora ma temperaturę poniżej punktu rosy powietrza, dlatego osusza. Woda musi opuścić budynek bez szkody:</p>
+<ul>
+<li><b>Spadek</b> przewodu co najmniej 1%, zalecane 2%, na całej długości. Bez „garbów” i odcinków pod górę.</li>
+<li><b>Syfon</b> albo zasyfonowany wpust przy podłączeniu do kanalizacji, żeby zapachy nie wracały do jednostki.</li>
+<li><b>Pompka skroplin</b>, gdy spadku nie da się uzyskać. Sprawdź jej wydajność i wysokość podnoszenia, a zbiornik musi mieć alarm lub wyłącznik.</li>
+<li>Przewód skroplin przechodzący przez ciepłe przestrzenie <b>izoluj</b>, bo zimna woda w nim też rosi.</li>
+</ul>
+<h4>Punkt rosy</h4>
+<div class="f">γ = ln(φ) + 17,62·t / (243,12 + t)        t_r = 243,12·γ / (17,62 − γ)</div>
+<p>Przy 24 °C i 60% wilgotności punkt rosy wynosi ${fmt(dewPoint(24, 60), 1)} °C. Każda powierzchnia zimniejsza od tej wartości będzie mokra. Dotyczy to rury gazowej splitu w trybie chłodzenia (ok. 5–10 °C), nieizolowanych kształtek, zaworów i przewodów skroplin.</p>
+<div class="note">Izolacja rur chłodniczych musi być <b>ciągła i paroszczelna</b>. Szczelina na złączce wystarczy, żeby pod izolacją zbierała się woda, która kapie na sufit.</div>` },
+  ],
+  bank: [
+  { q: "Które ciepło osób obciąża klimatyzator, choć nie podnosi temperatury powietrza?", a: ["ciepło utajone (wilgoć)", "ciepło jawne", "ciepło promieniowania", "żadne"], why: "Wilgoć trzeba wykroplić na parowniku, co zużywa część mocy urządzenia." },
+  { q: "W jakich warunkach podaje się nominalną moc chłodniczą klimatyzatora wg PN-EN 14511?", a: ["35 °C na zewnątrz, 27/19 °C wewnątrz", "27 °C na zewnątrz, 20 °C wewnątrz", "46 °C na zewnątrz, 29 °C wewnątrz", "7 °C na zewnątrz, 20 °C wewnątrz"], why: "To warunki T1 dla klimatu umiarkowanego." },
+  { q: "Minimalny spadek przewodu skroplin prowadzonego grawitacyjnie:", a: ["1%, zalecane 2%", "0,1%", "10%", "dowolny, byle w dół"], why: "Mniejszy spadek prowadzi do zastoin, szlamu i przelewania się tacy." },
+  { q: "Po co syfon na podłączeniu przewodu skroplin do kanalizacji?", a: ["By zapach z kanalizacji nie przedostawał się do jednostki i pomieszczenia", "By zwiększyć przepływ", "By zatrzymać olej", "Nie jest potrzebny"], why: "Wentylator jednostki wytwarza podciśnienie, które może zasysać gazy z kanalizacji." },
+  { q: "Co jest największym ryzykiem przy doborze klimatyzatora wskaźnikiem 100 W/m² dla poddasza z oknami dachowymi od południa?", a: ["Znaczne niedowymiarowanie przez pominięcie zysków słonecznych", "Przewymiarowanie", "Zbyt mała wilgotność", "Nie ma ryzyka"], why: "Zyski przez okna dachowe i dach mogą być kilkukrotnie wyższe od średniej." },
+  { q: "Pomieszczenie konferencyjne z wieloma osobami ma niski SHR. Co to oznacza?", a: ["Duży udział ciepła utajonego, urządzenie musi dobrze osuszać", "Brak zysków słonecznych", "Niskie obciążenie całkowite", "Wysoką temperaturę nawiewu"], why: "SHR to udział ciepła jawnego. Niski SHR oznacza dużo wilgoci." },
+  { q: "Wada multi-splitu w porównaniu z kilkoma splitami 1:1:", a: ["Przy małym obciążeniu jednej jednostki wewnętrznej sprawność całego systemu spada, a awaria jednostki zewnętrznej wyłącza wszystkie pomieszczenia", "Większa liczba jednostek na elewacji", "Brak możliwości grzania", "Wymaga czynnika A3"], why: "Jedna sprężarka obsługuje wszystkie pomieszczenia." },
+  { q: "Dlaczego izolacja rur chłodniczych musi być paroszczelna i ciągła?", a: ["Wilgoć z powietrza skrapla się na zimnej rurze w każdej szczelinie", "Dla estetyki", "By czynnik nie parował", "By zmniejszyć hałas"], why: "Rura gazowa w chłodzeniu ma temperaturę poniżej punktu rosy." },
+  { q: "Co jest konieczne, gdy odpływu skroplin nie da się poprowadzić ze spadkiem?", a: ["Pompka skroplin z zabezpieczeniem przed przelaniem", "Większa średnica przewodu", "Wyłączenie osuszania", "Odprowadzenie do tacy bez odpływu"], why: "Grawitacja nie zadziała pod górę." },
+  { q: "Wersja VRF z odzyskiem ciepła pozwala:", a: ["jednocześnie grzać jedne pomieszczenia i chłodzić inne, przenosząc między nimi ciepło", "pracować bez jednostki zewnętrznej", "zastosować czynnik R744 bez zmian", "pominąć próbę szczelności"], why: "Ciepło odebrane w pomieszczeniach chłodzonych trafia do grzanych." },
+  { q: "Powietrze ma 24 °C i 60% wilgotności. Która powierzchnia będzie rosić?", a: ["Nieizolowany zawór na rurze gazowej o temperaturze 10 °C", "Ściana o temperaturze 22 °C", "Obudowa jednostki o temperaturze 20 °C", "Żadna"], why: "Punkt rosy wynosi ok. 15,8 °C, a 10 °C leży poniżej niego." },
+  ] });
+
+/* ───────────── MODUŁ 8 ───────────── */
+COURSE.push({ id: "m8", part: "III. Montaż i uruchomienie", title: "Instalacja chłodnicza: rury, kielichy, lutowanie", time: "55 min",
+  goal: "Wykonasz połączenia kielichowe i lutowane bez zanieczyszczeń oraz policzysz doładowanie czynnika na długość instalacji.",
+  gens: ["charge"],
+  lessons: [
+  { t: "Rury chłodnicze i izolacja", h: `
+<ul>
+<li>Stosuj miedź chłodniczą wg PN-EN 12735-1: odtłuszczoną, osuszoną, z zaślepionymi końcami. Rura instalacyjna do wody ma na ściankach resztki olejów i wilgoć.</li>
+<li><b>Grubość ścianki</b> dobierz do ciśnienia czynnika. Dla R32 i R410A instrukcje wymagają zwykle co najmniej 0,8 mm dla średnic do 1/2″ i ok. 1,0 mm dla 5/8″. Obowiązuje tabela producenta.</li>
+<li>Przykładowe średnice splitów: 1/4″ i 3/8″ do ok. 3,5 kW, 1/4″ i 1/2″ ok. 5 kW, 3/8″ i 5/8″ od ok. 7 kW. Średnice podaje instrukcja urządzenia.</li>
+<li>Obcinaj obcinakiem krążkowym, nie piłką, bo opiłki trafią do instalacji. Gratuj końcem w dół. Końce zaślepiaj od razu.</li>
+<li>Gnij giętarką z właściwym promieniem. Spłaszczenie rury tworzy przewężenie, które działa jak dławik.</li>
+<li><b>Izolacja</b>: kauczuk syntetyczny, zwykle 9–13 mm, osobno na każdej rurze. W pompie ciepła rura gazowa bywa gorąca, a cieczowa zimna, a zimą odwrotnie. Na zewnątrz izolację chroń przed UV.</li>
+</ul>` },
+
+  { t: "Kielichowanie", h: `
+<ol>
+<li>Załóż nakrętkę <b>przed</b> kielichowaniem.</li>
+<li>Zgratuj krawędź i sprawdź, czy nie ma zadziorów ani rys.</li>
+<li>Kielichuj kielichownicą mimośrodową z kalibrem, na wymiar dla czynnika. Kielich pod R32 i R410A jest nieco większy niż dla dawnego R22.</li>
+<li>Obejrzyj kielich: gładki, równy, bez pęknięć, symetryczny.</li>
+<li>Jeśli producent to zaleca, nałóż kroplę oleju chłodniczego na wewnętrzną powierzchnię.</li>
+<li>Dokręć <b>kluczem dynamometrycznym</b>, kontrując drugim kluczem.</li>
+</ol>
+${tbl(["Średnica", "Moment dokręcania (typowo)"], [["1/4″ (6,35 mm)", "14–18 Nm"], ["3/8″ (9,52 mm)", "33–42 Nm"], ["1/2″ (12,7 mm)", "50–62 Nm"], ["5/8″ (15,88 mm)", "63–77 Nm"], ["3/4″ (19,05 mm)", "90–110 Nm"]])}
+<p>Wartości typowe dla splitów; obowiązuje instrukcja urządzenia. Zbyt mały moment daje nieszczelność. Zbyt duży rozciąga i pęka kielich, często dopiero po kilku tygodniach cykli temperaturowych.</p>
+<div class="note warn">Dla czynników palnych złącza rozłączne wewnątrz pomieszczeń muszą spełniać wymagania norm (np. PN-EN ISO 14903) i instrukcji producenta. Kielicha raz rozkręconego nie używa się ponownie: wykonuje się nowy.</div>` },
+
+  { t: "Lutowanie twarde z przedmuchem azotem", h: `
+<ul>
+<li>Połączenia Cu–Cu lutuj lutem fosforowym (Cu-P, często z dodatkiem srebra) <b>bez topnika</b>. Połączenia z mosiądzem i stalą wymagają lutu srebrnego i topnika.</li>
+<li>Podczas lutowania przepuszczaj przez rurę <b>mały przepływ suchego azotu</b>. Bez azotu na wewnętrznej ściance powstaje zgorzelina: łuska tlenku miedzi, która odpada, zatyka filtry, zawory EEV i kapilary, a w sprężarce działa jak ścierniwo.</li>
+<li>Chroń elementy wrażliwe na temperaturę (zawory, czujniki) mokrą szmatą lub pastą termoochronną.</li>
+<li>Po lutowaniu nie chłodź złącza gwałtownie wodą. Naprężenia mogą rozszczelnić lut.</li>
+<li><b>Nigdy</b> nie lutuj instalacji z czynnikiem. Gorący czynnik HFC rozkłada się do toksycznych i żrących związków, a czynnik palny może się zapalić.</li>
+</ul>` },
+
+  { t: "Długość instalacji i doładowanie", h: `
+<div class="f">doładowanie [g] = (L − L_fabr) · g/m</div>
+<p>Jednostka zewnętrzna jest fabrycznie napełniona na określoną długość, np. 5, 7,5 albo 10 m. Na każdy metr ponad nią instrukcja podaje doładowanie w g/m, zależne od średnicy rury cieczowej. Rura cieczowa zawiera prawie całą masę czynnika w instalacji.</p>
+<ul>
+<li>Przestrzegaj <b>minimalnej długości</b> (hałas, pulsacje, powrót oleju) i <b>maksymalnej długości oraz różnicy wysokości</b>.</li>
+<li>Syfony olejowe i pętle na pionach stosuj tam, gdzie wymaga ich instrukcja. W małych splitach inwerterowych zwykle nie są potrzebne.</li>
+<li>Doładowanie odmierzaj wagą elektroniczną. Zapisz na etykiecie urządzenia napełnienie fabryczne, doładowanie i sumę w kg oraz w t CO₂e.</li>
+</ul>
+<p>Przykład: fabrycznie na 7,5 m, instalacja 15 m, doładowanie 20 g/m → (15 − 7,5) × 20 = 150 g.</p>` },
+  ],
+  bank: [
+  { q: "Dlaczego podczas lutowania rur chłodniczych przepuszcza się azot?", a: ["By nie powstała zgorzelina (tlenki) na wewnętrznej ściance", "By szybciej schłodzić lut", "By sprawdzić szczelność w trakcie lutowania", "By usunąć olej"], why: "Tlenki odpadają, zatykają filtry i zawory i niszczą sprężarkę." },
+  { q: "Połączenie Cu–Cu lutem fosforowym wykonuje się:", a: ["bez topnika", "zawsze z topnikiem", "z pastą cynową", "wyłącznie lutem miękkim"], why: "Fosfor w lucie działa jak topnik dla miedzi. Połączenia z mosiądzem i stalą wymagają topnika." },
+  { q: "Kiedy zakłada się nakrętkę na rurę przy kielichowaniu?", a: ["Przed wykonaniem kielicha", "Po wykonaniu kielicha", "Nie ma znaczenia", "Po dokręceniu do zaworu"], why: "Po kielichowaniu nakrętka już się nie nasunie." },
+  { q: "Jaki jest typowy moment dokręcania nakrętki kielichowej 1/4″?", a: ["ok. 14–18 Nm", "ok. 50–60 Nm", "ok. 3–5 Nm", "ok. 100 Nm"], why: "Obowiązuje instrukcja producenta, ale rząd wielkości trzeba znać." },
+  { q: "Co grozi przy zbyt mocnym dokręceniu nakrętki kielichowej?", a: ["Pęknięcie kielicha, często dopiero po kilku tygodniach", "Nic, mocniej znaczy szczelniej", "Wzrost przegrzania", "Zablokowanie zaworu serwisowego"], why: "Nadmierny moment cienkuje i rozciąga miedź. Cykle temperatur dokończą pęknięcie." },
+  { q: "Czym należy ciąć rurę chłodniczą?", a: ["Obcinakiem krążkowym, potem gratować końcem w dół", "Piłką do metalu", "Szlifierką kątową", "Nożycami do blachy"], why: "Piłka i szlifierka zostawiają opiłki wewnątrz rury." },
+  { q: "Jednostka napełniona na 5 m, instalacja 12 m, doładowanie 15 g/m. Ile dodać?", a: ["105 g", "180 g", "75 g", "0 g"], why: "(12 − 5) × 15 = 105 g.", e: [null, "Policzono całą długość.", "To napełnienie odpowiadające długości fabrycznej.", null] },
+  { q: "Doładowanie w g/m zależy głównie od średnicy:", a: ["rury cieczowej", "rury gazowej", "przewodu skroplin", "przewodu zasilającego"], why: "W rurze cieczowej jest ciecz, która ma wielokrotnie większą gęstość niż para." },
+  { q: "Rurę do instalacji chłodniczej wybierasz z:", a: ["miedzi chłodniczej wg PN-EN 12735-1, odtłuszczonej i zaślepionej", "miedzi instalacyjnej do wody", "stali ocynkowanej", "PEX z barierą tlenową"], why: "Czystość i suchość wnętrza rury decydują o trwałości obiegu." },
+  { q: "Po rozkręceniu połączenia kielichowego w instalacji z czynnikiem A2L przed ponownym montażem należy:", a: ["wykonać nowy kielich", "dokręcić mocniej ten sam kielich", "nałożyć taśmę teflonową", "użyć uszczelniacza anaerobowego"], why: "Kielich po odkształceniu nie gwarantuje szczelności. Taśmy i uszczelniacze na kielichy są niedopuszczalne." },
+  { q: "Dlaczego nie wolno lutować instalacji zawierającej czynnik HFC?", a: ["Czynnik rozkłada się w płomieniu do toksycznych i żrących związków, a przy czynniku palnym grozi zapłon", "Lut nie przylgnie do rury", "Czynnik zamarznie", "Wzrośnie ciśnienie skraplania"], why: "Najpierw odzysk i przedmuch azotem." },
+  { q: "Co wpisujesz na etykiecie urządzenia po doładowaniu?", a: ["Napełnienie fabryczne, doładowanie, całkowitą ilość w kg i w t CO₂e", "Tylko nazwę czynnika", "Tylko ciśnienie próby", "Datę produkcji rury"], why: "Wymaga tego obowiązek etykietowania i jest to podstawa do kontroli szczelności." },
+  ] });
+
+/* ───────────── MODUŁ 9 ───────────── */
+COURSE.push({ id: "m9", part: "III. Montaż i uruchomienie", title: "Próba szczelności, próżnia, osuszanie", time: "50 min",
+  goal: "Przeprowadzisz próbę azotem z korektą temperatury i zinterpretujesz test utrzymania próżni.",
+  gens: ["pressure", "micron"],
+  lessons: [
+  { t: "Próba ciśnieniowa azotem", h: `
+<ul>
+<li>Używaj <b>suchego azotu</b> z butli z reduktorem. Nigdy tlenu, bo z olejem grozi wybuchem. Nigdy sprężonego powietrza, bo wprowadza wilgoć i tlen.</li>
+<li>Ciśnienie próby podaje producent. Nie może przekroczyć dopuszczalnego ciśnienia PS podanego na tabliczce. Dla R32 i R410A instrukcje podają zwykle wartości rzędu 40 bar. Podnoś ciśnienie stopniowo i obserwuj.</li>
+<li>Czas próby zgodnie z instrukcją, od kilkunastu minut do 24 h. Zanotuj ciśnienie i <b>temperaturę</b> na początku i na końcu.</li>
+<li>Nieszczelności szukaj pianą do wykrywania wycieków albo detektorem elektronicznym. Mieszanina 95% N₂ + 5% H₂ (gaz formierski) pozwala użyć czułego detektora wodoru.</li>
+<li>Nie dodawaj czynnika do azotu „dla wykrywacza”. To uwolnienie F-gazu do atmosfery przy spuszczaniu próby.</li>
+</ul>
+<h4>Korekta temperatury</h4>
+<p>Azot w zamkniętej instalacji zachowuje się jak gaz doskonały w stałej objętości. Ciśnienie bezwzględne jest proporcjonalne do temperatury bezwzględnej:</p>
+<div class="f">p₂_abs = p₁_abs · T₂ / T₁        (T w kelwinach)</div>
+<p>Przykład: 40 bar przy 25 °C, rano 15 °C. (41,01 × 288,15 / 298,15) − 1,01 = ${fmt(pressureAt(40, 25, 15), 1)} bar. Spadek o ok. ${fmt(40 - pressureAt(40, 25, 15), 1)} bar jest więc naturalny. Obecność nieszczelności oceniasz dopiero po tej korekcie.</p>` },
+
+  { t: "Próżnia i test utrzymania", h: `
+<p>Próżnia usuwa z instalacji powietrze i <b>wilgoć</b>. Woda odparowuje dopiero, gdy ciśnienie spadnie poniżej ciśnienia jej pary nasyconej: ok. 2340 Pa przy 20 °C i tylko 611 Pa przy 0 °C. W chłodzie osuszanie trwa dużo dłużej.</p>
+<ul>
+<li>Pompa dwustopniowa ze świeżym olejem, krótkie węże o dużej średnicy. Wykręcenie rdzeni zaworów Schradera narzędziem z zaworem kulowym kilkukrotnie skraca czas.</li>
+<li><b>Wakuometr elektroniczny</b> podłącz od strony instalacji, jak najdalej od pompy, nie na samej pompie.</li>
+<li>Cel typowy: <b>poniżej 500 µm Hg</b> (ok. 67 Pa). Manometr analogowy zestawu nie pokazuje takich ciśnień.</li>
+</ul>
+<div class="f">1 µm Hg = 0,1333 Pa        500 µm ≈ 67 Pa ≈ 0,67 mbar</div>
+<h4>Test utrzymania próżni</h4>
+<p>Po osiągnięciu celu odetnij pompę i obserwuj wakuometr przez co najmniej 10–15 minut:</p>
+${fig(SVG_VACUUM, "Interpretacja testu utrzymania próżni.")}
+${tbl(["Obraz", "Interpretacja", "Działanie"], [
+  ["lekki wzrost i stabilizacja nisko (np. ≤ 1000 µm)", "instalacja szczelna i sucha", "otwórz zawory"],
+  ["wzrost i stabilizacja wysoko", "wilgoć odparowuje w instalacji", "kontynuuj próżnię, ewentualnie potrójne odsysanie z przerywaniem azotem"],
+  ["stały, liniowy wzrost bez stabilizacji", "nieszczelność", "wróć do próby azotem i szukaj wycieku"],
+])}
+<p>Kryterium akceptacji podaje producent albo procedura firmy. Zapisz wartości w protokole.</p>` },
+
+  { t: "Otwarcie zaworów i szczelność końcowa", h: `
+<ol>
+<li>Po teście utrzymania, przy odciętej pompie, przerwij próżnię czynnikiem. Otwórz zawory serwisowe jednostki (najpierw cieczowy, potem gazowy, wg instrukcji).</li>
+<li>Zdejmij zestaw manometryczny tak, żeby wypuścić jak najmniej czynnika. Pomagają złącza z zaworem odcinającym.</li>
+<li>Sprawdź detektorem elektronicznym wszystkie złącza wykonane na budowie.</li>
+<li>Załóż i dokręć <b>kołpaki zaworów</b>. To one są uszczelnieniem ostatecznym, metal do metalu.</li>
+<li>Wpisz do protokołu: ciśnienie i czas próby, wynik próżni i testu utrzymania, doładowanie.</li>
+</ol>` },
+  ],
+  bank: [
+  { q: "Którego gazu używa się do próby ciśnieniowej instalacji chłodniczej?", a: ["Suchego azotu", "Tlenu", "Sprężonego powietrza", "Mieszaniny azotu z czynnikiem R32"], why: "Tlen z olejem grozi wybuchem, powietrze wnosi wilgoć, a mieszanie z czynnikiem to uwolnienie F-gazu." },
+  { q: "Ciśnienie azotu spadło przez noc z 40,0 do 38,6 bar, a temperatura z 25 do 15 °C. Wniosek:", a: ["Spadek wynika z temperatury, instalacja może być szczelna", "Instalacja jest nieszczelna", "Manometr jest uszkodzony", "Trzeba dopompować azot i zakończyć próbę"], why: "Po korekcie oczekiwane ciśnienie to ok. 38,6 bar. Temperatura tłumaczy cały spadek." },
+  { q: "Gdzie podłącza się wakuometr elektroniczny?", a: ["Od strony instalacji, jak najdalej od pompy", "Bezpośrednio na pompie próżniowej", "Na butli z czynnikiem", "Na zaworze bezpieczeństwa"], why: "Na pompie wakuometr pokaże głęboką próżnię, której instalacja jeszcze nie osiągnęła." },
+  { q: "Jaki typowy cel próżni przyjmuje się dla instalacji HFC?", a: ["poniżej 500 µm Hg", "poniżej 5000 µm Hg", "−1 bar na manometrze zestawu", "0,5 bar abs"], why: "500 µm to ok. 67 Pa. Wskazanie −1 bar na manometrze analogowym nie mówi nic o wilgoci." },
+  { q: "Po odcięciu pompy wskazanie rośnie i zatrzymuje się na ok. 2500 µm. Najbardziej prawdopodobna przyczyna:", a: ["wilgoć w instalacji", "nieszczelność", "prawidłowo osuszona instalacja", "zbyt krótki wąż"], why: "Parująca woda podnosi ciśnienie do poziomu jej prężności i tam wskazanie się stabilizuje." },
+  { q: "Po odcięciu pompy wskazanie rośnie liniowo bez stabilizacji. Przyczyna:", a: ["nieszczelność", "wilgoć", "za duża pompa", "prawidłowy stan"], why: "Powietrze dopływa z zewnątrz ze stałą prędkością." },
+  { q: "Dlaczego osuszanie próżnią trwa dłużej w niskiej temperaturze?", a: ["Prężność pary wodnej spada, więc woda odparowuje dopiero przy głębszej próżni", "Olej pompy gęstnieje i przestaje działać", "Azot się skrapla", "Nie ma takiej zależności"], why: "Przy 0 °C woda ma prężność ok. 611 Pa, przy 20 °C ok. 2340 Pa." },
+  { q: "Co przyspiesza odsysanie instalacji?", a: ["Wykręcenie rdzeni zaworów Schradera i krótkie węże o dużej średnicy", "Dłuższe węże", "Mniejsza pompa", "Podgrzanie butli z czynnikiem"], why: "Rdzeń zaworu i cienki wąż to największe opory przepływu przy niskim ciśnieniu." },
+  { q: "Co jest uszczelnieniem ostatecznym zaworu serwisowego po uruchomieniu?", a: ["Dokręcony kołpak zaworu", "Rdzeń Schradera", "Taśma izolacyjna", "Izolacja kauczukowa"], why: "Kołpak ma uszczelnienie metal do metalu i chroni przed wyciekiem przez trzpień." },
+  { q: "Po co gaz formierski (95% N₂ + 5% H₂) przy próbie szczelności?", a: ["Pozwala użyć czułego detektora wodoru bez uwalniania F-gazów", "Szybciej osusza instalację", "Zapobiega korozji", "Obniża ciśnienie próby"], why: "Wodór to mała cząsteczka, łatwo wykrywalna i nieszkodliwa dla klimatu w tej ilości." },
+  { q: "Ile wynosi 500 µm Hg w paskalach?", a: ["ok. 67 Pa", "ok. 500 Pa", "ok. 6,7 Pa", "ok. 66 700 Pa"], why: "500 × 0,1333 Pa." },
+  ] });
+
+/* ───────────── MODUŁ 10 ───────────── */
+COURSE.push({ id: "m10", part: "III. Montaż i uruchomienie", title: "Uruchomienie i pomiary", time: "50 min",
+  goal: "Uruchomisz urządzenie według listy kontrolnej, zmierzysz przegrzanie i dochłodzenie i sporządzisz protokół.",
+  gens: ["superheat", "subcool"],
+  lessons: [
+  { t: "Lista kontrolna uruchomienia", h: `
+<ol>
+<li><b>Elektryka</b>: napięcie, kolejność faz (w urządzeniach trójfazowych), dokręcenie zacisków, ciągłość przewodu ochronnego, rezystancja izolacji, zabezpieczenia zgodne z instrukcją.</li>
+<li><b>Instalacja chłodnicza</b>: zawory otwarte, kołpaki dokręcone, doładowanie wykonane i zapisane.</li>
+<li><b>Hydraulika</b> (pompy ciepła): ciśnienie w instalacji, odpowietrzenie, czyste filtry, przepływ nie mniejszy niż minimalny, naczynie z właściwym ciśnieniem wstępnym.</li>
+<li><b>Skropliny</b>: przelej wodę do tacy i sprawdź odpływ.</li>
+<li><b>Konfiguracja sterownika</b>: krzywa grzewcza, tryby, harmonogram c.w.u., antylegionella, ograniczenia mocy i hałasu, grzałki.</li>
+<li><b>Praca testowa</b> w grzaniu i chłodzeniu, po ustabilizowaniu parametrów (zwykle 15–20 minut): pomiary, kody błędów, poziom hałasu.</li>
+</ol>` },
+
+  { t: "Przegrzanie i dochłodzenie w praktyce", h: `
+<div class="f">SH = T_ssania − T_nas(p_ssania + 1,013)        SC = T_nas(p_skr + 1,013) − T_cieczy</div>
+${tbl(["Czynnik", "0 °C", "5 °C", "10 °C", "40 °C", "45 °C", "50 °C"],
+  PT_REFS.map(r => [r].concat([0, 5, 10, 40, 45, 50].map(t => fmt(psat(r, t) - P_ATM, 1) + " bar"))))}
+<p class="muted">Nadciśnienie nasycenia (wskazanie manometru) dla wybranych temperatur. Pełne tabele są w zakładce Ściąga.</p>
+<ul>
+<li>Termometr stykowy lub zacisk mocuj na czystej rurze, blisko punktu pomiaru ciśnienia, i zaizoluj go od otoczenia.</li>
+<li>Typowe wartości orientacyjne: SH ok. 4–8 K, SC ok. 3–6 K. Obowiązują wartości producenta dla danego trybu i warunków.</li>
+<li>W wielu splitach zawór serwisowy jest na <b>zaworze gazowym</b>. W chłodzeniu pokazuje ciśnienie ssania, w grzaniu ciśnienie tłoczenia. Sprawdź schemat urządzenia, zanim podłączysz niskociśnieniowy manometr.</li>
+<li>Urządzenia z EEV same regulują przegrzanie. Odczyty sterownika (temperatury czujników, otwarcie EEV, częstotliwość sprężarki) są równie ważne jak Twoje pomiary.</li>
+</ul>
+<div class="note">Mieszaniny zeotropowe: przegrzanie licz od temperatury <b>punktu rosy</b> (dew), dochłodzenie od temperatury <b>punktu pęcherzyków</b> (bubble). Dla R410A różnica jest pomijalna, dla R407C wynosi kilka kelwinów.</div>` },
+
+  { t: "Protokół i przekazanie", h: `
+<p>Protokół uruchomienia to dokument dla klienta, gwaranta i ewentualnej kontroli UDT. Zawiera:</p>
+<ul>
+<li>dane urządzenia, numery seryjne, rodzaj czynnika, napełnienie fabryczne, doładowanie i sumę w kg oraz w t CO₂e;</li>
+<li>długość instalacji i różnicę poziomów;</li>
+<li>próbę ciśnieniową (ciśnienie, czas, temperatury), wynik próżni i testu utrzymania;</li>
+<li>pomiary: ciśnienia, temperatury, SH, SC, prądy, temperatury wody lub powietrza;</li>
+<li>ustawienia sterownika;</li>
+<li>dane certyfikatów technika i firmy.</li>
+</ul>
+<p>Przy przekazaniu pokaż użytkownikowi obsługę, czyszczenie filtrów, znaczenie trybów i alarmów. Wyjaśnij, że pompa ciepła pracuje długo i równo, a nie „grzeje szybko”. Przypomnij o obowiązkach operatora: CRO i kontrole szczelności, jeśli urządzenie im podlega.</p>` },
+  ],
+  bank: [
+  { q: "Split R32 w trybie chłodzenia: ssanie 8,4 bar (manometr), rura ssawna 13,6 °C. Temperatura nasycenia przy 9,4 bar abs wynosi ok. 4,6 °C. Przegrzanie:", a: ["ok. 9 K", "ok. 13,6 K", "ok. −9 K", "ok. 4,6 K"], why: "SH = 13,6 − 4,6 = 9 K.", e: [null, "To sama temperatura rury, bez odjęcia temperatury nasycenia.", "Odejmowanie w złą stronę.", "To temperatura nasycenia, a nie przegrzanie."] },
+  { q: "W wielu splitach zawór serwisowy jest na zaworze gazowym. Co pokaże manometr w trybie grzania?", a: ["Ciśnienie tłoczenia (wysokie)", "Ciśnienie ssania (niskie)", "Ciśnienie atmosferyczne", "Ciśnienie wody"], why: "Zawór czterodrogowy odwraca obieg: rura gazowa w grzaniu przenosi gorącą parę do jednostki wewnętrznej." },
+  { q: "Dla R407C przegrzanie liczy się od temperatury:", a: ["punktu rosy (dew)", "punktu pęcherzyków (bubble)", "średniej z obu", "otoczenia"], why: "Na wyjściu z parownika czynnik jest już całkowicie parą. Koniec wrzenia to punkt rosy." },
+  { q: "Po jakim czasie pracy wykonuje się pomiary przegrzania i dochłodzenia?", a: ["Po ustabilizowaniu się parametrów, zwykle 15–20 minut", "Natychmiast po starcie", "Po 24 godzinach", "W czasie odszraniania"], why: "Przy rozruchu parametry zmieniają się szybko i pomiar nie jest miarodajny." },
+  { q: "Termometr stykowy do pomiaru przegrzania:", a: ["mocuje się na czystej rurze przy punkcie pomiaru ciśnienia i izoluje od otoczenia", "kładzie się na izolacji rury", "trzyma się w powietrzu przy rurze", "wkłada się do tacy skroplin"], why: "Pomiar przez izolację albo w słońcu daje błąd kilku kelwinów." },
+  { q: "Co w protokole uruchomienia jest konieczne ze względu na przepisy F-gazowe?", a: ["Całkowita ilość czynnika w kg i w t CO₂e oraz dane certyfikowanego technika", "Numer telefonu hurtowni", "Kolor jednostki zewnętrznej", "Zdjęcie elewacji"], why: "Od t CO₂e zależą kontrole szczelności i wpis do CRO." },
+  { q: "Dlaczego w urządzeniu z EEV warto odczytać parametry ze sterownika?", a: ["Sterownik reguluje przegrzanie, a odczyty czujników, otwarcie EEV i częstotliwość pokazują, jak pracuje obieg", "Bo manometry są zbędne", "Bo sterownik podaje ilość czynnika w kg", "To wymóg UDT"], why: "Pomiar ręczny i odczyty sterownika uzupełniają się w diagnostyce." },
+  { q: "Instalacja R410A: skraplanie 26 bar (manometr), rura cieczowa 38 °C. T_nas przy 27 bar abs to ok. 44,5 °C. Dochłodzenie:", a: ["ok. 6,5 K", "ok. −6,5 K", "ok. 38 K", "ok. 12 K"], why: "SC = 44,5 − 38 = 6,5 K." },
+  { q: "Czego nie wolno pominąć przy uruchomieniu urządzenia trójfazowego?", a: ["Sprawdzenia kolejności faz", "Pomiaru hałasu przy sąsiedzie", "Zmiany czynnika", "Wyłączenia RCD"], why: "Zła kolejność faz może uniemożliwić start albo uszkodzić sprężarkę spiralną pracującą wstecz." },
+  { q: "Przed uruchomieniem pompy ciepła po stronie wody należy sprawdzić przede wszystkim:", a: ["ciśnienie, odpowietrzenie, czystość filtra i przepływ nie mniejszy niż minimalny", "tylko temperaturę c.w.u.", "tylko kolor przewodów", "nic, sterownik sam odpowietrzy instalację"], why: "Powietrze i zbyt mały przepływ to najczęstsze błędy pierwszego uruchomienia." },
+  ] });
+
+/* ───────────── MODUŁ 11 ───────────── */
+COURSE.push({ id: "m11", part: "IV. Automatyka i serwis", title: "Elektryka, sterowanie i automatyka", time: "45 min",
+  goal: "Dobierzesz zabezpieczenia i policzysz prąd zasilania, ustawisz krzywą grzewczą i podłączysz sygnały SG Ready.",
+  gens: ["current", "heatcurve"],
+  lessons: [
+  { t: "Zasilanie i zabezpieczenia", h: `
+<div class="f">I_1f = P / (230 · cos φ)        I_3f = P / (√3 · 400 · cos φ)</div>
+<ul>
+<li>Pompa ciepła i klimatyzator mają <b>wydzielony obwód</b>. Typ i wartość zabezpieczenia nadprądowego podaje instrukcja. Urządzenia inwerterowe mają łagodny rozruch, ale grzałki dodają dużą moc.</li>
+<li><b>Wyłącznik różnicowoprądowy</b>: urządzenia z falownikiem mogą generować prądy upływu o wysokiej częstotliwości i składowej stałej. Producenci wymagają wtedy RCD typu F lub B. Typ AC jest nieodpowiedni.</li>
+<li>Przekrój przewodu dobierz do obciążalności długotrwałej, sposobu ułożenia i spadku napięcia.</li>
+<li>Przewód komunikacyjny między jednostkami prowadź zgodnie z instrukcją, zwykle ekranowany i z dala od przewodów zasilających.</li>
+<li>Pomiary odbiorcze: ciągłość przewodów ochronnych, rezystancja izolacji (dla obwodów 230/400 V co najmniej 1 MΩ przy 500 V DC), skuteczność ochrony przeciwporażeniowej. Przed pomiarem izolacji odłącz elektronikę, jeśli wymaga tego instrukcja.</li>
+</ul>
+<div class="note warn">Prace przy instalacjach elektrycznych wymagają odpowiedniego świadectwa kwalifikacyjnego (grupa G1). Certyfikat F-gazowy go nie zastępuje.</div>` },
+
+  { t: "Krzywa grzewcza i sterowanie", h: `
+<p><b>Regulacja pogodowa</b> ustala temperaturę zasilania z temperatury zewnętrznej. Liniowa krzywa przechodzi przez punkt projektowy i punkt stały, w którym zasilanie ma temperaturę pomieszczenia:</p>
+<div class="f">T_z = 20 + (T_z,proj − 20) · (20 − T_zew) / (20 − θe)</div>
+${tbl(["T zewn.", "−20 °C", "−10 °C", "0 °C", "+10 °C"], [
+  ["Podłogówka 35 °C przy −20 °C"].concat([-20, -10, 0, 10].map(t => fmt(heatCurve(20, -20, 35, t), 1) + " °C")),
+  ["Grzejniki 50 °C przy −20 °C"].concat([-20, -10, 0, 10].map(t => fmt(heatCurve(20, -20, 50, t), 1) + " °C")),
+])}
+<ul>
+<li>Ustaw krzywę <b>możliwie nisko</b>. Zbyt wysoka krzywa obniża COP, a termostaty i tak dławią nadmiar ciepła.</li>
+<li><b>Nachylenie</b> koryguj, gdy w mrozy jest za zimno lub za ciepło. <b>Przesunięcie</b> koryguj, gdy błąd jest stały w całym zakresie.</li>
+<li>Nie zamykaj wszystkich pętli termostatami. Zostaw otwarte pętle w pomieszczeniu referencyjnym, żeby utrzymać przepływ i zład.</li>
+<li>Ogranicz taktowanie: minimalny czas pracy i postoju, histereza, modulacja mocy.</li>
+<li>C.w.u. ładuj w harmonogramie, najlepiej w tańszej strefie taryfy i w cieplejszej części dnia.</li>
+</ul>` },
+
+  { t: "SG Ready, fotowoltaika i taryfy", h: `
+<p><b>SG Ready</b> to standard sterowania pompą ciepła przez dwa styki bezpotencjałowe, na przykład z falownika PV, licznika energii albo systemu zarządzania energią:</p>
+${tbl(["Stan", "Styki 1 : 2", "Działanie"], [
+  ["1", "1 : 0", "blokada pracy (np. wyłączenie przez operatora sieci)"],
+  ["2", "0 : 0", "praca normalna"],
+  ["3", "0 : 1", "zalecenie wzmożonej pracy: podniesione nastawy, ładowanie zasobnika i bufora"],
+  ["4", "1 : 1", "polecenie włączenia: maksymalne nastawy, nadwyżka energii do wykorzystania"],
+])}
+<ul>
+<li>Nadwyżkę z fotowoltaiki najlepiej zmagazynować w c.w.u. i w masie budynku, nie w grzałce.</li>
+<li>Taryfy dwu- i wielostrefowe pozwalają przesunąć ładowanie c.w.u. i bufora na tańsze godziny. Bufor i zasobnik działają jak magazyn energii.</li>
+<li>Integracja przez Modbus lub API producenta daje więcej niż SG Ready, ale jest specyficzna dla urządzenia.</li>
+</ul>` },
+  ],
+  bank: [
+  { q: "Jaki typ wyłącznika różnicowoprądowego jest zwykle nieodpowiedni dla pompy ciepła z falownikiem?", a: ["AC", "F", "B", "B+"], why: "Typ AC wykrywa tylko przemienny prąd sinusoidalny. Falownik generuje prądy upływu o innych kształtach." },
+  { q: "Ile wynosi prąd pompy ciepła 3-fazowej 6 kW przy cos φ 0,95?", a: ["ok. 9,1 A", "ok. 15,8 A", "ok. 27,5 A", "ok. 5,3 A"], why: "6000 / (1,732 × 400 × 0,95) ≈ 9,1 A.", e: [null, "Pominięto √3.", "Podstawiono 230 V bez √3.", null] },
+  { q: "Minimalna rezystancja izolacji obwodu 230/400 V mierzona napięciem 500 V DC:", a: ["1 MΩ", "1 kΩ", "0,1 MΩ", "100 MΩ"], why: "Wg PN-HD 60364-6 dla obwodów do 500 V wartość minimalna to 1 MΩ." },
+  { q: "W mrozy w domu jest za zimno, a w okresie przejściowym komfortowo. Co korygujesz?", a: ["Nachylenie krzywej grzewczej (w górę)", "Przesunięcie krzywej w dół", "Temperaturę c.w.u.", "Histerezę sprężarki"], why: "Błąd rośnie wraz ze spadkiem temperatury zewnętrznej, więc zmienić trzeba nachylenie." },
+  { q: "Zbyt wysoko ustawiona krzywa grzewcza powoduje:", a: ["niższy COP i dławienie nadmiaru ciepła przez termostaty", "wyższy SCOP", "brak odszraniania", "mniejsze zużycie energii"], why: "Każdy zbędny kelwin temperatury zasilania to strata około 2–3% COP." },
+  { q: "Stan SG Ready 1 : 0 oznacza:", a: ["blokadę pracy", "pracę normalną", "zalecenie wzmożonej pracy", "polecenie włączenia"], why: "Stany: 1:0 blokada, 0:0 normalna, 0:1 zalecenie, 1:1 polecenie." },
+  { q: "Jaki jest najlepszy sposób wykorzystania nadwyżki energii z PV przez pompę ciepła?", a: ["Podniesienie nastaw i magazynowanie ciepła w c.w.u. i w budynku z wysokim COP", "Włączenie grzałki elektrycznej", "Wyłączenie pompy ciepła", "Obniżenie krzywej grzewczej"], why: "Pompa ciepła z każdej kWh daje kilka kWh ciepła, a grzałka tylko jedną." },
+  { q: "Dlaczego nie powinno się zamykać wszystkich pętli podłogówki termostatami strefowymi?", a: ["Spada przepływ i zład, rośnie taktowanie i ryzyko błędów przepływu", "Termostaty się przegrzewają", "Rośnie ciśnienie w naczyniu", "Nie ma takiego zalecenia"], why: "Pompa ciepła potrzebuje minimalnego przepływu i pojemności." },
+  { q: "Czy certyfikat F-gazowy UDT uprawnia do podłączania zasilania elektrycznego pompy ciepła?", a: ["Nie, potrzebne jest świadectwo kwalifikacyjne elektryczne (G1)", "Tak, obejmuje całą instalację", "Tak, dla urządzeń do 12 kW", "Tak, jeśli firma ma FGAZ-P"], why: "To odrębne uprawnienia." },
+  { q: "Liniowa krzywa: 35 °C zasilania przy −20 °C, 20 °C w pomieszczeniu. Zasilanie przy 0 °C:", a: ["27,5 °C", "35 °C", "17,5 °C", "20 °C"], why: "20 + 15 × 20/40 = 27,5 °C." },
+  ] });
+
+/* ───────────── MODUŁ 12 ───────────── */
+COURSE.push({ id: "m12", part: "IV. Automatyka i serwis", title: "Diagnostyka, serwis i odzysk czynnika", time: "55 min",
+  goal: "Rozpoznasz usterkę po zestawie pomiarów i bezpiecznie odzyskasz czynnik zgodnie z przepisami.",
+  gens: [],
+  lessons: [
+  { t: "Tabela diagnostyczna obiegu", h: `
+${tbl(["Usterka", "Ssanie", "Tłoczenie", "Przegrzanie", "Dochłodzenie"], [
+  ["Niedobór czynnika", "↓", "↓", "↑", "↓"],
+  ["Nadmiar czynnika", "↑ lub ≈", "↑", "↓", "↑"],
+  ["Ograniczenie po stronie cieczy (zatkany filtr, EEV)", "↓", "≈ lub ↓", "↑", "↑"],
+  ["Mały przepływ przez parownik (brudny filtr, wentylator, mały przepływ wody w chłodzeniu)", "↓", "↓", "↓", "≈"],
+  ["Mały przepływ przez skraplacz (brudny wymiennik, mały przepływ wody w grzaniu)", "↑", "↑↑", "≈", "≈"],
+  ["Niesprawna sprężarka (przecieki wewnętrzne)", "↑", "↓", "≈", "≈"],
+])}
+<p>Kluczowe pary do odróżnienia:</p>
+<ul>
+<li><b>Niedobór czy ograniczenie?</b> Oba dają wysokie przegrzanie. Niedobór ma niskie dochłodzenie, bo w skraplaczu brakuje cieczy. Ograniczenie ma wysokie dochłodzenie, bo ciecz zatrzymuje się przed przeszkodą. Przy ograniczeniu często czuć też spadek temperatury na filtrze.</li>
+<li><b>Nadmiar czy słaby skraplacz?</b> Oba podnoszą ciśnienie tłoczenia. Nadmiar zalewa skraplacz cieczą, więc dochłodzenie jest wysokie.</li>
+</ul>
+<div class="note">W urządzeniach z EEV sterownik kompensuje zmiany: przegrzanie może pozostać w normie, a problem widać w stopniu otwarcia zaworu. Zawór otwarty maksymalnie przy wysokim przegrzaniu to typowy objaw niedoboru.</div>` },
+
+  { t: "Usterki po stronie wody, powietrza i elektroniki", h: `
+<ul>
+<li><b>Błąd przepływu i wysokie ciśnienie w grzaniu</b>: zapchany filtr, zapowietrzenie, zamknięte pętle, uszkodzona pompa obiegowa. Sprawdź ΔT wody: znacznie powyżej projektowej oznacza za mały przepływ.</li>
+<li><b>Oblodzenie jednostki zewnętrznej</b>: nieudane odszranianie, uszkodzony czujnik temperatury wymiennika, zamarznięty odpływ skroplin, jednostka stojąca w zagłębieniu, w którym zbiera się woda.</li>
+<li><b>Czujniki NTC</b>: zmierz rezystancję i porównaj z tabelą producenta (np. 10 kΩ przy 25 °C, inne typy mają inne wartości). Sprawdź też, czy czujnik ma dobry kontakt termiczny z rurą.</li>
+<li><b>Kody błędów</b> zawsze interpretuj z dokumentacją serwisową. Ten sam kod bywa objawem, a nie przyczyną. Błąd wysokiego ciśnienia często ma źródło w hydraulice.</li>
+<li><b>Hałas i drgania</b>: stykające się rury, brak podkładek antywibracyjnych, luźne panele. W pompach ciepła także zbyt duża prędkość wody.</li>
+</ul>` },
+
+  { t: "Odzysk czynnika i przeglądy okresowe", h: `
+<ul>
+<li>Odzysk wykonuj <b>stacją odzysku</b> do butli przeznaczonej do odzysku, oznaczonej i dopuszczonej do danego czynnika. Czynniki palne wymagają stacji i butli dopuszczonych do nich.</li>
+<li>Butli nie napełniaj powyżej <b>80% objętości</b> cieczą. Wzrost temperatury rozszerza ciecz i może rozerwać przepełnioną butlę. Kontroluj masę na wadze.</li>
+<li>Nie mieszaj różnych czynników w jednej butli. Mieszaniny nie da się zregenerować i staje się kosztownym odpadem.</li>
+<li>Odzyskany czynnik przekaż do regeneracji lub unieszkodliwienia z dokumentacją odpadu. Wpisz odzysk do karty urządzenia w CRO, jeśli urządzenie jest zarejestrowane.</li>
+</ul>
+<div class="note danger"><b>Pump-down</b> (zbieranie czynnika do jednostki zewnętrznej) wykonuj tylko przy szczelnej, zamkniętej instalacji i nigdy nie uruchamiaj sprężarki przy rozłączonych lub otwartych rurach. Zassane powietrze z czynnikiem i olejem pod wysokim ciśnieniem może doprowadzić do samozapłonu i rozerwania sprężarki.</div>
+<h4>Przegląd okresowy</h4>
+<p>Filtry i wymienniki, odpływ skroplin i taca, parametry pracy w porównaniu z protokołem uruchomienia, szczelność (obowiązkowo w terminach z rozporządzenia), czujniki, zaciski elektryczne, po stronie wody filtr, separator i ciśnienie naczynia. Każdą czynność na obiegu wpisz do CRO.</p>` },
+  ],
+  bank: [
+  { q: "Niskie ssanie, wysokie przegrzanie, niskie dochłodzenie. Najbardziej prawdopodobna przyczyna:", a: ["niedobór czynnika", "nadmiar czynnika", "zatkany filtr na linii cieczowej", "brudny skraplacz"], why: "W skraplaczu brakuje cieczy, więc dochłodzenie jest niskie." },
+  { q: "Wysokie przegrzanie i wysokie dochłodzenie wskazują na:", a: ["ograniczenie przepływu po stronie cieczy (filtr, EEV)", "niedobór czynnika", "nadmiar czynnika", "prawidłową pracę"], why: "Ciecz spiętrza się przed przeszkodą w skraplaczu, a parownik jest niedokarmiony." },
+  { q: "Wysokie tłoczenie, wysokie dochłodzenie, niskie przegrzanie:", a: ["nadmiar czynnika", "niedobór czynnika", "niesprawna sprężarka", "mały przepływ przez parownik"], why: "Nadmiar zalewa skraplacz cieczą i przepycha za dużo czynnika do parownika." },
+  { q: "Ssanie wyższe niż zwykle, tłoczenie niższe, mała różnica ciśnień, niski prąd sprężarki:", a: ["niesprawna sprężarka (przecieki wewnętrzne)", "nadmiar czynnika", "brudny skraplacz", "zatkany filtr"], why: "Sprężarka nie wytwarza sprężu, gaz przecieka z tłoczenia na ssanie." },
+  { q: "Pompa ciepła w grzaniu zgłasza wysokie ciśnienie, a ΔT wody wynosi 12 K przy projektowych 5 K. Gdzie szukać przyczyny?", a: ["Po stronie wody: filtr, zapowietrzenie, pompa obiegowa, zamknięte pętle", "W zaworze czterodrogowym", "W niedoborze czynnika", "W czujniku temperatury zewnętrznej"], why: "Duże ΔT oznacza za mały przepływ. Skraplacz nie oddaje ciepła, więc ciśnienie rośnie." },
+  { q: "Do jakiego stopnia wolno napełnić butlę do odzysku?", a: ["Do 80% objętości cieczą", "Do 100%", "Do 95%", "Do 50%"], why: "Ciecz rozszerza się z temperaturą. Przepełniona butla może pęknąć." },
+  { q: "Dlaczego nie wolno mieszać różnych czynników w butli do odzysku?", a: ["Mieszaniny nie da się zregenerować, staje się odpadem do unieszkodliwienia", "Zmieni się kolor butli", "Spadnie ciśnienie", "To dozwolone, jeśli oba są HFC"], why: "Regeneracja wymaga jednorodnego czynnika." },
+  { q: "Jakie jest największe ryzyko pump-downu przy rozłączonej instalacji?", a: ["Zassanie powietrza i samozapłon mieszaniny w sprężarce, czyli jej rozerwanie", "Zamarznięcie parownika", "Spadek przegrzania", "Nic, to standardowa procedura"], why: "Sprężanie powietrza z olejem i czynnikiem do wysokiego ciśnienia jest niebezpieczne." },
+  { q: "Urządzenie z EEV: przegrzanie w normie, zawór otwarty prawie w 100%, niskie ssanie. Podejrzenie:", a: ["niedobór czynnika", "nadmiar czynnika", "prawidłowa praca", "zbyt duży przepływ powietrza"], why: "Sterownik otwiera zawór do końca, żeby utrzymać przegrzanie przy braku czynnika." },
+  { q: "Jak sprawdzić czujnik NTC?", a: ["Zmierzyć rezystancję w znanej temperaturze i porównać z tabelą producenta", "Zmierzyć napięcie sieci", "Podgrzać palnikiem", "Wystarczy wymienić"], why: "NTC zmienia rezystancję z temperaturą. Typy mają różne charakterystyki." },
+  { q: "Jednostka zewnętrzna obrasta lodem od spodu mimo cykli odszraniania. Najczęstsza przyczyna:", a: ["zamarznięty lub niedrożny odpływ skroplin", "za wysoka krzywa grzewcza", "za duży przepływ wody", "nadmiar czynnika"], why: "Woda z odszraniania nie odpływa i zamarza, narastając z każdym cyklem." },
+  { q: "Po naprawie wycieku w urządzeniu podlegającym kontrolom należy:", a: ["wpisać czynności do CRO i ponownie sprawdzić szczelność w ciągu miesiąca", "tylko dobić czynnik", "zgłosić to do producenta", "nic więcej"], why: "Wymagają tego przepisy F-gazowe i ustawa krajowa." },
+  ] });
+
+const COURSE_BY_ID = {};
+for (const m of COURSE) COURSE_BY_ID[m.id] = m;
+
+/* Liczby zadań i progi zaliczenia */
+const DRILL_LEN = 6;          // ćwiczenia: bez oceny
+const TEST_LEN = 8, TEST_PASS = 6;
+const EXAM_PER_MOD = 2, EXAM_PASS = 19;   // 24 zadania, próg ok. 80%
+
+/* ═══════════════════════════════════════════════════════════════
+   8. STAN I MODEL POSTĘPU
+   ═══════════════════════════════════════════════════════════════ */
+const STORE_KEY = "hvac.kurs.v1";
+function freshState() { return { mods: {}, exam: null, stats: {}, name: "", train: { sessions: 0 } }; }
+let State = freshState();
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(State)); } catch (e) { /* tryb prywatny */ } }
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) State = Object.assign(freshState(), JSON.parse(raw));
+  } catch (e) { State = freshState(); }
+}
+function modProgress(id) {
+  if (!State.mods[id]) State.mods[id] = { drill: false, best: 0, passed: false };
+  return State.mods[id];
+}
+function modStats(id) {
+  if (!State.stats[id]) State.stats[id] = { seen: 0, ok: 0 };
+  return State.stats[id];
+}
+function record(mid, ok) { const s = modStats(mid); s.seen++; if (ok) s.ok++; }
+function moduleIndex(id) { for (let i = 0; i < COURSE.length; i++) if (COURSE[i].id === id) return i; return -1; }
+function moduleUnlocked(i) { return i === 0 || modProgress(COURSE[i - 1].id).passed; }
+function passedCount() { let n = 0; for (const m of COURSE) if (modProgress(m.id).passed) n++; return n; }
+function examUnlocked() { return passedCount() === COURSE.length; }
+function courseDone() { return !!(State.exam && State.exam.passed); }
+function totals() {
+  let seen = 0, ok = 0;
+  for (const k in State.stats) { seen += State.stats[k].seen; ok += State.stats[k].ok; }
+  return { seen, ok };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   9. KOLEJKI ZADAŃ
+   Zadanie w kolejce to przepis { mid, gen } albo { mid, bank },
+   a samo pytanie powstaje dopiero przy wyświetleniu, więc
+   generatory dają świeże dane przy każdej próbie.
+   ═══════════════════════════════════════════════════════════════ */
+function makeQuestion(spec) {
+  const m = COURSE_BY_ID[spec.mid];
+  if (spec.gen) return GEN[spec.gen]();
+  const b = m.bank[spec.bank];
+  return mkQ("Moduł " + (moduleIndex(m.id) + 1), b.q, b.a[0], b.a.slice(1), b.why, b.e ? b.e.slice(1) : null, false);
+}
+function bankSpecs(m, n, avoid) {
+  const idx = shuffle(m.bank.map((_, i) => i)).filter(i => !(avoid && avoid.has(i)));
+  return idx.slice(0, n).map(i => ({ mid: m.id, bank: i }));
+}
+function genSpecs(m, n) {
+  const out = [];
+  const g = shuffle(m.gens);
+  for (let i = 0; i < n && g.length; i++) out.push({ mid: m.id, gen: g[i % g.length] });
+  return out;
+}
+function drillQueue(m) {
+  const g = genSpecs(m, m.gens.length ? 2 : 0);
+  const b = bankSpecs(m, DRILL_LEN - g.length);
+  const out = [];
+  while (b.length || g.length) { if (b.length) out.push(b.shift()); if (b.length) out.push(b.shift()); if (g.length) out.push(g.shift()); }
+  return out;
+}
+function testQueue(m) {
+  const g = genSpecs(m, m.gens.length ? 3 : 0);
+  return shuffle(g.concat(bankSpecs(m, TEST_LEN - g.length)));
+}
+function examQueue() {
+  const out = [];
+  for (const m of COURSE) {
+    const g = genSpecs(m, m.gens.length ? 1 : 0);
+    out.push(...g, ...bankSpecs(m, EXAM_PER_MOD - g.length));
+  }
+  return shuffle(out);
+}
+/** Trening: moduły już otwarte, słabsze częściej, bez dwóch zadań z tego samego modułu pod rząd. */
+function trainingQueue(n) {
+  const open = COURSE.filter((m, i) => moduleUnlocked(i));
+  const w = open.map(m => { const s = modStats(m.id); const acc = s.seen ? s.ok / s.seen : 0.5; return 1 + 3 * (1 - acc); });
+  const out = [];
+  let last = null;
+  for (let k = 0; k < n; k++) {
+    let m = null;
+    for (let t = 0; t < 20; t++) {
+      let r = Math.random() * w.reduce((a, b) => a + b, 0), j = 0;
+      while (r > w[j]) { r -= w[j]; j++; }
+      m = open[Math.min(j, open.length - 1)];
+      if (m.id !== last || open.length === 1) break;
+    }
+    last = m.id;
+    out.push(m.gens.length && Math.random() < 0.5 ? genSpecs(m, 1)[0] : bankSpecs(m, 1)[0]);
+  }
+  return out;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   10. SESJA
+   ═══════════════════════════════════════════════════════════════ */
+const UI = { tab: "kurs", module: null };
+const Session = { active: false, mode: null, moduleId: null, queue: [], i: 0, q: null, spec: null, answered: false, choice: -1, ok: 0, summary: null };
+
+function startSession(o) {
+  Object.assign(Session, { active: true, mode: o.mode, moduleId: o.moduleId || null, queue: o.queue, i: 0, ok: 0, summary: null });
+  loadQuestion();
+  UI.tab = o.mode === "trening" ? "trening" : "kurs";
+  render();
+  window.scrollTo(0, 0);
+}
+function loadQuestion() {
+  Session.spec = Session.queue[Session.i];
+  Session.q = makeQuestion(Session.spec);
+  Session.answered = false; Session.choice = -1;
+}
+function answer(idx) {
+  if (!Session.active || Session.answered) return;
+  Session.answered = true; Session.choice = idx;
+  const ok = idx === Session.q.correct;
+  if (ok) Session.ok++;
+  record(Session.spec.mid, ok);
+  save(); render();
+}
+function nextStep() {
+  if (!Session.answered) return;
+  Session.i++;
+  if (Session.i >= Session.queue.length) finishSession();
+  else loadQuestion();
+  render();
+  window.scrollTo(0, 0);
+}
+function finishSession() {
+  const s = { mode: Session.mode, moduleId: Session.moduleId, ok: Session.ok, len: Session.queue.length };
+  Session.active = false; Session.summary = s;
+  if (s.mode === "drill") modProgress(s.moduleId).drill = true;
+  if (s.mode === "test") {
+    const p = modProgress(s.moduleId);
+    p.best = Math.max(p.best, s.ok);
+    if (s.ok >= TEST_PASS) p.passed = true;
+  }
+  if (s.mode === "exam") {
+    const passed = s.ok >= EXAM_PASS;
+    if (!State.exam || s.ok > State.exam.score || (passed && !State.exam.passed))
+      State.exam = { score: s.ok, total: s.len, date: Date.now(), passed: passed || !!(State.exam && State.exam.passed) };
+  }
+  if (s.mode === "trening") State.train.sessions++;
+  save();
+}
+
+function bindKeys() {
+  document.addEventListener("keydown", e => {
+  if (!Session.active || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  const n = parseInt(e.key, 10);
+  if (!Session.answered && n >= 1 && n <= Session.q.options.length) answer(n - 1);
+  else if (Session.answered && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); nextStep(); }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   11. WIDOK ZADANIA
+   ═══════════════════════════════════════════════════════════════ */
+function renderQuestion(root) {
+  const q = Session.q;
+  const card = el("div", "card");
+  const head = el("div", "q-head");
+  head.appendChild(el("div", "q-tag" + (q.calc ? " calc" : ""), q.tag));
+  head.appendChild(el("div", "q-text", q.text));
+  head.appendChild(el("div", "q-count", (Session.i + 1) + " / " + Session.queue.length));
+  card.appendChild(head);
+  const bar = el("div", "bar"); const fill = el("i");
+  fill.style.width = (Session.i / Session.queue.length * 100) + "%"; bar.appendChild(fill);
+  card.appendChild(bar);
+
+  const opts = el("div", "opts");
+  q.options.forEach((t, i) => {
+    const b = el("button", "opt");
+    b.appendChild(el("span", "k", String.fromCharCode(65 + i)));
+    b.appendChild(document.createTextNode(t));
+    if (Session.answered) {
+      b.disabled = true;
+      if (i === q.correct) b.classList.add("ok");
+      else if (i === Session.choice) b.classList.add("no");
+    } else b.onclick = () => answer(i);
+    opts.appendChild(b);
+  });
+  card.appendChild(opts);
+
+  if (Session.answered) {
+    const ok = Session.choice === q.correct;
+    const fb = el("div", "fb " + (ok ? "good" : "bad"));
+    fb.appendChild(el("b", "t", ok ? "Dobrze" : "Poprawna odpowiedź: " + q.options[q.correct]));
+    if (!ok && q.wrongWhy[Session.choice]) fb.appendChild(el("p", "why-wrong", "Twój wybór: " + q.wrongWhy[Session.choice]));
+    fb.appendChild(el("p", null, q.why));
+    card.appendChild(fb);
+    const row = el("div", "row mt");
+    const last = Session.i + 1 >= Session.queue.length;
+    const nb = el("button", "btn", last ? "Zakończ" : "Dalej");
+    nb.onclick = nextStep;
+    row.appendChild(nb);
+    row.appendChild(el("span", "muted", "Enter: dalej · klawisze 1–4: odpowiedź"));
+    card.appendChild(row);
+  }
+  root.appendChild(card);
+}
+
+function sessionBar(label, title) {
+  const c = el("div", "card"); c.style.padding = "12px 16px";
+  const row = el("div", "row");
+  row.appendChild(el("div", "q-tag", label));
+  row.appendChild(el("b", null, title));
+  row.appendChild(el("div", "spacer"));
+  const stop = el("button", "btn ghost sm", "Przerwij");
+  stop.onclick = () => { Session.active = false; Session.summary = null; render(); };
+  row.appendChild(stop);
+  c.appendChild(row);
+  return c;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   12. KURS
+   ═══════════════════════════════════════════════════════════════ */
+function screenKurs(root) {
+  if (Session.active && Session.mode !== "trening") {
+    const m = COURSE_BY_ID[Session.moduleId];
+    const lbl = { drill: "Ćwiczenia", test: "Sprawdzian", exam: "Egzamin końcowy" }[Session.mode];
+    root.appendChild(sessionBar(lbl, m ? "Moduł " + (moduleIndex(m.id) + 1) + ". " + m.title : "Wszystkie moduły"));
+    renderQuestion(root);
+    return;
+  }
+  if (Session.summary && Session.summary.mode !== "trening") { courseSummary(root); return; }
+  if (UI.module) { moduleDetail(root, UI.module); return; }
+  syllabus(root);
+}
+
+function syllabus(root) {
+  const done = passedCount();
+  const intro = el("div", "card");
+  intro.appendChild(el("h1", null, "Kurs instalatora pomp ciepła i klimatyzacji"));
+  intro.appendChild(el("p", "lead",
+    "Dwanaście modułów na poziomie zaawansowanym: od termodynamiki obiegu, przez przepisy, projekt i hydraulikę, po montaż, uruchomienie i diagnostykę. " +
+    "Każdy moduł kończy sprawdzian (" + TEST_PASS + " z " + TEST_LEN + "), który otwiera kolejny. Na końcu egzamin z " + (COURSE.length * EXAM_PER_MOD) + " zadań i certyfikat ukończenia."));
+  intro.appendChild(el("p", null, "Zadania obliczeniowe są generowane za każdym razem od nowa, a błędne odpowiedzi opisują typowe pomyłki instalatorów. Łączny czas nauki to około 10–12 godzin."));
+  const bar = el("div", "bar good"); bar.style.margin = "14px 0 8px";
+  const fill = el("i"); fill.style.width = (done / COURSE.length * 100) + "%"; bar.appendChild(fill);
+  intro.appendChild(bar);
+  intro.appendChild(el("div", "muted", "Zaliczone moduły: " + done + " z " + COURSE.length + (courseDone() ? " · kurs ukończony" : "")));
+  root.appendChild(intro);
+
+  if (courseDone()) root.appendChild(certificate());
+
+  const list = el("div", "card");
+  let part = null;
+  COURSE.forEach((m, i) => {
+    if (m.part !== part) { part = m.part; list.appendChild(el("div", "part-h", part)); }
+    const pr = modProgress(m.id);
+    const open = moduleUnlocked(i);
+    const row = el("div", "mod" + (pr.passed ? " done" : "") + (open ? "" : " locked"));
+    row.appendChild(el("div", "mod-num", pr.passed ? "✓" : String(i + 1)));
+    const body = el("div", "mod-body");
+    body.appendChild(el("div", "mod-title", m.title));
+    body.appendChild(el("div", "mod-meta", m.time + " · " + m.lessons.length + " lekcje · " +
+      (pr.passed ? "sprawdzian " + pr.best + "/" + TEST_LEN : open ? "gotowy do rozpoczęcia" : "wymaga zaliczenia modułu " + i)));
+    row.appendChild(body);
+    row.appendChild(el("div", "mod-badge " + (pr.passed ? "badge-done" : open ? "badge-open" : "badge-lock"),
+      pr.passed ? "zaliczony" : open ? "otwarty" : "zamknięty"));
+    if (open) row.onclick = () => { UI.module = m.id; render(); window.scrollTo(0, 0); };
+    list.appendChild(row);
+  });
+  list.appendChild(el("div", "part-h", "Zakończenie"));
+  const exOpen = examUnlocked();
+  const ex = el("div", "mod" + (courseDone() ? " done" : "") + (exOpen ? "" : " locked"));
+  ex.appendChild(el("div", "mod-num", courseDone() ? "✓" : "★"));
+  const eb = el("div", "mod-body");
+  eb.appendChild(el("div", "mod-title", "Egzamin końcowy"));
+  eb.appendChild(el("div", "mod-meta", (COURSE.length * EXAM_PER_MOD) + " zadań ze wszystkich modułów · próg " + EXAM_PASS +
+    (State.exam ? " · najlepszy wynik " + State.exam.score + "/" + State.exam.total : "")));
+  ex.appendChild(eb);
+  ex.appendChild(el("div", "mod-badge " + (courseDone() ? "badge-done" : exOpen ? "badge-open" : "badge-lock"),
+    courseDone() ? "zdany" : exOpen ? "otwarty" : "zamknięty"));
+  if (exOpen) ex.onclick = () => startSession({ mode: "exam", queue: examQueue() });
+  list.appendChild(ex);
+  root.appendChild(list);
+}
+
+function lessonNode(l, open) {
+  const box = el("div", "lesson" + (open ? " open" : ""));
+  const h = el("div", "lesson-h", l.t);
+  h.onclick = () => box.classList.toggle("open");
+  box.appendChild(h);
+  box.appendChild(html("div", "lesson-b", l.h));
+  return box;
+}
+
+function moduleDetail(root, id) {
+  const m = COURSE_BY_ID[id], i = moduleIndex(id), pr = modProgress(id);
+  const head = el("div", "card");
+  const back = el("button", "btn ghost sm", "← Spis modułów");
+  back.onclick = () => { UI.module = null; render(); };
+  head.appendChild(back);
+  const h = el("h1", null, "Moduł " + (i + 1) + ". " + m.title); h.style.marginTop = "14px";
+  head.appendChild(h);
+  head.appendChild(el("div", "muted", m.part + " · " + m.time + (pr.passed ? " · moduł zaliczony" : "")));
+  const g = el("div", "note"); g.textContent = "Cel: " + m.goal; head.appendChild(g);
+  root.appendChild(head);
+
+  const th = el("div", "card"); th.style.paddingBottom = "8px";
+  th.appendChild(el("h3", null, "1. Teoria"));
+  root.appendChild(th);
+  m.lessons.forEach((l, k) => root.appendChild(lessonNode(l, k === 0 || !pr.drill)));
+
+  const act = el("div", "card");
+  act.appendChild(el("h3", null, "2. Ćwiczenia i sprawdzian"));
+  act.appendChild(el("p", null, "Ćwiczenia (" + DRILL_LEN + " zadań) mają objaśnienie po każdej odpowiedzi i nie są oceniane. " +
+    "Sprawdzian (" + TEST_LEN + " zadań" + (m.gens.length ? ", w tym obliczeniowe" : "") + ") wymaga " + TEST_PASS + " poprawnych odpowiedzi."));
+  const row = el("div", "row mt");
+  const bd = el("button", "btn" + (pr.drill ? " ghost" : ""), (pr.drill ? "Powtórz ćwiczenia" : "Ćwiczenia") + " (" + DRILL_LEN + ")");
+  bd.onclick = () => startSession({ mode: "drill", moduleId: id, queue: drillQueue(m) });
+  row.appendChild(bd);
+  const bt = el("button", "btn" + (pr.drill ? "" : " ghost"), (pr.passed ? "Popraw sprawdzian" : "Sprawdzian") + " (" + TEST_LEN + ")");
+  bt.onclick = () => startSession({ mode: "test", moduleId: id, queue: testQueue(m) });
+  row.appendChild(bt);
+  act.appendChild(row);
+  if (pr.best) act.appendChild(el("div", "muted", "Najlepszy wynik sprawdzianu: " + pr.best + " / " + TEST_LEN + "."));
+  if (m.gens.length) act.appendChild(el("div", "muted", "Wzory z tego modułu policzysz też w zakładce Kalkulatory."));
+  root.appendChild(act);
+}
+
+function bigScore(s, good) {
+  const b = el("div", "stat-n", s.ok + " / " + s.len);
+  b.style.fontSize = "42px";
+  if (good != null) b.style.color = good ? "var(--good)" : "var(--bad)";
+  return b;
+}
+function btn(label, cls, fn) { const b = el("button", "btn" + (cls ? " " + cls : ""), label); b.onclick = fn; return b; }
+
+function courseSummary(root) {
+  const s = Session.summary, m = COURSE_BY_ID[s.moduleId], i = m ? moduleIndex(m.id) : -1;
+  const card = el("div", "card center");
+  const clear = () => { Session.summary = null; };
+  const row = el("div", "row mt"); row.style.justifyContent = "center";
+  if (s.mode === "drill") {
+    card.appendChild(el("h2", null, "Ćwiczenia zakończone"));
+    card.appendChild(bigScore(s, null));
+    card.appendChild(el("p", null, "Ćwiczenia nie są oceniane. Gdy czujesz się pewnie, przejdź do sprawdzianu."));
+    row.appendChild(btn("Sprawdzian (" + TEST_LEN + ")", "", () => { clear(); startSession({ mode: "test", moduleId: m.id, queue: testQueue(m) }); }));
+    row.appendChild(btn("Powtórz ćwiczenia", "ghost", () => { clear(); startSession({ mode: "drill", moduleId: m.id, queue: drillQueue(m) }); }));
+    row.appendChild(btn("Wróć do modułu", "ghost", () => { clear(); UI.module = m.id; render(); }));
+  } else if (s.mode === "test") {
+    const ok = s.ok >= TEST_PASS;
+    card.appendChild(el("h2", null, ok ? "Moduł zaliczony" : "Sprawdzian niezaliczony"));
+    card.appendChild(bigScore(s, ok));
+    card.appendChild(el("p", null, ok ? "Próg wynosił " + TEST_PASS + ". Kolejny etap jest otwarty."
+      : "Do zaliczenia brakuje " + (TEST_PASS - s.ok) + " poprawnych odpowiedzi. Wróć do teorii i ćwiczeń, a potem spróbuj ponownie."));
+    if (ok && i + 1 < COURSE.length)
+      row.appendChild(btn("Moduł " + (i + 2) + ": " + COURSE[i + 1].title, "", () => { clear(); UI.module = COURSE[i + 1].id; render(); }));
+    else if (ok && examUnlocked())
+      row.appendChild(btn("Egzamin końcowy", "", () => { clear(); startSession({ mode: "exam", queue: examQueue() }); }));
+    row.appendChild(btn(ok ? "Powtórz sprawdzian" : "Powtórz ćwiczenia", ok ? "ghost" : "", () => {
+      clear();
+      if (ok) startSession({ mode: "test", moduleId: m.id, queue: testQueue(m) });
+      else startSession({ mode: "drill", moduleId: m.id, queue: drillQueue(m) });
+    }));
+    row.appendChild(btn("Spis modułów", "ghost", () => { clear(); UI.module = null; render(); }));
+  } else {
+    const ok = s.ok >= EXAM_PASS;
+    card.appendChild(el("h2", null, ok ? "Egzamin zdany" : "Egzamin niezaliczony"));
+    card.appendChild(bigScore(s, ok));
+    card.appendChild(el("p", null, ok ? "Kurs ukończony. Certyfikat znajdziesz w spisie modułów."
+      : "Próg wynosi " + EXAM_PASS + " z " + s.len + ". Zakładka Postępy pokazuje moduły, w których idzie Ci najsłabiej."));
+    row.appendChild(btn(ok ? "Zobacz certyfikat" : "Spis modułów", "", () => { clear(); UI.module = null; render(); }));
+    if (!ok) row.appendChild(btn("Powtórz egzamin", "ghost", () => { clear(); startSession({ mode: "exam", queue: examQueue() }); }));
+  }
+  card.appendChild(row);
+  root.appendChild(card);
+}
+
+function certificate() {
+  const ex = State.exam;
+  const box = el("div", "card");
+  const c = el("div", "cert");
+  c.appendChild(el("div", "cert-seal", "◆"));
+  c.appendChild(el("h2", null, "ZAŚWIADCZENIE UKOŃCZENIA KURSU"));
+  c.appendChild(el("div", "meta", "Instalacja pomp ciepła i klimatyzacji — poziom zaawansowany"));
+  c.appendChild(el("div", "who", State.name || "Uczestnik kursu"));
+  c.appendChild(el("div", "meta", "Zaliczono " + COURSE.length + " modułów oraz egzamin końcowy: " + ex.score + " / " + ex.total +
+    " · " + new Date(ex.date).toLocaleDateString("pl-PL")));
+  c.appendChild(el("div", "meta", COURSE.map((m, i) => (i + 1) + ". " + m.title).join(" · ")));
+  c.appendChild(el("div", "disc", "Dokument potwierdza ukończenie kursu szkoleniowego. Nie jest certyfikatem UDT dla personelu ani świadectwem kwalifikacyjnym i nie uprawnia do czynności wymagających tych dokumentów."));
+  box.appendChild(c);
+  const row = el("div", "row mt no-print"); row.style.justifyContent = "center";
+  const inp = el("input"); inp.placeholder = "Imię i nazwisko na zaświadczeniu"; inp.value = State.name || "";
+  inp.style.cssText = "background:#000;border:1px solid var(--line-hi);color:var(--txt);border-radius:7px;padding:8px 10px;font-size:14px;min-width:240px";
+  inp.onchange = () => { State.name = inp.value.trim().slice(0, 80); save(); render(); };
+  row.appendChild(inp);
+  row.appendChild(btn("Drukuj / zapisz PDF", "ghost sm", () => window.print()));
+  box.appendChild(row);
+  return box;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   13. TRENING
+   ═══════════════════════════════════════════════════════════════ */
+const TRAIN_LEN = 10;
+function screenTrening(root) {
+  if (Session.active && Session.mode === "trening") {
+    root.appendChild(sessionBar("Trening", "Zadania mieszane z otwartych modułów"));
+    renderQuestion(root); return;
+  }
+  const card = el("div", "card");
+  if (Session.summary && Session.summary.mode === "trening") {
+    const s = Session.summary;
+    card.classList.add("center");
+    card.appendChild(el("h2", null, "Sesja zakończona"));
+    card.appendChild(bigScore(s, s.ok / s.len >= 0.75));
+    card.appendChild(el("p", null, "Kolejna sesja częściej sięgnie do modułów, w których masz niższą skuteczność."));
+    const row = el("div", "row mt"); row.style.justifyContent = "center";
+    row.appendChild(btn("Następna sesja", "", () => startSession({ mode: "trening", queue: trainingQueue(TRAIN_LEN) })));
+    row.appendChild(btn("Postępy", "ghost", () => { Session.summary = null; UI.tab = "postepy"; render(); }));
+    card.appendChild(row);
+    root.appendChild(card); return;
+  }
+  const open = COURSE.filter((m, i) => moduleUnlocked(i)).length;
+  card.appendChild(el("h1", null, "Trening przeplatany"));
+  card.appendChild(el("p", "lead", "Sesja to " + TRAIN_LEN + " zadań wymieszanych z otwartych modułów, z przewagą tych, w których idzie Ci najsłabiej. Dwa zadania z tego samego modułu nie wystąpią po sobie."));
+  card.appendChild(el("p", null, "Kurs buduje wiedzę po kolei, a trening ją utrwala. Mieszanie tematów jest trudniejsze w trakcie, ale daje trwalszą pamięć i lepszy transfer na budowę."));
+  card.appendChild(el("div", "muted", "Dostępne moduły: " + open + " z " + COURSE.length + "."));
+  const row = el("div", "row mt");
+  row.appendChild(btn("Zacznij sesję", "", () => startSession({ mode: "trening", queue: trainingQueue(TRAIN_LEN) })));
+  card.appendChild(row);
+  root.appendChild(card);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   14. KALKULATORY
+   Każdy kalkulator używa tych samych funkcji co generatory zadań,
+   więc wynik w kalkulatorze i w zadaniu nie może się rozjechać.
+   ═══════════════════════════════════════════════════════════════ */
+const ZONES = [["-16", "I (−16 °C)"], ["-18", "II (−18 °C)"], ["-20", "III (−20 °C)"], ["-22", "IV (−22 °C)"], ["-24", "V (−24 °C)"]];
+const CALCS = [
+  { id: "co2", title: "Ekwiwalent CO₂ i kontrola szczelności",
+    f: [["ref", "Czynnik", "sel", "R32", Object.keys(REF).map(k => [k, k + " (GWP " + REF[k].gwp + ")"])], ["kg", "Ilość czynnika [kg]", "num", 3.0],
+        ["herm", "Urządzenie hermetyczne (oznakowane)", "chk", false], ["det", "System wykrywania wycieków", "chk", false]],
+    run(v) {
+      const r = leakCheck(v.ref, v.kg, v.herm, v.det);
+      return `<b class="big">${fmt(co2e(v.ref, v.kg), 2)} t CO₂e</b>` +
+        (r.months ? `<span class="wn">Kontrola szczelności co ${r.months} miesięcy</span> (${r.reason}).<br>Operator zakłada kartę urządzenia w CRO w ciągu 15 dni.`
+                  : `<span class="ok">Brak obowiązkowej kontroli szczelności</span>: ${r.reason}.`);
+    } },
+  { id: "sh", title: "Przegrzanie i dochłodzenie",
+    f: [["ref", "Czynnik", "sel", "R32", PT_REFS.map(k => [k, k])], ["mode", "Pomiar", "sel", "sh", [["sh", "przegrzanie (ssanie)"], ["sc", "dochłodzenie (ciecz)"]]],
+        ["p", "Ciśnienie z manometru [bar]", "num", 8.4], ["t", "Temperatura rury [°C]", "num", 12]],
+    run(v) {
+      const pa = v.p + P_ATM, ts = tsat(v.ref, pa);
+      const x = v.mode === "sh" ? v.t - ts : ts - v.t;
+      const lo = v.mode === "sh" ? 3 : 2, hi = v.mode === "sh" ? 10 : 8;
+      const ocena = x < lo ? `<span class="no">nisko</span>${v.mode === "sh" ? " — ryzyko cieczy na ssaniu" : ""}` : x > hi ? `<span class="wn">wysoko</span>` : `<span class="ok">zakres typowy</span>`;
+      const warn = pa < REF[v.ref].pt[0] || pa > REF[v.ref].pt[REF[v.ref].pt.length - 1] ? "<br><span class='wn'>Ciśnienie poza zakresem tabeli (−30…60 °C): wynik jest ekstrapolacją.</span>" : "";
+      return `<b class="big">${v.mode === "sh" ? "SH" : "SC"} = ${fmt(x, 1)} K</b>p abs = ${fmt(pa, 2)} bar · T nasycenia = ${fmt(ts, 1)} °C · ${ocena}${warn}<br>Zakresy orientacyjne; obowiązują wartości producenta.`;
+    } },
+  { id: "charge", title: "Doładowanie czynnika",
+    f: [["ref", "Czynnik", "sel", "R32", ["R32", "R410A", "R454B"].map(k => [k, k])], ["fab", "Napełnienie fabryczne [kg]", "num", 1.1],
+        ["pre", "Długość fabryczna [m]", "num", 7.5], ["L", "Długość instalacji [m]", "num", 15], ["g", "Doładowanie [g/m]", "num", 20]],
+    run(v) {
+      const add = addCharge(v.L, v.pre, v.g), tot = v.fab + add / 1000;
+      return `<b class="big">+ ${fmt(add, 0)} g</b>Całość: ${fmt(tot, 2)} kg = ${fmt(co2e(v.ref, tot), 2)} t CO₂e. Wpisz obie wartości na etykiecie.`;
+    } },
+  { id: "flow", title: "Przepływ i prędkość w rurze",
+    f: [["P", "Moc [kW]", "num", 8], ["dT", "ΔT zasilanie–powrót [K]", "num", 5], ["pipe", "Rura", "sel", "1", PIPES.map((p, i) => [String(i), p[0] + " (dw " + fmt(p[1], 1) + " mm)"])]],
+    run(v) {
+      const V = flowM3h(v.P, v.dT), p = PIPES[+v.pipe], w = velocity(V, p[1]);
+      const ok = w <= 1.0 ? (w >= 0.3 ? `<span class="ok">prędkość w zakresie</span>` : `<span class="wn">rura przewymiarowana</span>`) : `<span class="no">za duża prędkość — większa średnica</span>`;
+      const best = PIPES.find(q => velocity(V, q[1]) <= 1.0);
+      return `<b class="big">${fmt(V, 2)} m³/h</b>${fmt(V * 1000 / 60, 1)} l/min · v = ${fmt(w, 2)} m/s w ${p[0]} · ${ok}` +
+        (best ? `<br>Najmniejsza rura z listy z v ≤ 1,0 m/s: ${best[0]}.` : "<br>Żadna rura z listy nie spełnia v ≤ 1,0 m/s.");
+    } },
+  { id: "biv", title: "Punkt biwalentny",
+    f: [["qd", "Obciążenie projektowe [kW]", "num", 8], ["te", "Strefa klimatyczna", "sel", "-20", ZONES],
+        ["p1", "Moc pompy przy −7 °C [kW]", "num", 5.5], ["p2", "Moc pompy przy +7 °C [kW]", "num", 8]],
+    run(v) {
+      const te = +v.te, t = bivalent(v.qd, te, 15, -7, v.p1, 7, v.p2);
+      const valid = isFinite(t) && t > te - 30 && t < 15;
+      return (valid ? `<b class="big">θbiw = ${fmt(t, 1)} °C</b>Moc pompy przy θe: ${fmt(v.p1 + (v.p2 - v.p1) / 14 * (te + 7), 1)} kW, brakuje ${fmt(Math.max(0, v.qd - (v.p1 + (v.p2 - v.p1) / 14 * (te + 7))), 1)} kW (źródło szczytowe).`
+                    : `<b class="big">—</b><span class="wn">Linie się nie przecinają w zakresie ogrzewania. Sprawdź dane.</span>`) + bivalentSvg(v.qd, te, v.p1, v.p2, valid ? t : null);
+    } },
+  { id: "bh", title: "Sondy gruntowe",
+    f: [["Q", "Moc grzewcza [kW]", "num", 10], ["cop", "COP (B0/W35)", "num", 4.5], ["q", "Moc jednostkowa gruntu [W/m]", "num", 45]],
+    run(v) {
+      const L = boreholeLength(v.Q, v.cop, v.q);
+      return `<b class="big">${fmt(L, 0)} m sond</b>Moc z gruntu: ${fmt(v.Q * (1 - 1 / v.cop), 2)} kW · np. ${Math.ceil(L / 100)} × ${fmt(L / Math.ceil(L / 100), 0)} m, rozstaw ≥ 6 m. Powyżej 30 m głębokości: projekt robót geologicznych.`;
+    } },
+  { id: "press", title: "Próba azotem: korekta temperatury",
+    f: [["p1", "Ciśnienie na początku [bar, manometr]", "num", 40], ["t1", "Temperatura na początku [°C]", "num", 25],
+        ["t2", "Temperatura na końcu [°C]", "num", 15], ["p2", "Ciśnienie na końcu [bar, manometr]", "num", 38.6]],
+    run(v) {
+      const e = pressureAt(v.p1, v.t1, v.t2), d = v.p2 - e;
+      const ver = Math.abs(d) <= 0.2 ? `<span class="ok">zmiana wyjaśniona temperaturą</span>` : d < 0 ? `<span class="no">spadek większy niż z temperatury — szukaj nieszczelności</span>` : `<span class="wn">ciśnienie wyższe niż oczekiwane — sprawdź pomiar temperatury</span>`;
+      return `<b class="big">oczekiwane ${fmt(e, 2)} bar</b>Różnica pomiaru: ${fmt(d, 2)} bar · ${ver}<br>Tolerancja 0,2 bar przyjęta dla manometru cyfrowego; stosuj kryterium z procedury.`;
+    } },
+  { id: "lim", title: "Limit napełnienia czynnikiem palnym",
+    f: [["ref", "Czynnik", "sel", "R32", ["R32", "R454B", "R290"].map(k => [k, k + " (LFL " + fmt(REF[k].lfl, 3) + ")"])],
+        ["h0", "Montaż jednostki", "sel", "sciana", [["podloga", "podłogowa (0,6 m)"], ["okno", "okienna (1,0 m)"], ["sciana", "ścienna (1,8 m)"], ["sufit", "sufitowa (2,2 m)"]]],
+        ["A", "Powierzchnia pomieszczenia [m²]", "num", 20], ["m", "Napełnienie urządzenia [kg]", "num", 1.2]],
+    run(v) {
+      const lfl = REF[v.ref].lfl, mx = chargeLimit(lfl, H0[v.h0], v.A), amin = minArea(lfl, H0[v.h0], v.m);
+      return `<b class="big">m_max = ${fmt(mx, 2)} kg</b>Minimalna powierzchnia dla ${fmt(v.m, 2)} kg: ${fmt(amin, 1)} m² · ` +
+        (v.m <= mx ? `<span class="ok">napełnienie mieści się w limicie</span>` : `<span class="no">przekroczony limit — potrzebne środki dodatkowe wg instrukcji</span>`) +
+        `<br>Wzór podstawowy PN-EN 378-1 / PN-EN IEC 60335-2-40. Decyduje instrukcja urządzenia.`;
+    } },
+  { id: "noise", title: "Hałas jednostki zewnętrznej",
+    f: [["lw", "Moc akustyczna L_W [dB(A)]", "num", 55], ["r", "Odległość [m]", "num", 5],
+        ["q", "Ustawienie", "sel", "4", [["2", "na gruncie, swobodnie (Q = 2)"], ["4", "przy ścianie (Q = 4)"], ["8", "w narożniku (Q = 8)"]]], ["n", "Liczba jednakowych jednostek", "num", 1]],
+    run(v) {
+      const lp = soundAt(v.lw, v.r, +v.q) + 10 * Math.log10(Math.max(1, v.n));
+      return `<b class="big">L_p = ${fmt(lp, 1)} dB(A)</b>` + (lp <= 40 ? `<span class="ok">poniżej nocnego limitu 40 dB(A)</span>` : lp <= 50 ? `<span class="wn">powyżej nocnego limitu 40 dB(A), poniżej dziennego</span>` : `<span class="no">powyżej 50 dB(A)</span>`) +
+        `<br>Limity dla terenów zabudowy jednorodzinnej; ocena dotyczy granicy działki lub okna sąsiada.`;
+    } },
+  { id: "dew", title: "Punkt rosy",
+    f: [["t", "Temperatura powietrza [°C]", "num", 24], ["rh", "Wilgotność względna [%]", "num", 60]],
+    run(v) { const d = dewPoint(v.t, Math.min(100, Math.max(1, v.rh))); return `<b class="big">${fmt(d, 1)} °C</b>Powierzchnie zimniejsze niż ${fmt(d, 1)} °C będą rosić. Zasilanie chłodzenia podłogowego trzymaj co najmniej 1–2 K wyżej.`; } },
+  { id: "curve", title: "Krzywa grzewcza (liniowa)",
+    f: [["te", "Strefa klimatyczna", "sel", "-20", ZONES], ["ts", "Zasilanie projektowe [°C]", "num", 35], ["to", "Temperatura zewnętrzna [°C]", "num", 0]],
+    run(v) { return `<b class="big">${fmt(heatCurve(20, +v.te, v.ts, v.to), 1)} °C</b>Punkt stały: 20 °C zasilania przy 20 °C na zewnątrz.`; } },
+  { id: "amp", title: "Prąd zasilania",
+    f: [["P", "Moc czynna [kW]", "num", 6], ["ph", "Zasilanie", "sel", "3", [["1", "1-fazowe 230 V"], ["3", "3-fazowe 400 V"]]], ["cf", "cos φ", "num", 0.95]],
+    run(v) { return `<b class="big">${fmt(current(v.P, +v.ph, v.cf), 1)} A</b>Zabezpieczenie i przekrój dobierz wg instrukcji urządzenia, sposobu ułożenia przewodu i spadku napięcia.`; } },
+];
+
+function bivalentSvg(qd, te, p1, p2, tb) {
+  const W = 320, H = 170, x0 = 34, y0 = 145, t0 = te - 2, t1 = 18;
+  const pmax = Math.max(qd, p2 + (p2 - p1) / 14 * 11, 1) * 1.1;
+  const X = t => x0 + (t - t0) / (t1 - t0) * (W - x0 - 10), Y = p => y0 - Math.max(0, p) / pmax * (y0 - 12);
+  const hp = t => p1 + (p2 - p1) / 14 * (t + 7);
+  let s = `<svg viewBox="0 0 ${W} ${H + 12}" width="${W}" style="margin-top:10px;max-width:100%">`;
+  s += `<line x1="${x0}" y1="${y0}" x2="${W - 6}" y2="${y0}" stroke="#666"/><line x1="${x0}" y1="${y0}" x2="${x0}" y2="6" stroke="#666"/>`;
+  for (let t = Math.ceil(t0 / 5) * 5; t <= t1; t += 5) s += `<text x="${X(t)}" y="${y0 + 14}" fill="#888" font-size="10" text-anchor="middle">${t}</text>`;
+  s += `<text x="${x0 - 4}" y="${Y(qd) + 3}" fill="#888" font-size="10" text-anchor="end">${fmt(qd, 0)}</text>`;
+  s += `<line x1="${X(te)}" y1="${Y(qd)}" x2="${X(15)}" y2="${Y(0)}" stroke="#FF7A45" stroke-width="2.5"/>`;
+  s += `<line x1="${X(t0)}" y1="${Y(hp(t0))}" x2="${X(t1)}" y2="${Y(hp(t1))}" stroke="#4DA3FF" stroke-width="2.5"/>`;
+  if (tb != null) s += `<circle cx="${X(tb)}" cy="${Y(loadAt(qd, te, 15, tb))}" r="5" fill="#FFD60A"/><line x1="${X(tb)}" y1="${Y(loadAt(qd, te, 15, tb))}" x2="${X(tb)}" y2="${y0}" stroke="#FFD60A" stroke-dasharray="3 3"/>`;
+  s += `<text x="${W - 8}" y="16" fill="#FFB08A" font-size="10" text-anchor="end">budynek</text><text x="${W - 8}" y="30" fill="#9CC8FF" font-size="10" text-anchor="end">pompa ciepła</text>`;
+  return s + `</svg>`;
+}
+
+function calcCard(c) {
+  const card = el("div", "card");
+  card.appendChild(el("h3", null, c.title));
+  const inputs = {};
+  const out = el("div", "out");
+  const upd = () => {
+    const v = {};
+    for (const f of c.f) {
+      const i = inputs[f[0]];
+      v[f[0]] = f[2] === "num" ? parseFloat(String(i.value).replace(",", ".")) : f[2] === "chk" ? i.checked : i.value;
+    }
+    const bad = c.f.some(f => f[2] === "num" && !isFinite(v[f[0]]));
+    try { out.innerHTML = bad ? `<span class="wn">Uzupełnij wszystkie pola liczbami.</span>` : c.run(v); }
+    catch (e) { out.innerHTML = `<span class="no">Nie da się policzyć dla tych danych.</span>`; }
+  };
+  for (const f of c.f) {
+    const w = el("div", "fld" + (f[2] === "chk" ? " chk" : ""));
+    const id = "c-" + c.id + "-" + f[0];
+    const lab = el("label", null, f[1]); lab.htmlFor = id;
+    let i;
+    if (f[2] === "sel") { i = el("select"); for (const o of f[4]) { const op = el("option", null, o[1]); op.value = o[0]; i.appendChild(op); } i.value = f[3]; }
+    else if (f[2] === "chk") { i = el("input"); i.type = "checkbox"; i.checked = f[3]; }
+    else { i = el("input"); i.type = "text"; i.inputMode = "decimal"; i.value = String(f[3]).replace(".", ","); }
+    i.id = id; i.oninput = upd; i.onchange = upd;
+    inputs[f[0]] = i;
+    if (f[2] === "chk") { w.appendChild(i); w.appendChild(lab); } else { w.appendChild(lab); w.appendChild(i); }
+    card.appendChild(w);
+  }
+  card.appendChild(out);
+  upd();
+  return card;
+}
+function screenKalk(root) {
+  const intro = el("div", "card");
+  intro.appendChild(el("h1", null, "Kalkulatory instalatora"));
+  intro.appendChild(el("p", null, "Wzory z kursu w wersji roboczej. Wyniki są pomocą przy nauce i szacunkach. Nie zastępują instrukcji producenta, projektu ani obliczeń normowych."));
+  root.appendChild(intro);
+  const g = el("div", "calc-grid");
+  for (const c of CALCS) g.appendChild(calcCard(c));
+  root.appendChild(g);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   15. ŚCIĄGA
+   ═══════════════════════════════════════════════════════════════ */
+function screenSciaga(root) {
+  const add = (t, h) => { const c = el("div", "card"); c.appendChild(el("h2", null, t)); c.appendChild(html("div", null, h)); root.appendChild(c); };
+  add("Ciśnienie nasycenia: wskazanie manometru [bar]",
+    `<p>Nadciśnienie (manometr) = ciśnienie bezwzględne − 1,013 bar. Wartości przybliżone do nauki; w pracy korzystaj z tabel producenta czynnika lub manometru cyfrowego.</p>` +
+    `<div class="tbl"><table><tr><th class="n">T [°C]</th>${PT_REFS.map(r => `<th class="n">${r}</th>`).join("")}</tr>` +
+    PT_T.map((t, i) => `<tr><td class="n">${t}</td>${PT_REFS.map(r => `<td class="n">${fmt(REF[r].pt[i] - P_ATM, 2)}</td>`).join("")}</tr>`).join("") + `</table></div>`);
+  add("Czynniki: GWP, klasy, LFL",
+    tbl(["Czynnik", "GWP (AR4)", "Klasa", "LFL [kg/m³]", "F-gaz", "Uwagi"],
+      Object.keys(REF).map(k => [k, String(REF[k].gwp), REF[k].cls, REF[k].lfl ? fmt(REF[k].lfl, 3) : "—", REF[k].fgas ? "tak" : "nie", REF[k].note])));
+  add("Kontrole szczelności i zakazy (rozp. 2024/573)",
+    tbl(["Ilość", "Kontrola", "Z systemem wykrywania"], [["< 5 t CO₂e", "—", "—"], ["5–50 t", "12 mies.", "24 mies."], ["50–500 t", "6 mies.", "12 mies."], ["≥ 500 t", "3 mies.", "6 mies."]]) +
+    `<p>Hermetyczne (oznakowane) poniżej 10 t CO₂e: zwolnione. Po naprawie wycieku: ponowna kontrola w ciągu miesiąca. Karta urządzenia w CRO: 15 dni.</p>`);
+  add("Momenty dokręcania kielichów (typowe)",
+    tbl(["Średnica", "Nm"], [["1/4″", "14–18"], ["3/8″", "33–42"], ["1/2″", "50–62"], ["5/8″", "63–77"], ["3/4″", "90–110"]]) + `<p class="muted">Obowiązuje instrukcja urządzenia.</p>`);
+  add("Wzory",
+    `<div class="f">t CO₂e = kg · GWP / 1000
+p_abs = p_man + 1,013 bar
+COP_C = T_skr / (T_skr − T_par)            [K]
+V [m³/h] = P [kW] · 0,86 / ΔT [K]
+v = V / (π d² / 4)
+Q_gruntu = Q · (1 − 1/COP)
+m_max = 2,5 · LFL^1,25 · h₀ · √A
+p₂ = (p₁ + 1,013) · T₂/T₁ − 1,013           [K]
+L_p = L_W + 10 · log(Q / 4πr²)
+I = P / (√3 · 400 · cos φ)   |   P / (230 · cos φ)</div>`);
+  add("Przeliczenia",
+    tbl(["Wielkość", "Przeliczenie"], [["ciśnienie", "1 bar = 100 kPa = 0,1 MPa ≈ 14,5 psi"], ["próżnia", "1 µm Hg = 0,1333 Pa; 500 µm ≈ 67 Pa ≈ 0,67 mbar"],
+      ["moc", "1 kW = 3412 BTU/h; 1 TR = 3,517 kW"], ["temperatura", "T [K] = t [°C] + 273,15; t [°F] = 1,8 · t [°C] + 32"],
+      ["strefy θe", "I −16 · II −18 · III −20 · IV −22 · V −24 °C"]]));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   16. POSTĘPY
+   ═══════════════════════════════════════════════════════════════ */
+function screenPostepy(root) {
+  const t = totals();
+  const card = el("div", "card");
+  card.appendChild(el("h1", null, "Postępy"));
+  const st = el("div", "stats");
+  const stat = (n, l) => { const b = el("div", "stat"); b.appendChild(el("div", "stat-n", n)); b.appendChild(el("div", "stat-l", l)); st.appendChild(b); };
+  stat(passedCount() + "/" + COURSE.length, "zaliczone moduły");
+  stat(String(t.seen), "rozwiązane zadania");
+  stat(t.seen ? Math.round(t.ok / t.seen * 100) + "%" : "—", "skuteczność");
+  stat(State.exam ? State.exam.score + "/" + State.exam.total : "—", "najlepszy egzamin");
+  card.appendChild(st);
+  root.appendChild(card);
+
+  const list = el("div", "card");
+  list.appendChild(el("h2", null, "Moduły"));
+  COURSE.forEach((m, i) => {
+    const s = modStats(m.id), p = modProgress(m.id), acc = s.seen ? s.ok / s.seen : 0;
+    const row = el("div", "skill"); row.style.margin = "10px 0 14px";
+    const top = el("div", "row");
+    top.appendChild(el("b", null, (i + 1) + ". " + m.title));
+    top.appendChild(el("div", "spacer"));
+    top.appendChild(el("span", "muted", s.seen ? Math.round(acc * 100) + "% z " + s.seen + " zadań" + (p.passed ? " · zaliczony" : "") : "brak zadań"));
+    row.appendChild(top);
+    const bar = el("div", "bar" + (acc >= 0.75 ? " good" : "")); bar.style.marginTop = "6px";
+    const f = el("i"); f.style.width = (acc * 100) + "%"; bar.appendChild(f); row.appendChild(bar);
+    list.appendChild(row);
+  });
+  root.appendChild(list);
+
+  const rc = el("div", "card");
+  rc.appendChild(el("p", null, "Postęp zapisuje się tylko w tej przeglądarce."));
+  rc.appendChild(btn("Wyzeruj postęp", "danger sm", () => {
+    if (!confirm("Usunąć cały postęp kursu, wyniki i zaświadczenie?")) return;
+    State = freshState();
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    Session.active = false; Session.summary = null; UI.module = null; render();
+  }));
+  root.appendChild(rc);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   17. NAWIGACJA
+   ═══════════════════════════════════════════════════════════════ */
+const TABS = [["kurs", "Kurs", screenKurs], ["trening", "Trening", screenTrening], ["kalk", "Kalkulatory", screenKalk], ["sciaga", "Ściąga", screenSciaga], ["postepy", "Postępy", screenPostepy]];
+function renderNav() {
+  const nav = document.getElementById("nav"); nav.innerHTML = "";
+  for (const [id, label] of TABS) {
+    const b = el("button", UI.tab === id ? "on" : "", label);
+    b.onclick = () => {
+      if (Session.active && UI.tab !== id && !confirm("Przerwać bieżącą sesję?")) return;
+      if (UI.tab !== id) { Session.active = false; Session.summary = null; }
+      if (id === "kurs" && UI.tab === "kurs") UI.module = null;
+      UI.tab = id; render(); window.scrollTo(0, 0);
+    };
+    nav.appendChild(b);
+  }
+}
+function renderHud() {
+  const h = document.getElementById("hud"); h.innerHTML = "";
+  const t = totals();
+  const chip = (l, v) => { const c = el("div", "chip"); c.appendChild(document.createTextNode(l + " ")); c.appendChild(el("b", null, v)); h.appendChild(c); };
+  chip("moduły", passedCount() + "/" + COURSE.length);
+  chip("skuteczność", t.seen ? Math.round(t.ok / t.seen * 100) + "%" : "—");
+}
+function render() {
+  renderNav(); renderHud();
+  const root = document.getElementById("app"); root.innerHTML = "";
+  for (const [id, , fn] of TABS) if (id === UI.tab) fn(root);
+}
+
+load();
+bindKeys();
+render();
+</script>
+</body>
+</html>
