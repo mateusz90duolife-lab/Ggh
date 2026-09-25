@@ -100,13 +100,19 @@ i potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu.
 
 ## Kurs pomp ciepła i klimatyzacji (`pompy.html`)
 
-Otwórz plik w przeglądarce. Kurs ma pięć zakładek: **Kurs**, **Trening**,
-**Kalkulatory**, **Ściąga** i **Postępy**.
+Otwórz plik w przeglądarce. Aplikacja ma sześć zakładek: **Kurs**, **Nauka**,
+**Egzamin**, **Kalkulatory**, **Ściąga** i **Postępy**.
 
 Dwanaście modułów w czterech częściach: fizyka i czynniki, projekt
 i dobór, montaż i uruchomienie, automatyka i serwis. Każdy moduł to
 teoria ze schematami, ćwiczenia i sprawdzian z progiem 6 z 8, który
 otwiera kolejny moduł. Egzamin końcowy ma 24 zadania i próg 19.
+
+**Nauka** to trening przeplatany, powtórka błędów i baza 135 pytań
+z wyszukiwarką. **Egzamin** to egzamin próbny w warunkach egzaminacyjnych:
+limit czasu, wynik dopiero po zakończeniu, mapa pytań, flagi do sprawdzenia
+i przegląd odpowiedzi z objaśnieniami. Przerwany egzamin wznawia się po
+odświeżeniu strony.
 
 Zadania obliczeniowe (przegrzanie, próba azotem, punkt biwalentny, limit
 napełnienia R290, hałas, sondy gruntowe i inne) są generowane za każdym

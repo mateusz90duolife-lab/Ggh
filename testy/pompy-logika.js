@@ -226,11 +226,11 @@ finish("test", "m1", 2, TEST_LEN);
 chk("gorsza poprawka nie odbiera zaliczenia ani najlepszego wyniku", [modProgress("m1").passed, modProgress("m1").best], [true, TEST_PASS]);
 for (const m of COURSE) modProgress(m.id).passed = true;
 chk("egzamin otwiera się po zaliczeniu wszystkich modułów", examUnlocked(), true);
-finish("exam", null, EXAM_PASS - 1, 24);
+applyFinal(EXAM_PASS - 1, 24);
 chk("egzamin poniżej progu: kurs nieukończony", courseDone(), false);
-finish("exam", null, EXAM_PASS + 2, 24);
+applyFinal(EXAM_PASS + 2, 24);
 chk("egzamin zdany: kurs ukończony", courseDone(), true);
-finish("exam", null, 3, 24);
+applyFinal(3, 24);
 chk("słabsza powtórka egzaminu nie obniża wyniku", [State.exam.score, State.exam.passed], [EXAM_PASS + 2, true]);
 
 head("7. Trening przeplatany");
@@ -249,6 +249,62 @@ State.stats = { m1: { seen: 100, ok: 100 }, m2: { seen: 100, ok: 100 }, m3: { se
 let weak = 0, strong = 0;
 for (let k = 0; k < 200; k++) for (const s of trainingQueue(TRAIN_LEN)) { if (s.mid === "m3") weak++; if (s.mid === "m1") strong++; }
 chk("słaby moduł pojawia się częściej niż opanowany", weak > strong * 1.5, true);
+
+
+head("8. Powtórka błędów");
+State = freshState();
+const spB = { mid: "m2", bank: 3 }, spG = { mid: "m10", gen: "superheat" };
+noteAnswer(spB, false); noteAnswer(spG, false);
+chk("błędne odpowiedzi trafiają do powtórki", mistakeCount(), 2);
+noteAnswer(spB, true);
+chk("jedna poprawna odpowiedź nie wystarcza", mistakeCount(), 2);
+noteAnswer(spB, true);
+chk("dwie poprawne z rzędu usuwają pytanie z powtórki", mistakeCount(), 1);
+noteAnswer(spG, true); noteAnswer(spG, false);
+chk("błąd po poprawnej odpowiedzi zeruje licznik", State.mistakes[specKey(spG)].box, 0);
+chk("zadanie obliczeniowe wraca jako ten sam typ z nowymi danymi", mistakesQueue(10), [{ mid: "m10", gen: "superheat" }]);
+State.mistakes["m1:b:999"] = { spec: { mid: "m1", bank: 999 }, box: 0, t: 0 };
+chk("nieistniejące pytanie nie trafia do kolejki powtórki", mistakesQueue(10).length, 1);
+chk("statystyki modułów liczą odpowiedzi z powtórki", modStats("m2").seen, 3);
+
+head("9. Egzamin próbny");
+let mqOk = true;
+for (let k = 0; k < 100 && mqOk; k++) {
+  for (const v of ["full", "quick"]) {
+    const q = mockQueue(MOCKS[v].n, null);
+    const b = q.filter(s => s.bank != null).map(specKey);
+    if (q.length !== MOCKS[v].n) { bad(v + ": " + q.length + " pytań zamiast " + MOCKS[v].n); mqOk = false; }
+    if (new Set(b).size !== b.length) { bad(v + ": powtórzone pytanie"); mqOk = false; }
+  }
+  for (const part of PARTS) {
+    const q = mockQueue(MOCKS.part.n, part);
+    if (q.length !== MOCKS.part.n || q.some(s => COURSE_BY_ID[s.mid].part !== part)) { bad("egzamin z części " + part + ": złe pytania"); mqOk = false; }
+  }
+}
+if (mqOk) ok("pełny, szybki i z każdej części: właściwa liczba pytań, bez powtórzeń, z właściwych modułów");
+const full = mockQueue(MOCKS.full.n, null);
+chk("egzamin pełny obejmuje wszystkie 12 modułów", new Set(full.map(s => s.mid)).size, 12);
+chk("części kursu: 4", PARTS.length, 4);
+
+State = freshState();
+State.examRun = buildExam("mock", mockQueue(10, null), 20, 8, "test");
+const run = State.examRun;
+run.qs.forEach((q, k) => { run.answers[k] = k < 7 ? q.correct : (q.correct + 1) % 4; });
+chk("wynik liczy tylko poprawne odpowiedzi", scoreExam(run).ok, 7);
+chk("wyniki modułów sumują się do całości", Object.values(scoreExam(run).per).reduce((a, p) => a + p.n, 0), 10);
+near("pozostały czas na starcie = limit", examLeft(run, run.start), 20 * 60000, 0);
+chk("format czasu", [fmtTime(20 * 60000), fmtTime(61000), fmtTime(-5)], ["20:00", "1:01", "0:00"]);
+finishExam(false);
+chk("zakończony egzamin: 7/10 poniżej progu 8 → niezdany", [State.lastResult.score, State.lastResult.passed, State.examRun], [7, false, null]);
+chk("błędy z egzaminu trafiają do powtórki", mistakeCount() >= 1 && mistakeCount() <= 3, true);
+chk("egzamin zapisany w historii", State.mocks.length, 1);
+chk("egzamin próbny nie wpływa na egzamin końcowy kursu", State.exam, null);
+for (const m of COURSE) modProgress(m.id).passed = true;
+State.examRun = buildExam("final", examQueue(), FINAL_MIN, EXAM_PASS, "final");
+State.examRun.qs.forEach((q, k) => { State.examRun.answers[k] = q.correct; });
+finishExam(false);
+chk("zdany egzamin końcowy w trybie egzaminacyjnym kończy kurs", [courseDone(), State.exam.score], [true, 24]);
+chk("stan egzaminu przeżywa zapis JSON (wznowienie po odświeżeniu)", (() => { const r = buildExam("mock", mockQueue(5, null), 5, 4, "x"); const c = JSON.parse(JSON.stringify(r)); return c.qs.length === 5 && c.qs.every((q, k) => q.correct === r.qs[k].correct && q.options.join() === r.qs[k].options.join()); })(), true);
 
 console.log(FAILS ? "\n" + FAILS + " BŁĘDÓW\n" : "\nWszystkie testy logiki kursu pomp ciepła przeszły.\n");
 process.exit(FAILS ? 1 : 0);

@@ -28,7 +28,7 @@ Postęp zapisuje się w pamięci przeglądarki.
 | | 12. Diagnostyka, serwis i odzysk czynnika | — (diagnoza z tabeli objawów) |
 
 W liczbach: 39 lekcji ze schematami, 135 pytań stałych, 17 generatorów
-zadań obliczeniowych i 12 kalkulatorów. Łączny czas nauki to około
+zadań obliczeniowych, 12 kalkulatorów i 4 rodzaje egzaminu. Łączny czas nauki to około
 10–12 godzin.
 
 ## 2. Jak działa kurs
@@ -38,10 +38,34 @@ zadań obliczeniowych i 12 kalkulatorów. Łączny czas nauki to około
 - **Egzamin końcowy** ma 24 zadania, po dwa z każdego modułu, próg 19
   (ok. 80%). Po zdaniu aplikacja wystawia zaświadczenie ukończenia kursu
   do wydruku.
-- **Trening** miesza zadania z otwartych modułów i częściej sięga do tych,
-  w których uczestnik ma niższą skuteczność. Uzasadnienie podziału na kurs
-  liniowy i trening przeplatany opisuje sekcja 9 w [METODYKA.md](METODYKA.md).
-  Te same zasady stosuje trener izometryki.
+- **Nauka** łączy trzy tryby:
+  - **Trening przeplatany** miesza zadania z otwartych modułów i częściej
+    sięga do tych, w których uczestnik ma niższą skuteczność. Uzasadnienie
+    podziału na kurs liniowy i trening przeplatany opisuje sekcja 9 w
+    [METODYKA.md](METODYKA.md).
+  - **Powtórka błędów** zbiera każde źle rozwiązane zadanie z kursu,
+    treningu i egzaminów. Zadanie wypada z listy po dwóch kolejnych
+    poprawnych odpowiedziach. Zadanie obliczeniowe wraca jako ten sam typ
+    z nowymi danymi, więc nie da się zapamiętać samej liczby.
+  - **Baza pytań** pokazuje wszystkie pytania stałe z wyszukiwarką.
+    Odpowiedź jest ukryta do czasu odsłonięcia, żeby najpierw odpowiedzieć
+    z pamięci.
+- **Egzamin** działa jak prawdziwy egzamin: limit czasu, brak informacji
+  zwrotnej do końca, swobodne przechodzenie między pytaniami, flagi „do
+  sprawdzenia”, potwierdzenie z liczbą pytań bez odpowiedzi i automatyczne
+  zakończenie po upływie czasu. Wynik pokazuje podział na moduły i przegląd
+  każdej odpowiedzi z objaśnieniem. Stan zapisuje się po każdej odpowiedzi,
+  więc odświeżenie strony nie przerywa egzaminu, a czas biegnie dalej.
+
+  | Egzamin | Pytania | Czas | Próg |
+  | --- | --- | --- | --- |
+  | pełny | 30 ze wszystkich modułów | 45 min | 80% |
+  | szybki | 15 ze wszystkich modułów | 20 min | 80% |
+  | z części kursu | 20 z wybranej części | 30 min | 80% |
+  | końcowy kursu | 24, po dwa z modułu | 40 min | 19 |
+
+  Egzaminy próbne są dostępne od początku. Egzamin końcowy otwiera się po
+  zaliczeniu wszystkich modułów i jako jedyny daje zaświadczenie.
 - **Kalkulatory** i **Ściąga** to narzędzia robocze z tymi samymi wzorami
   co zadania.
 
@@ -91,6 +115,10 @@ Testy kursu sprawdzają między innymi:
   co aplikacja uznaje za poprawne.
 - **Bramkowanie**: oblany sprawdzian nie otwiera modułu, słabsza poprawka
   nie odbiera zaliczenia.
+- **Powtórka i egzamin**: dwie poprawne odpowiedzi usuwają zadanie
+  z powtórki, egzamin próbny losuje właściwą liczbę pytań bez powtórzeń,
+  przerwany egzamin wznawia się po odświeżeniu, a upływ czasu kończy go
+  automatycznie.
 - **Przebieg w przeglądarce** od pierwszego modułu po zaświadczenie,
   kalkulatory, obsługę klawiatury i widok 390 px bez poziomego
   przewijania.

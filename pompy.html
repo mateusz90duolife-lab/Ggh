@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kurs instalatora pomp ciepła i klimatyzacji</title>
+<title>Kurs pomp ciepła i klimatyzacji</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* ═══════════════════════════════════════════════════════════════
    KURS INSTALATORA POMP CIEPŁA I KLIMATYZACJI — POZIOM ZAAWANSOWANY
@@ -31,19 +33,23 @@
   --bad:       #FF453A;
   --warn:      #FFD60A;
   --radius:    10px;
+  --sans: "Barlow", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  --head: "Barlow Semi Condensed", "Barlow", -apple-system, "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: dark;   /* świadomie jeden, ciemny motyw */
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--sans);
   background: var(--bg); color: var(--txt);
-  min-height: 100vh; font-size: 15px; line-height: 1.55;
+  min-height: 100vh; font-size: 16px; line-height: 1.55; margin: 0;
   -webkit-font-smoothing: antialiased;
 }
 
 .shell { max-width: 1080px; margin: 0 auto; padding: 0 16px 80px; }
 
 .topbar {
-  position: sticky; top: 0; z-index: 50;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
   background: rgba(13,13,13,0.92); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
   display: flex; align-items: center; gap: 14px;
@@ -75,7 +81,8 @@ body {
 .mt { margin-top: 14px; }
 .muted { color: var(--txt-faint); font-size: 13px; margin-top: 8px; }
 
-h1 { font-size: 24px; margin-bottom: 6px; letter-spacing: -0.3px; }
+h1, h2, h3 { font-family: var(--head); text-wrap: balance; }
+h1 { font-size: 26px; margin-bottom: 6px; letter-spacing: -0.3px; }
 h2 { font-size: 19px; margin-bottom: 12px; letter-spacing: -0.2px; }
 h3 { font-size: 15px; margin-bottom: 10px; }
 h4 { font-size: 14px; margin: 16px 0 8px; color: var(--txt); }
@@ -84,7 +91,7 @@ p.lead { color: var(--txt); }
 b, strong { color: var(--txt); }
 a { color: var(--accent); }
 code, .f {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.92em;
+  font-family: var(--mono); font-size: 0.88em;
   background: #000; padding: 2px 6px; border-radius: 4px; color: var(--accent);
 }
 .f { display: block; padding: 10px 14px; margin: 10px 0; overflow-x: auto; white-space: pre; line-height: 1.6; }
@@ -224,6 +231,38 @@ svg text { font-family: inherit; }
 .cert .meta { color: var(--txt-dim); font-size: 13px; margin-top: 4px; }
 .cert .disc { color: var(--txt-faint); font-size: 11px; margin-top: 16px; }
 .cert-seal { font-size: 30px; color: var(--hot); }
+
+/* ───── EGZAMIN ───── */
+.opt.sel { border-color: var(--accent); background: #0d2230; }
+.exam-top { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.timer { font-family: var(--mono); font-size: 24px; font-weight: 500; color: var(--txt); font-variant-numeric: tabular-nums; }
+.timer.low { color: var(--bad); }
+.qmap { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 6px; margin-top: 12px; }
+.qmap button {
+  height: 40px; border-radius: 6px; border: 1px solid var(--line-hi); background: #000; color: var(--txt-dim);
+  font-family: var(--mono); font-size: 13px; cursor: pointer; position: relative;
+}
+.qmap button.ans { background: #10222e; color: var(--accent); border-color: #1d4a63; }
+.qmap button.cur { outline: 2px solid var(--txt); outline-offset: 1px; }
+.qmap button.flag::after { content: ""; position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--txt-faint); margin-top: 10px; }
+.rev { border-top: 1px solid var(--line); padding: 14px 0; }
+.rev .qn { font-family: var(--mono); font-size: 12px; color: var(--txt-faint); }
+.rev .line { margin-top: 4px; font-size: 14px; }
+.rev .line.ok { color: var(--good); }
+.rev .line.no { color: var(--bad); }
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px; }
+.menu-grid .card { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.menu-grid .card .row { margin-top: auto; padding-top: 10px; }
+.big-n { font-family: var(--mono); font-size: 30px; color: var(--txt); font-variant-numeric: tabular-nums; }
+.bq { border-top: 1px solid var(--line); padding: 12px 0; }
+.bq .meta { font-size: 12px; color: var(--txt-faint); margin-bottom: 2px; }
+.bq .ans { margin-top: 8px; padding: 10px 12px; background: var(--bg-soft); border-radius: 8px; font-size: 14px; }
+.bq .ans b { color: var(--good); }
+button:focus-visible, .opt:focus-visible, .qmap button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip.live { border-color: #6a5510; color: var(--warn); cursor: pointer; }
+.chip.live b { color: var(--warn); font-family: var(--mono); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 @media (max-width: 560px) {
   .card { padding: 16px; }
@@ -1605,7 +1644,7 @@ const EXAM_PER_MOD = 2, EXAM_PASS = 19;   // 24 zadania, próg ok. 80%
    8. STAN I MODEL POSTĘPU
    ═══════════════════════════════════════════════════════════════ */
 const STORE_KEY = "hvac.kurs.v1";
-function freshState() { return { mods: {}, exam: null, stats: {}, name: "", train: { sessions: 0 } }; }
+function freshState() { return { mods: {}, exam: null, stats: {}, name: "", train: { sessions: 0 }, mistakes: {}, mocks: [], examRun: null, lastResult: null }; }
 let State = freshState();
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(State)); } catch (e) { /* tryb prywatny */ } }
 function load() {
@@ -1623,6 +1662,24 @@ function modStats(id) {
   return State.stats[id];
 }
 function record(mid, ok) { const s = modStats(mid); s.seen++; if (ok) s.ok++; }
+
+/* Powtórka błędów: źle rozwiązane zadanie trafia do powtórki i wypada
+   z niej po dwóch kolejnych poprawnych odpowiedziach. Dla zadań
+   obliczeniowych zapamiętany jest typ zadania, więc wraca z nowymi danymi. */
+const MISTAKE_CLEAR = 2;
+function specKey(sp) { return sp.mid + (sp.gen ? ":g:" + sp.gen : ":b:" + sp.bank); }
+function cleanSpec(sp) { return sp.gen ? { mid: sp.mid, gen: sp.gen } : { mid: sp.mid, bank: sp.bank }; }
+function noteAnswer(sp, ok) {
+  record(sp.mid, ok);
+  const k = specKey(sp);
+  if (!ok) State.mistakes[k] = { spec: cleanSpec(sp), box: 0, t: Date.now() };
+  else if (State.mistakes[k] && ++State.mistakes[k].box >= MISTAKE_CLEAR) delete State.mistakes[k];
+}
+function mistakeCount() { return Object.keys(State.mistakes).length; }
+function mistakesQueue(n) {
+  const valid = sp => COURSE_BY_ID[sp.mid] && (sp.gen ? !!GEN[sp.gen] : !!COURSE_BY_ID[sp.mid].bank[sp.bank]);
+  return Object.values(State.mistakes).filter(x => valid(x.spec)).sort((a, b) => a.box - b.box || a.t - b.t).slice(0, n).map(x => x.spec);
+}
 function moduleIndex(id) { for (let i = 0; i < COURSE.length; i++) if (COURSE[i].id === id) return i; return -1; }
 function moduleUnlocked(i) { return i === 0 || modProgress(COURSE[i - 1].id).passed; }
 function passedCount() { let n = 0; for (const m of COURSE) if (modProgress(m.id).passed) n++; return n; }
@@ -1698,13 +1755,14 @@ function trainingQueue(n) {
 /* ═══════════════════════════════════════════════════════════════
    10. SESJA
    ═══════════════════════════════════════════════════════════════ */
-const UI = { tab: "kurs", module: null };
+const UI = { tab: "kurs", module: null, nauka: null, examView: null, reviewAll: false, resetAsk: false, examPart: null };
+function homeTab(mode) { return mode === "trening" || mode === "powtorka" ? "nauka" : "kurs"; }
 const Session = { active: false, mode: null, moduleId: null, queue: [], i: 0, q: null, spec: null, answered: false, choice: -1, ok: 0, summary: null };
 
 function startSession(o) {
   Object.assign(Session, { active: true, mode: o.mode, moduleId: o.moduleId || null, queue: o.queue, i: 0, ok: 0, summary: null });
   loadQuestion();
-  UI.tab = o.mode === "trening" ? "trening" : "kurs";
+  UI.tab = homeTab(o.mode);
   render();
   window.scrollTo(0, 0);
 }
@@ -1718,7 +1776,7 @@ function answer(idx) {
   Session.answered = true; Session.choice = idx;
   const ok = idx === Session.q.correct;
   if (ok) Session.ok++;
-  record(Session.spec.mid, ok);
+  noteAnswer(Session.spec, ok);
   save(); render();
 }
 function nextStep() {
@@ -1738,21 +1796,24 @@ function finishSession() {
     p.best = Math.max(p.best, s.ok);
     if (s.ok >= TEST_PASS) p.passed = true;
   }
-  if (s.mode === "exam") {
-    const passed = s.ok >= EXAM_PASS;
-    if (!State.exam || s.ok > State.exam.score || (passed && !State.exam.passed))
-      State.exam = { score: s.ok, total: s.len, date: Date.now(), passed: passed || !!(State.exam && State.exam.passed) };
-  }
   if (s.mode === "trening") State.train.sessions++;
   save();
 }
 
 function bindKeys() {
   document.addEventListener("keydown", e => {
-  if (!Session.active || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  const n = parseInt(e.key, 10);
-  if (!Session.answered && n >= 1 && n <= Session.q.options.length) answer(n - 1);
-  else if (Session.answered && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); nextStep(); }
+    if (/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    const n = parseInt(e.key, 10);
+    const r = State.examRun;
+    if (UI.tab === "egzamin" && r) {
+      if (n >= 1 && n <= r.qs[r.i].options.length) examAnswer(n - 1);
+      else if (e.key === "ArrowRight") examGo(r.i + 1);
+      else if (e.key === "ArrowLeft") examGo(r.i - 1);
+      return;
+    }
+    if (!Session.active || UI.tab !== homeTab(Session.mode)) return;
+    if (!Session.answered && n >= 1 && n <= Session.q.options.length) answer(n - 1);
+    else if (Session.answered && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); nextStep(); }
   });
 }
 
@@ -1820,14 +1881,14 @@ function sessionBar(label, title) {
    12. KURS
    ═══════════════════════════════════════════════════════════════ */
 function screenKurs(root) {
-  if (Session.active && Session.mode !== "trening") {
+  if (Session.active && homeTab(Session.mode) === "kurs") {
     const m = COURSE_BY_ID[Session.moduleId];
-    const lbl = { drill: "Ćwiczenia", test: "Sprawdzian", exam: "Egzamin końcowy" }[Session.mode];
+    const lbl = { drill: "Ćwiczenia", test: "Sprawdzian" }[Session.mode];
     root.appendChild(sessionBar(lbl, m ? "Moduł " + (moduleIndex(m.id) + 1) + ". " + m.title : "Wszystkie moduły"));
     renderQuestion(root);
     return;
   }
-  if (Session.summary && Session.summary.mode !== "trening") { courseSummary(root); return; }
+  if (Session.summary && homeTab(Session.summary.mode) === "kurs") { courseSummary(root); return; }
   if (UI.module) { moduleDetail(root, UI.module); return; }
   syllabus(root);
 }
@@ -1872,12 +1933,12 @@ function syllabus(root) {
   ex.appendChild(el("div", "mod-num", courseDone() ? "✓" : "★"));
   const eb = el("div", "mod-body");
   eb.appendChild(el("div", "mod-title", "Egzamin końcowy"));
-  eb.appendChild(el("div", "mod-meta", (COURSE.length * EXAM_PER_MOD) + " zadań ze wszystkich modułów · próg " + EXAM_PASS +
+  eb.appendChild(el("div", "mod-meta", (COURSE.length * EXAM_PER_MOD) + " zadań ze wszystkich modułów · " + FINAL_MIN + " min · próg " + EXAM_PASS +
     (State.exam ? " · najlepszy wynik " + State.exam.score + "/" + State.exam.total : "")));
   ex.appendChild(eb);
   ex.appendChild(el("div", "mod-badge " + (courseDone() ? "badge-done" : exOpen ? "badge-open" : "badge-lock"),
     courseDone() ? "zdany" : exOpen ? "otwarty" : "zamknięty"));
-  if (exOpen) ex.onclick = () => startSession({ mode: "exam", queue: examQueue() });
+  if (exOpen) ex.onclick = () => startExam("final");
   list.appendChild(ex);
   root.appendChild(list);
 }
@@ -1954,22 +2015,16 @@ function courseSummary(root) {
     if (ok && i + 1 < COURSE.length)
       row.appendChild(btn("Moduł " + (i + 2) + ": " + COURSE[i + 1].title, "", () => { clear(); UI.module = COURSE[i + 1].id; render(); }));
     else if (ok && examUnlocked())
-      row.appendChild(btn("Egzamin końcowy", "", () => { clear(); startSession({ mode: "exam", queue: examQueue() }); }));
+      row.appendChild(btn("Egzamin końcowy", "", () => { clear(); startExam("final"); }));
     row.appendChild(btn(ok ? "Powtórz sprawdzian" : "Powtórz ćwiczenia", ok ? "ghost" : "", () => {
       clear();
       if (ok) startSession({ mode: "test", moduleId: m.id, queue: testQueue(m) });
       else startSession({ mode: "drill", moduleId: m.id, queue: drillQueue(m) });
     }));
     row.appendChild(btn("Spis modułów", "ghost", () => { clear(); UI.module = null; render(); }));
-  } else {
-    const ok = s.ok >= EXAM_PASS;
-    card.appendChild(el("h2", null, ok ? "Egzamin zdany" : "Egzamin niezaliczony"));
-    card.appendChild(bigScore(s, ok));
-    card.appendChild(el("p", null, ok ? "Kurs ukończony. Certyfikat znajdziesz w spisie modułów."
-      : "Próg wynosi " + EXAM_PASS + " z " + s.len + ". Zakładka Postępy pokazuje moduły, w których idzie Ci najsłabiej."));
-    row.appendChild(btn(ok ? "Zobacz certyfikat" : "Spis modułów", "", () => { clear(); UI.module = null; render(); }));
-    if (!ok) row.appendChild(btn("Powtórz egzamin", "ghost", () => { clear(); startSession({ mode: "exam", queue: examQueue() }); }));
   }
+  if (s.mode === "test" && s.ok < TEST_PASS && mistakeCount())
+    row.appendChild(btn("Powtórka błędów (" + mistakeCount() + ")", "ghost", () => { clear(); startSession({ mode: "powtorka", queue: mistakesQueue(TRAIN_LEN) }); }));
   card.appendChild(row);
   root.appendChild(card);
 }
@@ -1992,7 +2047,8 @@ function certificate() {
   inp.style.cssText = "background:#000;border:1px solid var(--line-hi);color:var(--txt);border-radius:7px;padding:8px 10px;font-size:14px;min-width:240px";
   inp.onchange = () => { State.name = inp.value.trim().slice(0, 80); save(); render(); };
   row.appendChild(inp);
-  row.appendChild(btn("Drukuj / zapisz PDF", "ghost sm", () => window.print()));
+  // W osadzonej ramce (np. opublikowana strona) drukowanie jest zablokowane, więc przycisk pokazujemy tylko poza nią.
+  if (window.self === window.top) row.appendChild(btn("Drukuj / zapisz PDF", "ghost sm", () => window.print()));
   box.appendChild(row);
   return box;
 }
@@ -2001,33 +2057,382 @@ function certificate() {
    13. TRENING
    ═══════════════════════════════════════════════════════════════ */
 const TRAIN_LEN = 10;
-function screenTrening(root) {
-  if (Session.active && Session.mode === "trening") {
-    root.appendChild(sessionBar("Trening", "Zadania mieszane z otwartych modułów"));
+
+/* ═══════════════════════════════════════════════════════════════
+   13. NAUKA: trening przeplatany, powtórka błędów, baza pytań
+   ═══════════════════════════════════════════════════════════════ */
+function screenNauka(root) {
+  if (Session.active && homeTab(Session.mode) === "nauka") {
+    root.appendChild(sessionBar(Session.mode === "powtorka" ? "Powtórka błędów" : "Trening",
+      Session.mode === "powtorka" ? "Zadania, na które wcześniej odpowiedziałeś błędnie" : "Zadania mieszane z otwartych modułów"));
     renderQuestion(root); return;
   }
-  const card = el("div", "card");
-  if (Session.summary && Session.summary.mode === "trening") {
-    const s = Session.summary;
-    card.classList.add("center");
-    card.appendChild(el("h2", null, "Sesja zakończona"));
-    card.appendChild(bigScore(s, s.ok / s.len >= 0.75));
-    card.appendChild(el("p", null, "Kolejna sesja częściej sięgnie do modułów, w których masz niższą skuteczność."));
-    const row = el("div", "row mt"); row.style.justifyContent = "center";
-    row.appendChild(btn("Następna sesja", "", () => startSession({ mode: "trening", queue: trainingQueue(TRAIN_LEN) })));
-    row.appendChild(btn("Postępy", "ghost", () => { Session.summary = null; UI.tab = "postepy"; render(); }));
-    card.appendChild(row);
-    root.appendChild(card); return;
-  }
+  if (Session.summary && homeTab(Session.summary.mode) === "nauka") { naukaSummary(root); return; }
+  if (UI.nauka === "baza") { bazaView(root); return; }
+
+  const intro = el("div", "card");
+  intro.appendChild(el("h1", null, "Nauka"));
+  intro.appendChild(el("p", null, "Kurs buduje wiedzę po kolei. Tutaj ją utrwalasz: mieszasz tematy, wracasz do błędów i przeglądasz całą bazę pytań."));
+  root.appendChild(intro);
+
+  const g = el("div", "menu-grid");
   const open = COURSE.filter((m, i) => moduleUnlocked(i)).length;
-  card.appendChild(el("h1", null, "Trening przeplatany"));
-  card.appendChild(el("p", "lead", "Sesja to " + TRAIN_LEN + " zadań wymieszanych z otwartych modułów, z przewagą tych, w których idzie Ci najsłabiej. Dwa zadania z tego samego modułu nie wystąpią po sobie."));
-  card.appendChild(el("p", null, "Kurs buduje wiedzę po kolei, a trening ją utrwala. Mieszanie tematów jest trudniejsze w trakcie, ale daje trwalszą pamięć i lepszy transfer na budowę."));
-  card.appendChild(el("div", "muted", "Dostępne moduły: " + open + " z " + COURSE.length + "."));
-  const row = el("div", "row mt");
-  row.appendChild(btn("Zacznij sesję", "", () => startSession({ mode: "trening", queue: trainingQueue(TRAIN_LEN) })));
+  const c1 = el("div", "card");
+  c1.appendChild(el("h3", null, "Trening przeplatany"));
+  c1.appendChild(el("p", null, TRAIN_LEN + " zadań z otwartych modułów, częściej z tych, w których masz niższą skuteczność. Dwa zadania z jednego modułu nie wystąpią po sobie."));
+  c1.appendChild(el("div", "muted", "Otwarte moduły: " + open + " z " + COURSE.length));
+  const r1 = el("div", "row"); r1.appendChild(btn("Zacznij trening", "", () => startSession({ mode: "trening", queue: trainingQueue(TRAIN_LEN) }))); c1.appendChild(r1);
+  g.appendChild(c1);
+
+  const n = mistakeCount();
+  const c2 = el("div", "card");
+  c2.appendChild(el("h3", null, "Powtórka błędów"));
+  c2.appendChild(el("div", "big-n", String(n)));
+  c2.appendChild(el("p", null, n ? "zadań czeka na powtórkę. Każde wypada z listy po dwóch kolejnych poprawnych odpowiedziach."
+                                 : "Brak zadań do powtórki. Błędy z kursu, treningu i egzaminów trafią tutaj automatycznie."));
+  const r2 = el("div", "row");
+  const b2 = btn("Powtórz " + Math.min(n, TRAIN_LEN) + " zadań", n ? "" : "ghost", () => startSession({ mode: "powtorka", queue: mistakesQueue(TRAIN_LEN) }));
+  b2.disabled = !n; r2.appendChild(b2); c2.appendChild(r2);
+  g.appendChild(c2);
+
+  const total = COURSE.reduce((a, m) => a + m.bank.length, 0);
+  const c3 = el("div", "card");
+  c3.appendChild(el("h3", null, "Baza pytań"));
+  c3.appendChild(el("p", null, "Wszystkie " + total + " pytania stałe z odpowiedziami i objaśnieniami. Najpierw spróbuj odpowiedzieć w myślach, potem odsłoń odpowiedź."));
+  const r3 = el("div", "row"); r3.appendChild(btn("Przeglądaj bazę", "ghost", () => { UI.nauka = "baza"; render(); window.scrollTo(0, 0); })); c3.appendChild(r3);
+  g.appendChild(c3);
+  root.appendChild(g);
+}
+
+function naukaSummary(root) {
+  const s = Session.summary;
+  const card = el("div", "card center");
+  card.appendChild(el("h2", null, s.mode === "powtorka" ? "Powtórka zakończona" : "Trening zakończony"));
+  card.appendChild(bigScore(s, s.ok / s.len >= 0.75));
+  card.appendChild(el("p", null, s.mode === "powtorka"
+    ? "W powtórce zostało " + mistakeCount() + " zadań."
+    : "Kolejna sesja częściej sięgnie do modułów, w których masz niższą skuteczność."));
+  const row = el("div", "row mt"); row.style.justifyContent = "center";
+  if (s.mode === "powtorka" && mistakeCount()) row.appendChild(btn("Kolejna powtórka", "", () => startSession({ mode: "powtorka", queue: mistakesQueue(TRAIN_LEN) })));
+  if (s.mode === "trening") row.appendChild(btn("Następna sesja", "", () => startSession({ mode: "trening", queue: trainingQueue(TRAIN_LEN) })));
+  row.appendChild(btn("Wróć do nauki", "ghost", () => { Session.summary = null; UI.nauka = null; render(); }));
   card.appendChild(row);
   root.appendChild(card);
+}
+
+function bazaView(root) {
+  const head = el("div", "card");
+  head.appendChild(btn("← Nauka", "ghost sm", () => { UI.nauka = null; render(); }));
+  const h = el("h1", null, "Baza pytań"); h.style.marginTop = "14px"; head.appendChild(h);
+  const two = el("div", "two");
+  const f1 = el("div", "fld"); const l1 = el("label", null, "Szukaj w pytaniach i odpowiedziach"); l1.htmlFor = "baza-q";
+  const q = el("input"); q.id = "baza-q"; q.type = "search"; q.placeholder = "np. próżnia, R290, CRO";
+  f1.appendChild(l1); f1.appendChild(q); two.appendChild(f1);
+  const f2 = el("div", "fld"); const l2 = el("label", null, "Moduł"); l2.htmlFor = "baza-m";
+  const sel = el("select"); sel.id = "baza-m";
+  const o0 = el("option", null, "Wszystkie moduły"); o0.value = ""; sel.appendChild(o0);
+  COURSE.forEach((m, i) => { const o = el("option", null, (i + 1) + ". " + m.title); o.value = m.id; sel.appendChild(o); });
+  f2.appendChild(l2); f2.appendChild(sel); two.appendChild(f2);
+  head.appendChild(two);
+  const f3 = el("div", "fld chk"); const all = el("input"); all.type = "checkbox"; all.id = "baza-all";
+  const l3 = el("label", null, "Pokaż od razu wszystkie odpowiedzi"); l3.htmlFor = "baza-all";
+  f3.appendChild(all); f3.appendChild(l3); head.appendChild(f3);
+  const count = el("div", "muted"); head.appendChild(count);
+  root.appendChild(head);
+
+  const list = el("div", "card");
+  root.appendChild(list);
+  const norm = t => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l");
+  const draw = () => {
+    list.innerHTML = "";
+    const needle = norm(q.value.trim());
+    let shown = 0;
+    COURSE.forEach((m, mi) => {
+      if (sel.value && sel.value !== m.id) return;
+      m.bank.forEach((b, bi) => {
+        if (needle && norm(b.q + " " + b.a.join(" ") + " " + b.why).indexOf(needle) < 0) return;
+        shown++;
+        const it = el("div", "bq");
+        it.appendChild(el("div", "meta", "Moduł " + (mi + 1) + " · pytanie " + (bi + 1)));
+        it.appendChild(el("div", null, b.q));
+        const ans = el("div", "ans");
+        const good = el("div"); good.appendChild(el("b", null, "Odpowiedź: ")); good.appendChild(document.createTextNode(b.a[0]));
+        ans.appendChild(good);
+        ans.appendChild(el("div", "muted", b.why));
+        ans.hidden = !all.checked;
+        const t = btn(ans.hidden ? "Pokaż odpowiedź" : "Ukryj odpowiedź", "ghost sm", () => { ans.hidden = !ans.hidden; t.textContent = ans.hidden ? "Pokaż odpowiedź" : "Ukryj odpowiedź"; });
+        t.style.marginTop = "8px";
+        it.appendChild(t); it.appendChild(ans);
+        list.appendChild(it);
+      });
+    });
+    if (!shown) list.appendChild(el("p", null, "Żadne pytanie nie pasuje do wyszukiwania. Zmień słowo albo wybierz wszystkie moduły."));
+    count.textContent = "Pytań: " + shown;
+  };
+  q.oninput = draw; sel.onchange = draw; all.onchange = draw;
+  draw();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   13b. EGZAMIN
+   Tryb egzaminacyjny: limit czasu, brak informacji zwrotnej do
+   końca, swobodne przechodzenie między pytaniami, flagi, przegląd
+   odpowiedzi po zakończeniu. Stan zapisuje się po każdej odpowiedzi,
+   więc odświeżenie strony nie przerywa egzaminu, a czas biegnie dalej.
+   ═══════════════════════════════════════════════════════════════ */
+const MOCKS = {
+  full:  { n: 30, min: 45, label: "Egzamin pełny" },
+  quick: { n: 15, min: 20, label: "Egzamin szybki" },
+  part:  { n: 20, min: 30, label: "Egzamin z części" },
+};
+const MOCK_PASS = 0.8, FINAL_MIN = 40;
+const PARTS = COURSE.map(m => m.part).filter((p, i, a) => a.indexOf(p) === i);
+
+/** Pytania równomiernie ze wszystkich modułów (lub jednej części), bez powtórzeń pytań stałych. */
+function mockQueue(n, part) {
+  const mods = COURSE.filter(m => !part || m.part === part);
+  const used = {}, out = [];
+  let order = [], guard = 0;
+  while (out.length < n && guard++ < 2000) {
+    if (!order.length) order = shuffle(mods);
+    const m = order.pop();
+    const free = m.bank.map((_, i) => i).filter(i => !(used[m.id] && used[m.id].has(i)));
+    if (m.gens.length && (Math.random() < 0.35 || !free.length)) { out.push({ mid: m.id, gen: pick(m.gens) }); continue; }
+    if (!free.length) continue;
+    const i = pick(free);
+    (used[m.id] = used[m.id] || new Set()).add(i);
+    out.push({ mid: m.id, bank: i });
+  }
+  return shuffle(out);
+}
+function buildExam(kind, specs, minutes, pass, label) {
+  return {
+    kind, label, pass, start: Date.now(), limit: minutes * 60000, i: 0, confirm: false,
+    qs: specs.map(sp => Object.assign(makeQuestion(sp), { spec: sp })),
+    answers: specs.map(() => -1), flags: specs.map(() => false),
+  };
+}
+function startExam(kind, variant, part) {
+  let run;
+  if (kind === "final") run = buildExam("final", examQueue(), FINAL_MIN, EXAM_PASS, "Egzamin końcowy kursu");
+  else {
+    const v = MOCKS[variant];
+    const specs = mockQueue(v.n, variant === "part" ? part : null);
+    run = buildExam("mock", specs, v.min, Math.ceil(specs.length * MOCK_PASS), v.label + (variant === "part" ? " " + part : ""));
+  }
+  State.examRun = run; UI.tab = "egzamin"; UI.examView = null;
+  save(); render(); window.scrollTo(0, 0);
+}
+function examLeft(run, now) { return run.start + run.limit - (now == null ? Date.now() : now); }
+function fmtTime(ms) { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
+function examAnswer(k) { const r = State.examRun; if (!r) return; r.answers[r.i] = k; r.confirm = false; save(); render(); }
+function examGo(i) { const r = State.examRun; if (!r || i < 0 || i >= r.qs.length) return; r.i = i; r.confirm = false; save(); render(); }
+function scoreExam(run) {
+  let ok = 0; const per = {};
+  run.qs.forEach((q, k) => {
+    const good = run.answers[k] === q.correct;
+    if (good) ok++;
+    const p = per[q.spec.mid] = per[q.spec.mid] || { ok: 0, n: 0 };
+    p.n++; if (good) p.ok++;
+  });
+  return { ok, total: run.qs.length, per };
+}
+function applyFinal(score, total) {
+  const passed = score >= EXAM_PASS;
+  if (!State.exam || score > State.exam.score || (passed && !State.exam.passed))
+    State.exam = { score, total, date: Date.now(), passed: passed || !!(State.exam && State.exam.passed) };
+}
+function finishExam(timeout) {
+  const run = State.examRun;
+  if (!run) return;
+  const s = scoreExam(run);
+  run.qs.forEach((q, k) => noteAnswer(q.spec, run.answers[k] === q.correct));
+  const used = Math.min(run.limit, Date.now() - run.start);
+  const passed = s.ok >= run.pass;
+  State.lastResult = { kind: run.kind, label: run.label, score: s.ok, total: s.total, pass: run.pass, passed, per: s.per,
+                       used, timeout: !!timeout, date: Date.now(), qs: run.qs, answers: run.answers };
+  State.mocks.unshift({ kind: run.kind, label: run.label, score: s.ok, total: s.total, passed, used, date: Date.now() });
+  State.mocks = State.mocks.slice(0, 20);
+  if (run.kind === "final") applyFinal(s.ok, s.total);
+  State.examRun = null;
+  UI.examView = "result"; UI.reviewAll = false;
+  save();
+}
+function examTick() {
+  const r = State.examRun;
+  if (!r) return;
+  const left = examLeft(r);
+  if (left <= 0) { finishExam(true); UI.tab = "egzamin"; render(); return; }
+  const t = document.getElementById("exam-timer");
+  if (t) { t.textContent = fmtTime(left); t.classList.toggle("low", left < 5 * 60000); }
+  const c = document.getElementById("hud-exam");
+  if (c) c.lastChild.textContent = fmtTime(left);
+}
+
+function screenEgzamin(root) {
+  if (State.examRun) { examRunView(root, State.examRun); return; }
+  if (UI.examView === "result" && State.lastResult) { examResultView(root, State.lastResult); return; }
+  examMenu(root);
+}
+
+function examMenu(root) {
+  const intro = el("div", "card");
+  intro.appendChild(el("h1", null, "Egzamin próbny"));
+  intro.appendChild(el("p", "lead", "Warunki jak na egzaminie: limit czasu, wynik dopiero po zakończeniu, możliwość wracania do pytań i oznaczania ich do sprawdzenia."));
+  intro.appendChild(el("p", null, "Pytania pochodzą ze wszystkich modułów, niezależnie od postępu w kursie. Próg zaliczenia to " + Math.round(MOCK_PASS * 100) + "%. Po egzaminie zobaczysz każde pytanie z poprawną odpowiedzią i objaśnieniem, a błędy trafią do powtórki."));
+  if (State.lastResult) intro.appendChild(btn("Przejrzyj ostatni egzamin (" + State.lastResult.score + "/" + State.lastResult.total + ")", "ghost sm", () => { UI.examView = "result"; render(); }));
+  root.appendChild(intro);
+
+  const g = el("div", "menu-grid");
+  const card = (v, extra) => {
+    const c = el("div", "card");
+    c.appendChild(el("h3", null, MOCKS[v].label));
+    c.appendChild(el("div", "big-n", MOCKS[v].n + " pytań · " + MOCKS[v].min + " min"));
+    c.appendChild(el("p", null, v === "full" ? "Pełny przekrój dwunastu modułów, w tym zadania obliczeniowe." :
+      v === "quick" ? "Krótka kontrola przed kolejnym dniem nauki." : "Wybierz jedną z czterech części kursu."));
+    if (extra) c.appendChild(extra);
+    const r = el("div", "row");
+    r.appendChild(btn("Rozpocznij", v === "full" ? "" : "ghost", () => startExam("mock", v, v === "part" ? (UI.examPart || PARTS[0]) : null)));
+    c.appendChild(r);
+    return c;
+  };
+  g.appendChild(card("full"));
+  g.appendChild(card("quick"));
+  const f = el("div", "fld"); const l = el("label", null, "Część kursu"); l.htmlFor = "exam-part";
+  const sel = el("select"); sel.id = "exam-part";
+  for (const p of PARTS) { const o = el("option", null, p); o.value = p; sel.appendChild(o); }
+  sel.value = UI.examPart || PARTS[0];
+  sel.onchange = () => { UI.examPart = sel.value; };
+  f.appendChild(l); f.appendChild(sel);
+  g.appendChild(card("part", f));
+  root.appendChild(g);
+
+  const fin = el("div", "card");
+  fin.appendChild(el("h3", null, "Egzamin końcowy kursu"));
+  fin.appendChild(el("p", null, (COURSE.length * EXAM_PER_MOD) + " zadań, po dwa z każdego modułu, " + FINAL_MIN + " minut, próg " + EXAM_PASS +
+    ". Zdany egzamin daje zaświadczenie ukończenia kursu." + (examUnlocked() ? "" : " Otwiera się po zaliczeniu wszystkich modułów (" + passedCount() + " z " + COURSE.length + ").")));
+  const fb = btn(courseDone() ? "Popraw wynik egzaminu końcowego" : "Rozpocznij egzamin końcowy", "ghost", () => startExam("final"));
+  fb.disabled = !examUnlocked();
+  fin.appendChild(fb);
+  root.appendChild(fin);
+
+  if (State.mocks.length) {
+    const h = el("div", "card");
+    h.appendChild(el("h3", null, "Historia egzaminów"));
+    h.appendChild(html("div", null, tbl(["Data", "Egzamin", "Wynik", "Czas", ""],
+      State.mocks.map(x => [new Date(x.date).toLocaleDateString("pl-PL"), x.label, x.score + " / " + x.total + " (" + Math.round(x.score / x.total * 100) + "%)",
+        fmtTime(x.used), x.passed ? "zdany" : "niezdany"]))));
+    root.appendChild(h);
+  }
+}
+
+function examRunView(root, r) {
+  const q = r.qs[r.i];
+  const answered = r.answers.filter(a => a >= 0).length;
+  const top = el("div", "card");
+  const row = el("div", "exam-top");
+  row.appendChild(el("div", "q-tag", "Egzamin"));
+  row.appendChild(el("b", null, r.label));
+  row.appendChild(el("div", "spacer"));
+  const t = el("div", "timer", fmtTime(examLeft(r))); t.id = "exam-timer"; t.title = "Pozostały czas";
+  if (examLeft(r) < 5 * 60000) t.classList.add("low");
+  row.appendChild(t);
+  top.appendChild(row);
+  top.appendChild(el("div", "muted", "Odpowiedzi: " + answered + " z " + r.qs.length + " · próg " + r.pass + " · klawisze 1–4 i strzałki"));
+  const qm = el("div", "qmap");
+  r.qs.forEach((_, k) => {
+    const b = el("button", (r.answers[k] >= 0 ? "ans" : "") + (r.flags[k] ? " flag" : "") + (k === r.i ? " cur" : ""), String(k + 1));
+    b.setAttribute("aria-label", "Pytanie " + (k + 1) + (r.answers[k] >= 0 ? ", z odpowiedzią" : ", bez odpowiedzi") + (r.flags[k] ? ", oznaczone" : ""));
+    b.onclick = () => examGo(k);
+    qm.appendChild(b);
+  });
+  top.appendChild(qm);
+  top.appendChild(html("div", "legend", "<span>niebieskie: z odpowiedzią</span><span>żółta kropka: do sprawdzenia</span><span>obwódka: bieżące</span>"));
+  root.appendChild(top);
+
+  if (r.confirm) {
+    const left = r.qs.length - answered, fl = r.flags.filter(Boolean).length;
+    const c = el("div", "note warn");
+    c.appendChild(el("b", null, left ? "Bez odpowiedzi: " + left + " z " + r.qs.length + ". " : "Wszystkie pytania mają odpowiedź. "));
+    c.appendChild(document.createTextNode((fl ? "Oznaczonych do sprawdzenia: " + fl + ". " : "") + "Po zakończeniu nie zmienisz odpowiedzi."));
+    const cr = el("div", "row mt");
+    cr.appendChild(btn("Zakończ i sprawdź", "", () => { finishExam(false); render(); window.scrollTo(0, 0); }));
+    cr.appendChild(btn("Wróć do pytań", "ghost", () => { r.confirm = false; render(); }));
+    c.appendChild(cr);
+    root.appendChild(c);
+  }
+
+  const card = el("div", "card");
+  const head = el("div", "q-head");
+  head.appendChild(el("div", "q-tag" + (q.calc ? " calc" : ""), q.tag));
+  head.appendChild(el("div", "q-text", q.text));
+  head.appendChild(el("div", "q-count", "Pytanie " + (r.i + 1) + " / " + r.qs.length));
+  card.appendChild(head);
+  const opts = el("div", "opts");
+  q.options.forEach((o, k) => {
+    const b = el("button", "opt" + (r.answers[r.i] === k ? " sel" : ""));
+    b.setAttribute("aria-pressed", r.answers[r.i] === k ? "true" : "false");
+    b.appendChild(el("span", "k", String.fromCharCode(65 + k)));
+    b.appendChild(document.createTextNode(o));
+    b.onclick = () => examAnswer(k);
+    opts.appendChild(b);
+  });
+  card.appendChild(opts);
+  const nav = el("div", "row mt");
+  const prev = btn("← Poprzednie", "ghost sm", () => examGo(r.i - 1)); prev.disabled = r.i === 0; nav.appendChild(prev);
+  nav.appendChild(btn(r.flags[r.i] ? "Usuń oznaczenie" : "Oznacz do sprawdzenia", "ghost sm", () => { r.flags[r.i] = !r.flags[r.i]; save(); render(); }));
+  const last = r.i + 1 >= r.qs.length;
+  nav.appendChild(btn(last ? "Zakończ egzamin" : "Następne →", last ? "sm" : "ghost sm", () => { if (last) { r.confirm = true; render(); window.scrollTo(0, 0); } else examGo(r.i + 1); }));
+  card.appendChild(nav);
+  root.appendChild(card);
+
+  const end = el("div", "row");
+  end.appendChild(btn("Zakończ egzamin", "danger sm", () => { r.confirm = true; render(); window.scrollTo(0, 0); }));
+  root.appendChild(end);
+}
+
+function examResultView(root, res) {
+  const card = el("div", "card center");
+  card.appendChild(el("h2", null, (res.passed ? "Egzamin zdany" : "Egzamin niezdany") + (res.timeout ? " · czas minął" : "")));
+  card.appendChild(bigScore({ ok: res.score, len: res.total }, res.passed));
+  card.appendChild(el("p", null, Math.round(res.score / res.total * 100) + "% · próg " + res.pass + " z " + res.total + " · czas " + fmtTime(res.used) + " · " + res.label));
+  const row = el("div", "row mt"); row.style.justifyContent = "center";
+  if (res.kind === "final" && res.passed) row.appendChild(btn("Zobacz zaświadczenie", "", () => { UI.tab = "kurs"; UI.module = null; render(); window.scrollTo(0, 0); }));
+  if (mistakeCount()) row.appendChild(btn("Powtórka błędów (" + mistakeCount() + ")", res.passed ? "ghost" : "", () => startSession({ mode: "powtorka", queue: mistakesQueue(TRAIN_LEN) })));
+  row.appendChild(btn("Nowy egzamin", "ghost", () => { UI.examView = null; render(); window.scrollTo(0, 0); }));
+  card.appendChild(row);
+  root.appendChild(card);
+
+  const per = el("div", "card");
+  per.appendChild(el("h3", null, "Wynik według modułów"));
+  per.appendChild(html("div", null, tbl(["Moduł", "Wynik"], COURSE.filter(m => res.per[m.id]).map(m => {
+    const p = res.per[m.id];
+    return [(moduleIndex(m.id) + 1) + ". " + m.title, p.ok + " / " + p.n + (p.ok < p.n ? " — do powtórki" : "")];
+  }))));
+  root.appendChild(per);
+
+  const rev = el("div", "card");
+  const rh = el("div", "row");
+  rh.appendChild(el("h3", null, "Przegląd odpowiedzi"));
+  rh.appendChild(el("div", "spacer"));
+  rh.appendChild(btn(UI.reviewAll ? "Pokaż tylko błędne" : "Pokaż wszystkie", "ghost sm", () => { UI.reviewAll = !UI.reviewAll; render(); }));
+  rev.appendChild(rh);
+  let shown = 0;
+  res.qs.forEach((q, k) => {
+    const a = res.answers[k], good = a === q.correct;
+    if (good && !UI.reviewAll) return;
+    shown++;
+    const it = el("div", "rev");
+    it.appendChild(el("div", "qn", "Pytanie " + (k + 1) + " · " + q.tag));
+    it.appendChild(el("div", null, q.text));
+    it.appendChild(el("div", "line " + (good ? "ok" : "no"), "Twoja odpowiedź: " + (a >= 0 ? q.options[a] : "brak odpowiedzi")));
+    if (!good) it.appendChild(el("div", "line ok", "Poprawna: " + q.options[q.correct]));
+    if (!good && a >= 0 && q.wrongWhy[a]) it.appendChild(el("p", "why-wrong", q.wrongWhy[a]));
+    it.appendChild(el("p", null, q.why));
+    rev.appendChild(it);
+  });
+  if (!shown) rev.appendChild(el("p", null, "Wszystkie odpowiedzi poprawne."));
+  root.appendChild(rev);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2229,7 +2634,9 @@ function screenPostepy(root) {
   stat(passedCount() + "/" + COURSE.length, "zaliczone moduły");
   stat(String(t.seen), "rozwiązane zadania");
   stat(t.seen ? Math.round(t.ok / t.seen * 100) + "%" : "—", "skuteczność");
-  stat(State.exam ? State.exam.score + "/" + State.exam.total : "—", "najlepszy egzamin");
+  stat(State.exam ? State.exam.score + "/" + State.exam.total : "—", "egzamin końcowy kursu");
+  stat(String(mistakeCount()), "zadań w powtórce błędów");
+  stat(String(State.mocks.length), "egzaminów próbnych");
   card.appendChild(st);
   root.appendChild(card);
 
@@ -2250,28 +2657,38 @@ function screenPostepy(root) {
   root.appendChild(list);
 
   const rc = el("div", "card");
-  rc.appendChild(el("p", null, "Postęp zapisuje się tylko w tej przeglądarce."));
-  rc.appendChild(btn("Wyzeruj postęp", "danger sm", () => {
-    if (!confirm("Usunąć cały postęp kursu, wyniki i zaświadczenie?")) return;
-    State = freshState();
-    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
-    Session.active = false; Session.summary = null; UI.module = null; render();
-  }));
+  rc.appendChild(el("p", null, "Postęp zapisuje się tylko w tej przeglądarce, na tym urządzeniu."));
+  if (!UI.resetAsk) rc.appendChild(btn("Wyzeruj postęp", "danger sm", () => { UI.resetAsk = true; render(); }));
+  else {
+    rc.appendChild(el("p", "lead", "Usunąć cały postęp, wyniki egzaminów, powtórkę błędów i zaświadczenie? Tego nie da się cofnąć."));
+    const row = el("div", "row");
+    row.appendChild(btn("Tak, usuń wszystko", "danger sm", () => {
+      State = freshState();
+      try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+      Session.active = false; Session.summary = null; UI.module = null; UI.resetAsk = false; UI.examView = null; render();
+    }));
+    row.appendChild(btn("Anuluj", "ghost sm", () => { UI.resetAsk = false; render(); }));
+    rc.appendChild(row);
+  }
   root.appendChild(rc);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    17. NAWIGACJA
    ═══════════════════════════════════════════════════════════════ */
-const TABS = [["kurs", "Kurs", screenKurs], ["trening", "Trening", screenTrening], ["kalk", "Kalkulatory", screenKalk], ["sciaga", "Ściąga", screenSciaga], ["postepy", "Postępy", screenPostepy]];
+const TABS = [["kurs", "Kurs", screenKurs], ["nauka", "Nauka", screenNauka], ["egzamin", "Egzamin", screenEgzamin], ["kalk", "Kalkulatory", screenKalk], ["sciaga", "Ściąga", screenSciaga], ["postepy", "Postępy", screenPostepy]];
 function renderNav() {
   const nav = document.getElementById("nav"); nav.innerHTML = "";
   for (const [id, label] of TABS) {
     const b = el("button", UI.tab === id ? "on" : "", label);
+    // Zmiana zakładki nie przerywa sesji ani egzaminu: po powrocie można kontynuować.
     b.onclick = () => {
-      if (Session.active && UI.tab !== id && !confirm("Przerwać bieżącą sesję?")) return;
-      if (UI.tab !== id) { Session.active = false; Session.summary = null; }
-      if (id === "kurs" && UI.tab === "kurs") UI.module = null;
+      if (UI.tab === id && !Session.active) {
+        if (id === "kurs") UI.module = null;
+        if (id === "nauka") { UI.nauka = null; if (Session.summary && homeTab(Session.summary.mode) === "nauka") Session.summary = null; }
+        if (id === "egzamin" && !State.examRun) UI.examView = null;
+      }
+      UI.resetAsk = false;
       UI.tab = id; render(); window.scrollTo(0, 0);
     };
     nav.appendChild(b);
@@ -2281,6 +2698,12 @@ function renderHud() {
   const h = document.getElementById("hud"); h.innerHTML = "";
   const t = totals();
   const chip = (l, v) => { const c = el("div", "chip"); c.appendChild(document.createTextNode(l + " ")); c.appendChild(el("b", null, v)); h.appendChild(c); };
+  if (State.examRun) {
+    const c = el("div", "chip live"); c.id = "hud-exam"; c.title = "Wróć do egzaminu";
+    c.appendChild(document.createTextNode("egzamin ")); c.appendChild(el("b", null, fmtTime(examLeft(State.examRun))));
+    c.onclick = () => { UI.tab = "egzamin"; render(); };
+    h.appendChild(c);
+  }
   chip("moduły", passedCount() + "/" + COURSE.length);
   chip("skuteczność", t.seen ? Math.round(t.ok / t.seen * 100) + "%" : "—");
 }
@@ -2292,6 +2715,8 @@ function render() {
 
 load();
 bindKeys();
+setInterval(examTick, 1000);
+examTick();
 render();
 </script>
 </body>
