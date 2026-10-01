@@ -267,6 +267,14 @@ async function login() {
     return;
   }
 
+  // Ta sama walidacja co przy rejestracji. Bez niej dowolny ciąg trafiał do
+  // usernameToEmail() i leciał do Supabase jako adres, generując zbędne
+  // zapytania i mylące komunikaty błędów.
+  if (!USERNAME_REGEX.test(username)) {
+    showMsg(msg, "Nazwa użytkownika: 3-20 znaków — litery, cyfry, podkreślenie.", "error");
+    return;
+  }
+
   // POPRAWKA #1: Sprawdź blokadę przed wysłaniem zapytania do Supabase.
   // Zapobiega wysyłaniu setek żądań do auth API w przypadku ataku brute force.
   if (LoginGuard.isLocked()) {
@@ -355,6 +363,11 @@ function showMsg(el, text, type) {
 // ║  SEKCJA 4: ŁADOWANIE APLIKACJI I WERYFIKACJA SUBSKRYPCJI        ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
+// UWAGA BEZPIECZEŃSTWA: wynik tej funkcji steruje wyłącznie tym, co widać
+// w interfejsie. Klucz anon jest w źródle strony, więc każdy może odpytać
+// API z pominięciem tego kodu. Jedyną realną granicą są polityki RLS —
+// w szczególności tabela "questions" musi być czytelna tylko dla aktywnych
+// subskrybentów. Komplet polityk znajduje się w README.
 async function checkSubscription(userId) {
   try {
     const { data, error } = await db
@@ -470,6 +483,7 @@ async function training() {
     trainingTimer = null;
   }
 
+  // Ukrycie modułu, nie zabezpieczenie — patrz uwaga przy checkSubscription().
   if (!AppState.subscribed) {
     main.innerHTML = `
       <h2>Brak dostępu PRO</h2>

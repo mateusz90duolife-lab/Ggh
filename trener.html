@@ -250,6 +250,31 @@ table.tbl td b { color: var(--txt); }
   .cert h2, .cert .who, .cert .meta { color: #000; }
 }
 
+/* ───── DOSTĘPNOŚĆ ─────
+   Opcje odpowiedzi, pola planu, pozycje kursu i nagłówki lekcji są
+   przyciskami, więc działają z klawiatury i są zapowiadane przez czytniki
+   ekranu. Poniższe reguły zdejmują z nich domyślny wygląd przycisku. */
+.opt, .plan-cell, .mod, .lesson-h {
+  font: inherit; color: inherit; margin: 0; -webkit-appearance: none; appearance: none;
+}
+.opt { width: 100%; text-align: center; }
+.mod { width: 100%; text-align: left; }
+.lesson-h { width: 100%; text-align: left; background: transparent; border: 0; }
+.plan-cell { line-height: 1; }
+.mod[aria-disabled="true"], .opt[aria-disabled="true"] { cursor: default; }
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.kbd-hint { font-size: 12px; color: var(--txt-faint); margin-top: 10px; }
+kbd {
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+  background: #000; border: 1px solid var(--line-hi); border-radius: 4px;
+  padding: 1px 5px; color: var(--txt-dim);
+}
+
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .hide { display: none !important; }
 .center { text-align: center; }
@@ -585,8 +610,28 @@ function orthoView(solid, kind) {
     }
     filled[r][c] = f; depth[r][c] = d;
   }
-  return { kind, cols, rows, filled, depth, label: VIEW_LABEL[kind],
-           id: filled.map(r => r.map(v => v ? "1" : "0").join("")).join("/") };
+  const v = { kind, cols, rows, filled, depth, label: VIEW_LABEL[kind] };
+  v.id = viewSignature(v);
+  return v;
+}
+
+/** Dokładnie to, co drawOrtho narysuje: zarys + linie uskoków.
+    Identyfikator oparty na samym wypełnieniu uznawał rzuty różniące się
+    wyłącznie uskokami za duplikaty i usuwał je z opcji odpowiedzi —
+    czyli kasował dokładnie tę różnicę, której uczy moduł o uskokach. */
+function viewSignature(view) {
+  const at = (r, c) => (r < 0 || c < 0 || r >= view.rows || c >= view.cols)
+    ? null : (view.filled[r][c] ? view.depth[r][c] : null);
+  let sig = view.cols + "x" + view.rows + ":";
+  for (let r = 0; r < view.rows; r++) for (let c = 0; c < view.cols; c++) {
+    if (!view.filled[r][c]) { sig += "."; continue; }
+    const d = view.depth[r][c];
+    sig += "[";
+    for (const nb of [at(r - 1, c), at(r + 1, c), at(r, c - 1), at(r, c + 1)])
+      sig += nb === null ? "T" : (nb !== d ? "t" : "-");
+    sig += "]";
+  }
+  return sig;
 }
 
 function drawOrtho(canvas, view, opt) {
@@ -672,20 +717,63 @@ function sectionView(solid, axis, index) {
     filled.push([]); depth.push([]);
     for (let c = 0; c < cols; c++) { const f = get(r, c); filled[r].push(f); depth[r].push(f ? 0 : null); }
   }
-  return { kind: "section", cols, rows, filled, depth,
-           id: filled.map(r => r.map(v => v ? "1" : "0").join("")).join("/") };
+  const v = { kind: "section", cols, rows, filled, depth };
+  v.id = viewSignature(v);
+  return v;
 }
 
 function isEmptyView(v) { return v.filled.every(r => r.every(x => !x)); }
 
-/** Kostki mające choć jedną ścianę zwróconą do obserwatora izometrycznego. */
-function facingCubes(solid) {
-  let n = 0;
-  for (const c of solid.cells) {
-    const x = c[0], y = c[1], z = c[2];
-    if (!solid.has(x, y, z + 1) || !solid.has(x, y - 1, z) || !solid.has(x + 1, y, z)) n++;
+/** Liczba kostek, z których na rysunku widać choćby skrawek.
+
+    Dwie analityczne reguły, które wydawały się oczywiste, okazały się
+    błędne przy konfrontacji z rzeczywistym rysunkiem: ani „kostka ma
+    odsłoniętą ścianę", ani „zasłania ją wyłącznie sąsiad na promieniu
+    widzenia" nie zgadzały się z tym, co widać. Dlatego zamiast wzoru
+    działa tu ta sama kolejność malowania co w drawIso, tyle że do bufora
+    indeksów zamiast na ekran. Kostka jest widoczna, jeśli po zamalowaniu
+    całości została przy niej choć jedna próbka.
+
+    Koszt jest pomijalny: bryły mają kilkanaście do trzydziestu kostek,
+    a funkcja liczona jest raz na zadanie. Zgodność z rasteryzacją
+    o wysokiej rozdzielczości sprawdza testy/logika.js. */
+function visibleCubes(solid, scale) {
+  const s = scale || 22, pad = 2;
+  const b = isoBounds(solid, s);
+  const W = Math.ceil(b.w) + pad * 2, H = Math.ceil(b.h) + pad * 2;
+  const buf = new Int32Array(W * H).fill(-1);
+  const P = (x, y, z) => { const p = isoPt(x, y, z, s); return [p.x - b.minX + pad, p.y - b.minY + pad]; };
+
+  const inside = (q, px, py) => {
+    let sign = 0;
+    for (let i = 0; i < 4; i++) {
+      const a = q[i], c = q[(i + 1) % 4];
+      const cr = (c[0] - a[0]) * (py - a[1]) - (c[1] - a[1]) * (px - a[0]);
+      if (cr !== 0) { const sg = cr > 0 ? 1 : -1; if (sign === 0) sign = sg; else if (sg !== sign) return false; }
+    }
+    return true;
+  };
+  const paint = (q, id) => {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const v of q) { if (v[0] < x0) x0 = v[0]; if (v[0] > x1) x1 = v[0]; if (v[1] < y0) y0 = v[1]; if (v[1] > y1) y1 = v[1]; }
+    for (let py = Math.floor(y0); py <= Math.ceil(y1); py++)
+      for (let px = Math.floor(x0); px <= Math.ceil(x1); px++) {
+        if (px < 0 || py < 0 || px >= W || py >= H) continue;
+        if (inside(q, px + 0.5, py + 0.5)) buf[py * W + px] = id;
+      }
+  };
+
+  const order = solid.cells.map((c, i) => ({ c: c, i: i }))
+    .sort((a, d) => (a.c[0] - a.c[1] + a.c[2]) - (d.c[0] - d.c[1] + d.c[2]));
+  for (const o of order) {
+    const x = o.c[0], y = o.c[1], z = o.c[2];
+    if (!solid.has(x, y, z + 1)) paint([P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], o.i);
+    if (!solid.has(x, y - 1, z)) paint([P(x, y, z), P(x + 1, y, z), P(x + 1, y, z + 1), P(x, y, z + 1)], o.i);
+    if (!solid.has(x + 1, y, z)) paint([P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], o.i);
   }
-  return n;
+  const seen = new Set();
+  for (let k = 0; k < buf.length; k++) if (buf[k] >= 0) seen.add(buf[k]);
+  return seen.size;
 }
 
 function footprintArea(solid) {
@@ -744,17 +832,18 @@ const WHY = {
   otherView:"to inny rzut tej samej bryły",
   viewFlip: "rzut odbity — pomylony kierunek patrzenia",
   otherSec: "przekrój poprowadzony w innym miejscu",
-  onlySeen: "policzone tylko kostki z widoczną ścianą, bez zasłoniętych",
+  onlySeen: "policzone tylko kostki widoczne na rysunku, bez tych zasłoniętych przez inne",
+  stepLine: "ten rysunek ma poprawny zarys, ale inne linie uskoków — powierzchnia cofa się w innym miejscu",
   onlyCols: "policzona liczba słupków (pól planu), a nie kostek",
   offOne:   "pomyłka o jedną kostkę",
   identity: "to ta sama bryła, niezmieniona",
 };
 
 /** Buduje listę opcji z unikatowymi identyfikatorami; odrzuca duplikaty. */
-function assembleOptions(correctOpt, candidates, want) {
+function assembleOptions(correctOpt, candidates, want, keepOrder) {
   const out = [correctOpt];
   const seen = new Set([correctOpt.id]);
-  for (const c of shuffle(candidates)) {
+  for (const c of (keepOrder ? candidates : shuffle(candidates))) {
     if (out.length >= want) break;
     if (!c || !c.id || seen.has(c.id)) continue;
     seen.add(c.id); out.push(c);
@@ -792,16 +881,35 @@ function exBrylaRzut(cfg, opts) {
   const s = generateSolidWhere(cfg, q => q.nx === q.ny && q.ny === q.nz);
   const kind = pick((opts && opts.kinds) || ["front", "top", "left", "right"]);
   const correct = orthoView(s, kind);
+  const sameOutline = !!(opts && opts.sameOutline);
+
+  // Dystraktory o identycznym zarysie, różniące się wyłącznie liniami uskoków.
+  // To jedyny rodzaj zadania, który naprawdę sprawdza czytanie uskoków.
+  const hard = [];
+  if (sameOutline) {
+    const outline = JSON.stringify(correct.filled);
+    for (let t = 0; t < 120 && hard.length < 5; t++) {
+      const m = moveOneCube(s) || addOrRemoveCube(s, Math.random() < 0.5);
+      if (!m) continue;
+      const v = orthoView(m, kind);
+      if (v.cols === correct.cols && v.rows === correct.rows &&
+          JSON.stringify(v.filled) === outline && v.id !== correct.id) hard.push(orthoOpt(v, "stepLine"));
+    }
+  }
+
   const cand = [];
   for (const k of ["front", "top", "left", "right"]) if (k !== kind) cand.push(orthoOpt(orthoView(s, k), "otherView"));
   cand.push(orthoOpt(orthoView(xform(s, XF.mirX), kind), "viewFlip"));
   const mv = moveOneCube(s); if (mv) cand.push(orthoOpt(orthoView(mv, kind), "moved"));
+
   return {
     skill: "bryla-rzut",
     prompt: "Który rysunek jest poprawnym rzutem tej bryły — " + VIEW_LABEL[kind] + "?",
-    hint: "Rzut pokazuje zarys bryły; cienkie linie w środku to uskoki między różnymi głębokościami.",
+    hint: sameOutline
+      ? "Wszystkie rysunki mają ten sam zarys. Decydują cienkie linie uskoków w środku."
+      : "Rzut pokazuje zarys bryły; cienkie linie w środku to uskoki między różnymi głębokościami.",
     stimulus: [{ type: "iso", solid: s, cap: "bryła" }],
-    options: assembleOptions(orthoOpt(correct, "ok"), cand, cfg.opts),
+    options: assembleOptions(orthoOpt(correct, "ok"), hard.concat(shuffle(cand)), cfg.opts, true),
     solution: s,
   };
 }
@@ -908,6 +1016,14 @@ function exPrzekroj(cfg, opts) {
   }
   const mirrored = sectionView(xform(s, XF.mirX), ax.a, idx);
   if (!isEmptyView(mirrored)) cand.push(orthoOpt(mirrored, "viewFlip"));
+  // Przekroje bryły z jedną przestawioną kostką — uzupełniają pulę, gdy bryła
+  // ma mało warstw i samych innych przekrojów nie starcza na komplet opcji.
+  for (let t = 0; t < 40 && cand.length < 8; t++) {
+    const m = moveOneCube(s);
+    if (!m || idx >= ax.n(m)) continue;
+    const v = sectionView(m, ax.a, idx);
+    if (!isEmptyView(v) && v.cols === correct.cols && v.rows === correct.rows) cand.push(orthoOpt(v, "moved"));
+  }
   return {
     skill: "przekroj",
     prompt: "Bryłę przecięto płaszczyzną " + ax.txt(idx, s) + ". Który rysunek pokazuje ten przekrój?",
@@ -920,10 +1036,10 @@ function exPrzekroj(cfg, opts) {
 
 /* ── 7. Liczenie kostek ── */
 function exLiczenie(cfg) {
-  const s = generateSolidWhere(cfg, q => q.count >= 6 && facingCubes(q) < q.count);
+  const s = generateSolidWhere(cfg, q => q.count >= 6 && visibleCubes(q) < q.count);
   const total = s.count;
   const cand = [
-    numOpt(facingCubes(s), "onlySeen"),
+    numOpt(visibleCubes(s), "onlySeen"),
     numOpt(footprintArea(s), "onlyCols"),
     numOpt(total - 1, "offOne"),
     numOpt(total + 1, "offOne"),
@@ -1089,6 +1205,38 @@ function nextQuestion(skill, level, opts) {
    CZĘŚĆ 10 — RYSOWANIE ELEMENTÓW ZADANIA
    ═══════════════════════════════════════════════════════════════ */
 
+/* ═══ OPISY DLA CZYTNIKÓW EKRANU ═══
+   Rysunek na canvas jest dla czytnika ekranu pusty. Poniższe funkcje dają
+   mu opis słowny. Nie zastępuje on obrazu — zadania przestrzenne wymagają
+   widzenia rysunku — ale pozwala zorientować się w strukturze strony
+   i obsłużyć aplikację bez myszy. Ograniczenie opisano w README. */
+
+function describeSolid(solid) {
+  return "bryła z " + solid.count + " kostek, podstawa " + solid.nx + " na " + solid.ny +
+         " pól, wysokość " + solid.nz;
+}
+function describeView(view) {
+  let filled = 0;
+  for (const r of view.filled) for (const f of r) if (f) filled++;
+  return "rysunek " + view.cols + " na " + view.rows + " pól, wypełnionych " + filled;
+}
+function describePlan(hm) {
+  let sum = 0;
+  for (const col of hm) for (const h of col) sum += h;
+  return "plan kodowany " + hm.length + " na " + hm[0].length + " pól, razem " + sum + " kostek";
+}
+function describeOption(opt) {
+  if (opt.kind === "iso")   return describeSolid(opt.solid);
+  if (opt.kind === "ortho") return describeView(opt.view);
+  if (opt.kind === "num")   return "liczba " + opt.value;
+  return opt.text;
+}
+function labelCanvas(canvas, text) {
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", text);
+  return canvas;
+}
+
 function figure(capText, canvasNode) {
   const f = el("div", "fig");
   const frame = el("div", "canvas-frame");
@@ -1101,18 +1249,21 @@ function figure(capText, canvasNode) {
 function isoFigure(solid, cap, size, scale) {
   const c = el("canvas");
   drawIso(c, solid, { w: (size && size.w) || 200, h: (size && size.h) || 172, scale: scale });
+  labelCanvas(c, (cap ? cap + ": " : "") + describeSolid(solid));
   return figure(cap, c);
 }
 
 function orthoFigure(view, cap, cell) {
   const c = el("canvas");
   drawOrtho(c, view, { cell: cell || 22 });
+  labelCanvas(c, (cap ? cap + ": " : "") + describeView(view));
   return figure(cap, c);
 }
 
 function planFigure(hm, cap) {
   const c = el("canvas");
   drawPlan(c, hm, { cell: 32 });
+  labelCanvas(c, (cap ? cap + ": " : "") + describePlan(hm));
   return figure(cap, c);
 }
 
@@ -1124,7 +1275,9 @@ function viewsLayout(solid, method, side) {
   const slot = (kind, cap) => {
     const s = el("div", "view-slot");
     const c = el("canvas");
-    drawOrtho(c, orthoView(solid, kind), { cell: 24 });
+    const vw = orthoView(solid, kind);
+    drawOrtho(c, vw, { cell: 24 });
+    labelCanvas(c, cap + ": " + describeView(vw));
     const fr = el("div", "canvas-frame"); fr.appendChild(c);
     s.appendChild(fr); s.appendChild(el("div", "fig-cap", cap));
     return s;
@@ -1184,8 +1337,11 @@ function renderStimulus(list, scale) {
 }
 
 function renderOptionBody(opt, scale) {
-  if (opt.kind === "iso")   { const c = el("canvas"); drawIso(c, opt.solid, { w: 152, h: 132, scale: scale }); return c; }
-  if (opt.kind === "ortho") { const c = el("canvas"); drawOrtho(c, opt.view, { cell: 19 }); return c; }
+  // Etykietę dla czytnika niesie przycisk opcji, więc samo płótno pomijamy,
+  // żeby treść nie była zapowiadana dwa razy.
+  const hide = c => { c.setAttribute("aria-hidden", "true"); return c; };
+  if (opt.kind === "iso")   { const c = el("canvas"); drawIso(c, opt.solid, { w: 152, h: 132, scale: scale }); return hide(c); }
+  if (opt.kind === "ortho") { const c = el("canvas"); drawOrtho(c, opt.view, { cell: 19 }); return hide(c); }
   if (opt.kind === "num")   { const d = el("div", null, String(opt.value)); d.style.cssText = "font-size:32px;font-weight:800;color:#EAEAEA;padding:14px 0;"; return d; }
   const d = el("div", null, opt.text);
   d.style.cssText = "font-size:14px;color:#EAEAEA;padding:12px 4px;line-height:1.35;";
@@ -1212,6 +1368,9 @@ function startSession(opts) {
   Session.moduleId = opts.moduleId || null;
   Session.i = 0; Session.ok = 0; Session.summary = null;
   Session.len = Session.queue ? Session.queue.length : (Session.diag ? DIAG_LEVELS.length : SESSION_LEN);
+  // Podejście liczy się od chwili rozpoczęcia, także gdy zostanie przerwane.
+  // Inaczej zapis pokazywałby wyłącznie udane próby.
+  if (Session.mode === "kurs-test" && Session.moduleId) { courseProgress(Session.moduleId).attempts++; save(); }
   loadQuestion();
 }
 
@@ -1228,9 +1387,25 @@ function loadQuestion() {
   render();
 }
 
+let justAnswered = false;   // przenosi fokus na „Dalej" zaraz po odpowiedzi
+
+/** Sesję da się przejść bez myszy: cyfry wybierają odpowiedź, Enter idzie dalej. */
+function sessionKeys(e) {
+  if (!Session.active || !Session.q) return;
+  const tag = e.target && e.target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!Session.answered) {
+    let idx = "123456789".indexOf(e.key);
+    if (idx < 0) idx = "abcdefghi".indexOf(String(e.key).toLowerCase());
+    if (idx >= 0 && idx < Session.q.options.length) { e.preventDefault(); answer(idx); }
+  } else if (e.key === "Enter" && document.activeElement === document.body) {
+    e.preventDefault(); nextStep();
+  }
+}
+
 function answer(idx) {
   if (Session.answered) return;
-  Session.answered = true; Session.chosen = idx;
+  Session.answered = true; Session.chosen = idx; justAnswered = true;
   const correct = idx === Session.q.correct;
   if (correct) Session.ok++;
   if (!Session.diag) recordAnswer(Session.q.skill, correct);
@@ -1358,17 +1533,22 @@ function renderQuestion(root) {
   const opts = el("div", "opts");
   const letters = "ABCDE";
   q.options.forEach((o, i) => {
-    const d = el("div", "opt");
-    d.appendChild(el("div", "lbl", letters[i] || String(i + 1)));
+    const d = el("button", "opt");
+    d.type = "button";
+    const letter = letters[i] || String(i + 1);
+    d.appendChild(el("div", "lbl", letter));
     d.appendChild(renderOptionBody(o, isoScale));
+    let label = "Odpowiedź " + letter + ": " + describeOption(o);
     if (Session.answered) {
       d.classList.add("locked");
-      if (i === q.correct) d.classList.add("correct");
-      else if (i === Session.chosen) d.classList.add("wrong");
+      d.setAttribute("aria-disabled", "true");
+      if (i === q.correct) { d.classList.add("correct"); label += ". Odpowiedź poprawna"; }
+      else if (i === Session.chosen) { d.classList.add("wrong"); label += ". Twój wybór, niepoprawny"; }
       else d.classList.add("dim");
     } else {
       d.onclick = () => answer(i);
     }
+    d.setAttribute("aria-label", label);
     opts.appendChild(d);
   });
   card.appendChild(opts);
@@ -1376,6 +1556,8 @@ function renderQuestion(root) {
   if (Session.answered) {
     const good = Session.chosen === q.correct;
     const fb = el("div", "fb " + (good ? "ok" : "err"));
+    fb.setAttribute("role", "status");
+    fb.setAttribute("aria-live", "polite");
     fb.appendChild(el("div", "fb-title", good ? "✓ Dobrze" : "✗ Niepoprawnie"));
     const body = el("div", "fb-body");
     if (Session.diag) {
@@ -1394,6 +1576,7 @@ function renderQuestion(root) {
     const b = el("button", "btn", Session.i + 1 >= Session.len ? "Zakończ sesję" : "Dalej");
     b.onclick = nextStep;
     row.appendChild(b);
+    if (justAnswered) { justAnswered = false; setTimeout(() => b.focus(), 0); }
     const prog = el("div", "muted", "Zadanie " + (Session.i + 1) + " z " + Session.len + " · poprawnych " + Session.ok);
     row.appendChild(prog);
     card.appendChild(row);
@@ -1407,6 +1590,10 @@ function renderQuestion(root) {
                 (Session.diag ? "" : " · poziom " + q.level));
     m.style.marginTop = "8px";
     card.appendChild(m);
+    const kb = el("div", "kbd-hint");
+    kb.innerHTML = "Z klawiatury: <kbd>1</kbd>–<kbd>" + q.options.length +
+      "</kbd> wybierają odpowiedź, <kbd>Enter</kbd> przechodzi dalej.";
+    card.appendChild(kb);
   }
   root.appendChild(card);
 }
@@ -1416,7 +1603,7 @@ function renderQuestion(root) {
    Konstruowanie zamiast rozpoznawania — METODYKA.md, sekcja 3.
    ═══════════════════════════════════════════════════════════════ */
 
-const Builder = { target: null, hm: null, w: 3, d: 3, maxH: 3, checked: false, ok: false, revealed: false };
+const Builder = { target: null, hm: null, w: 3, d: 3, maxH: 3, checked: false, ok: false, revealed: false, focusCell: null, courseModule: null };
 
 function newBuild() {
   const cfg = cfgFor(State.level);
@@ -1457,14 +1644,23 @@ function screenBuduj(root) {
   for (let r = 0; r < Builder.d; r++) for (let c = 0; c < Builder.w; c++) {
     const x = c, y = Builder.d - 1 - r;              // górny wiersz = tył
     const h = Builder.hm[x][y];
-    const cell = el("div", "plan-cell" + (h > 0 ? " set" : ""), h > 0 ? String(h) : "");
-    cell.onclick = (ev) => {
-      if (ev.shiftKey) Builder.hm[x][y] = Math.max(0, Builder.hm[x][y] - 1);
-      else Builder.hm[x][y] = (Builder.hm[x][y] + 1) % (Builder.maxH + 1);
+    const cell = el("button", "plan-cell" + (h > 0 ? " set" : ""), h > 0 ? String(h) : "");
+    cell.type = "button";
+    cell.setAttribute("aria-label", "Kolumna " + (x + 1) + ", rząd " + (Builder.d - y) +
+      " od przodu, wysokość " + h + ". Strzałki w górę i w dół zmieniają wysokość.");
+    const bump = (d) => {
+      Builder.hm[x][y] = d > 0 ? (Builder.hm[x][y] + 1) % (Builder.maxH + 1) : Math.max(0, Builder.hm[x][y] - 1);
       Builder.checked = false;
+      Builder.focusCell = x + "," + y;
       render();
     };
-    cell.oncontextmenu = (ev) => { ev.preventDefault(); Builder.hm[x][y] = Math.max(0, Builder.hm[x][y] - 1); Builder.checked = false; render(); };
+    cell.onclick = (ev) => bump(ev.shiftKey ? -1 : 1);
+    cell.oncontextmenu = (ev) => { ev.preventDefault(); bump(-1); };
+    cell.onkeydown = (ev) => {
+      if (ev.key === "ArrowUp")   { ev.preventDefault(); bump(1); }
+      if (ev.key === "ArrowDown") { ev.preventDefault(); bump(-1); }
+    };
+    if (Builder.focusCell === x + "," + y) setTimeout(() => cell.focus(), 0);
     grid.appendChild(cell);
   }
   left.appendChild(grid);
@@ -1495,6 +1691,7 @@ function screenBuduj(root) {
     Builder.checked = true;
     Builder.ok = s.id === Builder.target.id;
     recordAnswer("rzuty-bryla", Builder.ok);
+    if (Builder.ok && Builder.courseModule) { courseProgress(Builder.courseModule).built = true; save(); }
     render();
   };
   row.appendChild(bCheck);
@@ -1533,6 +1730,11 @@ function screenBuduj(root) {
       const nb = el("button", "btn", "Następna bryła");
       nb.onclick = () => { newBuild(); render(); };
       r2.appendChild(nb);
+      if (Builder.courseModule) {
+        const back = el("button", "btn ghost", "Wróć do modułu kursu");
+        back.onclick = () => { UI.module = Builder.courseModule; Builder.courseModule = null; UI.screen = "kurs"; render(); };
+        r2.appendChild(back);
+      }
       work.appendChild(r2);
     }
   }
@@ -1571,12 +1773,19 @@ function drawIsoAxes(canvas) {
 
 function lesson(title, buildBody) {
   const box = el("div", "lesson");
-  const head = el("div", "lesson-h");
+  const head = el("button", "lesson-h");
+  head.type = "button";
+  head.setAttribute("aria-expanded", "false");
   head.appendChild(el("span", "caret", "▸"));
   head.appendChild(el("span", null, title));
   const body = el("div", "lesson-b");
+  body.id = "lekcja-" + Math.random().toString(36).slice(2, 9);
+  head.setAttribute("aria-controls", body.id);
   buildBody(body);
-  head.onclick = () => box.classList.toggle("open");
+  head.onclick = () => {
+    const open = box.classList.toggle("open");
+    head.setAttribute("aria-expanded", open ? "true" : "false");
+  };
   box.appendChild(head); box.appendChild(body);
   return box;
 }
@@ -1828,7 +2037,7 @@ function renderLessons(container, ids, openAll) {
   list.forEach((L, i) => {
     const num = ids ? "" : (LESSONS.indexOf(L) + 1) + ". ";
     const box = lesson(num + L.title, L.build);
-    if (openAll) box.classList.add("open");
+    if (openAll) { box.classList.add("open"); box.firstChild.setAttribute("aria-expanded", "true"); }
     wrap.appendChild(box);
   });
   container.appendChild(wrap);
@@ -2019,15 +2228,17 @@ const COURSE = [
   { id: "m4", title: "Uskoki i linie wewnętrzne", time: "12 min",
     goal: "Odróżnisz bryły o identycznym zarysie po samych liniach uskoków.",
     lessons: ["uskoki"],
-    drill: [{ skill: "bryla-rzut", n: 6, level: 4 }],
-    test:  [{ skill: "bryla-rzut", n: 6, level: 4 }], pass: 5 },
+    drill: [{ skill: "bryla-rzut", n: 6, level: 4, opts: { sameOutline: true } }],
+    test:  [{ skill: "bryla-rzut", n: 6, level: 4, opts: { sameOutline: true } }], pass: 5 },
 
   { id: "m5", title: "Czytanie rzutów: od rysunku do bryły", time: "15 min",
     goal: "Odtworzysz bryłę z trzech rzutów, stosując procedurę: podstawa, kolumny, rzędy.",
     lessons: ["czytanie", "strategie"],
     drill: [{ skill: "rzuty-bryla", n: 5, level: 3 }],
     test:  [{ skill: "rzuty-bryla", n: 6, level: 4 }], pass: 5,
-    tip: "Po sprawdzianie przejdź do zakładki Buduj. Konstruowanie bryły utrwala tę umiejętność mocniej niż wybór z listy." },
+    build: true,
+    tip: "Zadanie konstrukcyjne jest tu ważniejsze od testu wyboru: wybór z listy sprawdza rozpoznawanie, " +
+         "budowanie sprawdza, czy procedura odczytu rzutów naprawdę działa." },
 
   { id: "m6", title: "Obroty wokół osi pionowej", time: "12 min",
     goal: "Przewidzisz wygląd bryły po obrocie o 90° w prawo lub w lewo, patrząc z góry.",
@@ -2079,8 +2290,11 @@ const EXAM = {
 };
 
 function courseProgress(id) {
-  if (!State.course.mods[id]) State.course.mods[id] = { drill: false, best: 0, passed: false };
-  return State.course.mods[id];
+  if (!State.course.mods[id]) State.course.mods[id] = { drill: false, best: 0, passed: false, attempts: 0, built: false };
+  const pr = State.course.mods[id];
+  if (pr.attempts == null) pr.attempts = 0;
+  if (pr.built == null) pr.built = false;
+  return pr;
 }
 function moduleIndex(id) { for (let i = 0; i < COURSE.length; i++) if (COURSE[i].id === id) return i; return -1; }
 function moduleUnlocked(i) { return i === 0 || courseProgress(COURSE[i - 1].id).passed; }
@@ -2116,6 +2330,8 @@ function courseSessionBar() {
   row.appendChild(el("div", "spacer"));
   const stop = el("button", "btn ghost sm", "Przerwij");
   stop.onclick = () => {
+    if (Session.mode !== "kurs-drill" &&
+        !window.confirm("Przerwać? Wynik tego podejścia nie zostanie zapisany, ale samo podejście jest liczone.")) return;
     Session.active = false; Session.summary = null;
     UI.module = Session.moduleId; render();
   };
@@ -2149,7 +2365,9 @@ function syllabus(root) {
   COURSE.forEach((m, i) => {
     const pr = courseProgress(m.id);
     const unlocked = moduleUnlocked(i);
-    const row = el("div", "mod" + (pr.passed ? " done" : "") + (unlocked ? "" : " locked"));
+    const row = el("button", "mod" + (pr.passed ? " done" : "") + (unlocked ? "" : " locked"));
+    row.type = "button";
+    if (!unlocked) row.setAttribute("aria-disabled", "true");
     row.appendChild(el("div", "mod-num", pr.passed ? "✓" : String(i + 1)));
     const body = el("div", "mod-body");
     body.appendChild(el("div", "mod-title", m.title));
@@ -2167,7 +2385,9 @@ function syllabus(root) {
   // Egzamin końcowy
   const ex = State.course.exam;
   const exOpen = examUnlocked();
-  const exRow = el("div", "mod" + (courseDone() ? " done" : "") + (exOpen ? "" : " locked"));
+  const exRow = el("button", "mod" + (courseDone() ? " done" : "") + (exOpen ? "" : " locked"));
+  exRow.type = "button";
+  if (!exOpen) exRow.setAttribute("aria-disabled", "true");
   exRow.appendChild(el("div", "mod-num", courseDone() ? "✓" : "★"));
   const eb = el("div", "mod-body");
   eb.appendChild(el("div", "mod-title", "Egzamin końcowy"));
@@ -2220,9 +2440,18 @@ function moduleDetail(root, id) {
   const bt = el("button", "btn" + (pr.drill ? "" : " ghost"), (pr.passed ? "Popraw sprawdzian" : "Sprawdzian") + " (" + testTotal + ")");
   bt.onclick = () => startSession({ mode: "kurs-test", moduleId: id, queue: expandQueue(m.test, true) });
   row.appendChild(bt);
+  if (m.build) {
+    const bb = el("button", "btn ghost", pr.built ? "Powtórz zadanie konstrukcyjne" : "Zadanie konstrukcyjne");
+    bb.onclick = () => { Builder.courseModule = id; newBuild(); UI.screen = "buduj"; render(); };
+    row.appendChild(bb);
+  }
   act.appendChild(row);
+  if (m.build) act.appendChild(el("div", "muted", pr.built
+    ? "Zadanie konstrukcyjne zaliczone."
+    : "Zadanie konstrukcyjne: odtwórz bryłę z rzutów w trybie Buduj. Nie jest wymagane do zaliczenia modułu."));
   if (!pr.drill) act.appendChild(el("div", "muted", "Zalecana kolejność: najpierw ćwiczenia, potem sprawdzian."));
-  if (pr.best) act.appendChild(el("div", "muted", "Najlepszy wynik sprawdzianu: " + pr.best + " / " + testTotal + "."));
+  if (pr.attempts) act.appendChild(el("div", "muted", "Podejść do sprawdzianu: " + pr.attempts +
+    (pr.best ? " · najlepszy wynik " + pr.best + " / " + testTotal : " · brak ukończonego podejścia")));
   if (m.tip) { const t = el("div", "note"); t.textContent = m.tip; act.appendChild(t); }
   root.appendChild(act);
 }
@@ -2324,6 +2553,14 @@ function certificate() {
     c.appendChild(el("div", "meta", "Test wstępny " + pre + "% → egzamin " + post + "%" +
       (post > pre ? " (przyrost " + (post - pre) + " pkt proc.)" : "")));
   }
+  let att = 0;
+  for (const m of COURSE) att += courseProgress(m.id).attempts;
+  c.appendChild(el("div", "meta", "Łączna liczba podejść do sprawdzianów: " + att));
+  const disc = el("div", "meta");
+  disc.style.cssText = "margin-top:18px;font-size:11px;color:#6a7a86;max-width:420px;margin-left:auto;margin-right:auto;line-height:1.6";
+  disc.textContent = "Zapis nauki własnej. Wynik powstaje w przeglądarce na tym urządzeniu, " +
+    "nie jest przez nikogo weryfikowany ani poświadczany i nie stanowi dokumentu potwierdzającego kwalifikacje.";
+  c.appendChild(disc);
   box.appendChild(c);
   const row = el("div", "row mt"); row.style.justifyContent = "center";
   const pr = el("button", "btn ghost sm", "Drukuj / zapisz PDF");
@@ -2333,6 +2570,10 @@ function certificate() {
   return box;
 }
 
+/* ═══ START APLIKACJI ═══
+   Wszystko poniżej tej linii dotyka DOM. testy/uruchom.sh wycina ten blok,
+   żeby testy logiki mogły wczytać resztę pliku w Node. */
+document.addEventListener("keydown", sessionKeys);
 load();
 render();
 </script>

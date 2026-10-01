@@ -4,6 +4,16 @@ Dokument opisuje, jakie metody nauczania izometryki i wyobraźni przestrzennej
 zostały przyjęte za podstawę aplikacji `trener.html`, oraz jak każda z nich
 przekłada się na konkretną funkcję programu.
 
+> **Status źródeł — przeczytaj przed powołaniem się na ten dokument.**
+> Żadna z publikacji wymienionych na końcu nie została otwarta przy pisaniu
+> tego tekstu. Środowisko, w którym powstawał, blokowało ruch wychodzący do
+> wszystkich tych domen. Twierdzenia pochodzą ze **streszczeń wyników
+> wyszukiwarki**, nie z tekstów źródłowych. To wystarcza do podjęcia decyzji
+> projektowych w aplikacji edukacyjnej, ale **nie wystarcza do cytowania w
+> pracy naukowej ani do powoływania się na konkretne liczby**. Przed takim
+> użyciem trzeba sięgnąć do oryginałów. Lista na końcu oznacza, które
+> stwierdzenia są jak dobrze umocowane.
+
 ---
 
 ## 1. Punkt wyjścia: izometryka to trenowalna umiejętność przestrzenna
@@ -18,8 +28,10 @@ lat. Ustalenia, które kształtują konstrukcję tej aplikacji:
 
 - Zdolności przestrzenne dają się wyćwiczyć w krótkim czasie: kurs obejmuje
   **15–20 godzin** ćwiczeń, nie cały semestr.
-- Studenci, którzy poprawili wynik, mają **wyższy wskaźnik pozostania na
-  kierunku** niż studenci ze słabymi zdolnościami, którzy ich nie poprawili.
+- Studentom, którzy poprawili wynik, przypisuje się **wyższy wskaźnik
+  pozostania na kierunku** niż tym ze słabymi zdolnościami, którzy ich nie
+  poprawili. To zależność obserwacyjna — nie wynika z niej, że sam trening
+  zatrzymuje studentów na studiach.
 - Deficyt dotyka nieproporcjonalnie kobiet, co czyni trening kwestią
   wyrównywania szans, a nie tylko techniki.
 - Skuteczny program łączy trzy rodzaje aktywności: **konstruowanie fizyczne
@@ -40,10 +52,11 @@ jest podzielony na umiejętności składowe odpowiadające modułom Sorby.
 
 Badania nad dydaktyką rysunku technicznego pokazują, że nauczyciele najczęściej
 rozumieją rysunek izometryczny jako **przekształcanie rzutów 2D w figurę 3D** i
-w tym kierunku prowadzą ćwiczenia. Tymczasem większe obciążenie poznawcze — i
-większy przyrost umiejętności — daje kierunek odwrotny: odczytanie rzutów
-prostokątnych wymaga wyższej aktywności mózgu niż odczytanie widoku
-izometrycznego.
+w tym kierunku prowadzą ćwiczenia. Tymczasem kierunek odwrotny bywa opisywany jako trudniejszy: według
+streszczenia jednego z badań odczyt rzutów prostokątnych wiąże się z wyższą
+aktywnością mózgu niż odczyt widoku izometrycznego. Tego pojedynczego wyniku
+nie zweryfikowano w źródle, więc traktujemy go jako przesłankę, a nie dowód —
+waga 1,3 dla odczytu rzutów jest decyzją projektową, nie wnioskiem z pomiaru.
 
 **Konsekwencja dla aplikacji:** oba kierunki są osobnymi umiejętnościami z
 osobnym śledzeniem postępu:
@@ -168,9 +181,17 @@ Ponieważ ten sam rysunek odczytany w złej konwencji daje inną bryłę, norma
 wymaga umieszczania **symbolu graficznego metody** (ścięty stożek) na rysunku.
 
 **Konsekwencja dla aplikacji:** układ rzutów jest przełączalny między metodą E
-i A, symbol metody jest rysowany przy zadaniu, a osobna lekcja w dziale Teoria
-pokazuje, jak ta sama bryła daje różne rysunki w obu konwencjach. Jest też typ
-zadania sprawdzający samo rozmieszczenie rzutów.
+i A, osobna lekcja w dziale Teoria pokazuje, jak ta sama bryła daje różne
+rysunki w obu konwencjach, a osobny typ zadania sprawdza samo rozmieszczenie
+rzutów.
+
+Aplikacja **nie rysuje** symbolu graficznego metody, choć norma go wymaga,
+a lekcja o nim mówi. Powód jest celowy: nie udało się dotrzeć do wiarygodnego
+opisu jego orientacji (dostęp do treści normy i do materiałów opisujących ją
+był zablokowany, a dostępne streszczenia były ze sobą sprzeczne co do strony,
+po której stoją okręgi). Narysowanie znaku normatywnego w złą stronę w
+materiale dydaktycznym jest gorsze niż jego brak, więc do czasu weryfikacji
+symbol pozostaje tylko opisany słownie.
 
 ---
 
@@ -228,20 +249,32 @@ Objętość ma dostarczyć tryb Trening używany regularnie.
 
 ## Źródła
 
-- [Sheryl Sorby Supports Women's Learning with Spatial Visualization Course at OSU](https://eed.osu.edu/news/2016/02/sheryl-sorby-supports-women%E2%80%99s-learning-spatial-visualization-course-osu)
-- [Spatial skills are building blocks to STEM success, Ohio State College of Engineering](https://engineering.osu.edu/news/2016/02/spatial-skills-are-building-blocks-stem-success)
-- [Sorby, Development and Assessment of a Course for Enhancing 3-D Spatial Visualization Skills](https://www.vanderbilt.edu/GISEd/wp-content/uploads/Sorby_DevelopmentAssessmentCourse-Enhancing3DSpatialVisualizationSkillsEngineering.pdf)
-- [Sorby, Developing 3-D Spatial Visualization Skills, Engineering Design Graphics Journal](https://www.edgj.org/index.php/EDGJ/article/view/126)
-- [Spatial Visualization Skills: why it works, engageengineering.org](https://www.engageengineering.org/spatial/whyitworks/learnmore)
-- [Developing Spatial Thinking (opis modułów kursu)](https://www.higheredservices.org/classroom-course/)
-- [A Focus on Teaching and Learning of Isometric Drawing (ERIC EJ1440807)](https://files.eric.ed.gov/fulltext/EJ1440807.pdf)
-- [How orthographic projection engineering drawing supports VHS students, SAGE 2025](https://journals.sagepub.com/doi/10.1177/03064190251377899)
-- [Investigating the Impact of an Online Freehand Sketching and Spatial Visualization Intervention, ASEE](https://peer.asee.org/investigating-the-impact-of-an-online-freehand-sketching-and-spatial-visualization-intervention-on-first-year-engineering-students-skills-and-cognitive-development.pdf)
-- [Revised PSVT:R, Spatial Intelligence and Learning Center](https://www.spatiallearning.org/tools/revised-purdue-spatial-visualization-test-revised-psvtr-visualization-of-rotations)
-- [Purdue Spatial Visualization Test: Visualization of Rotations](https://en.wikipedia.org/wiki/Purdue_Spatial_Visualization_Test:_Visualization_of_Rotations)
-- [The Effectiveness of Spaced Learning, Interleaving, and Retrieval Practice, ScienceDirect](https://www.sciencedirect.com/science/article/pii/S1546144023006464)
-- [Desirable Difficulties: Bjork's principles](https://www.structural-learning.com/post/desirable-difficulties)
-- [Spaced and interleaved practice, MIT Open Learning](https://openlearning.mit.edu/mit-faculty/research-based-learning-findings/spaced-and-interleaved-practice)
-- [First vs Third Angle Orthographic Views, GD&T Basics](https://www.gdandtbasics.com/first-vs-third-angle-orthographic-views/)
-- [PN-EN ISO 5456-2:2002, Polski Komitet Normalizacyjny](https://sklep.pkn.pl/pn-en-iso-5456-2-2002p.html)
-- [Rzutowanie prostokątne, materiały UPSL](https://cms.upsl.edu.pl/content/download/7811/file/Rzutowanie%20Prostok%C4%85tne.pdf)
+Wszystkie pozycje poniżej pochodzą z wyników wyszukiwania. **Żadnej nie
+otwarto.** Oznaczenia mówią, jak mocno opiera się na nich treść dokumentu:
+
+- **(S)** — twierdzenie zaczerpnięte ze streszczenia wyszukiwarki, nieweryfikowane
+  w tekście źródłowym;
+- **(B)** — pozycja podana jako wskazówka bibliograficzna, nic z niej nie jest
+  cytowane wprost.
+
+Ustalenia dotyczące **układu rzutów w metodzie pierwszego i trzeciego kąta**
+są jedynymi, które zostały potwierdzone niezależnie, przez porównanie dwóch
+oddzielnych wyszukiwań zgodnych co do rozmieszczenia rzutów.
+
+- [Sheryl Sorby Supports Women's Learning with Spatial Visualization Course at OSU](https://eed.osu.edu/news/2016/02/sheryl-sorby-supports-women%E2%80%99s-learning-spatial-visualization-course-osu) (S)
+- [Spatial skills are building blocks to STEM success, Ohio State College of Engineering](https://engineering.osu.edu/news/2016/02/spatial-skills-are-building-blocks-stem-success) (S)
+- [Sorby, Development and Assessment of a Course for Enhancing 3-D Spatial Visualization Skills](https://www.vanderbilt.edu/GISEd/wp-content/uploads/Sorby_DevelopmentAssessmentCourse-Enhancing3DSpatialVisualizationSkillsEngineering.pdf) (B)
+- [Sorby, Developing 3-D Spatial Visualization Skills, Engineering Design Graphics Journal](https://www.edgj.org/index.php/EDGJ/article/view/126) (B)
+- [Spatial Visualization Skills: why it works, engageengineering.org](https://www.engageengineering.org/spatial/whyitworks/learnmore) (S)
+- [Developing Spatial Thinking (opis modułów kursu)](https://www.higheredservices.org/classroom-course/) (S)
+- [A Focus on Teaching and Learning of Isometric Drawing (ERIC EJ1440807)](https://files.eric.ed.gov/fulltext/EJ1440807.pdf) (S)
+- [How orthographic projection engineering drawing supports VHS students, SAGE 2025](https://journals.sagepub.com/doi/10.1177/03064190251377899) (S)
+- [Investigating the Impact of an Online Freehand Sketching and Spatial Visualization Intervention, ASEE](https://peer.asee.org/investigating-the-impact-of-an-online-freehand-sketching-and-spatial-visualization-intervention-on-first-year-engineering-students-skills-and-cognitive-development.pdf) (S)
+- [Revised PSVT:R, Spatial Intelligence and Learning Center](https://www.spatiallearning.org/tools/revised-purdue-spatial-visualization-test-revised-psvtr-visualization-of-rotations) (S)
+- [Purdue Spatial Visualization Test: Visualization of Rotations](https://en.wikipedia.org/wiki/Purdue_Spatial_Visualization_Test:_Visualization_of_Rotations) (S)
+- [The Effectiveness of Spaced Learning, Interleaving, and Retrieval Practice, ScienceDirect](https://www.sciencedirect.com/science/article/pii/S1546144023006464) (S)
+- [Desirable Difficulties: Bjork's principles](https://www.structural-learning.com/post/desirable-difficulties) (S)
+- [Spaced and interleaved practice, MIT Open Learning](https://openlearning.mit.edu/mit-faculty/research-based-learning-findings/spaced-and-interleaved-practice) (S)
+- [First vs Third Angle Orthographic Views, GD&T Basics](https://www.gdandtbasics.com/first-vs-third-angle-orthographic-views/) (S, potwierdzone drugim wyszukiwaniem)
+- [PN-EN ISO 5456-2:2002, Polski Komitet Normalizacyjny](https://sklep.pkn.pl/pn-en-iso-5456-2-2002p.html) (B, treść normy niedostępna)
+- [Rzutowanie prostokątne, materiały UPSL](https://cms.upsl.edu.pl/content/download/7811/file/Rzutowanie%20Prostok%C4%85tne.pdf) (B)

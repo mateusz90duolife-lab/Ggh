@@ -170,10 +170,93 @@ async function testKurs(browser) {
   await page.close();
 }
 
+async function testDostepnosc(browser) {
+  console.log('\n— Dostępność —');
+  const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
+  watch(page, '[a11y]');
+  await page.goto(APP);
+  await page.waitForTimeout(250);
+  await page.click('#nav button:has-text("Trening")');
+  await page.waitForTimeout(150);
+  await page.locator('button.btn').filter({ hasText: 'Zacznij sesję' }).first().click();
+  await page.waitForTimeout(300);
+
+  // Opcje odpowiedzi muszą być osiągalne klawiaturą i mieć etykiety
+  const opts = await page.locator('.opt').count();
+  const focusable = await page.evaluate(() =>
+    [...document.querySelectorAll('.opt')].filter(e => e.tagName === 'BUTTON').length);
+  const labelled = await page.evaluate(() =>
+    [...document.querySelectorAll('.opt')].filter(e => (e.getAttribute('aria-label') || '').length > 5).length);
+  if (focusable !== opts) errors.push('opcje odpowiedzi nie są przyciskami (' + focusable + '/' + opts + ')');
+  if (labelled !== opts) errors.push('opcje bez etykiety dla czytnika (' + labelled + '/' + opts + ')');
+  console.log('  opcji: ' + opts + ', przycisków: ' + focusable + ', z etykietą: ' + labelled);
+
+  // Tab musi dotrzeć do odpowiedzi
+  let reached = false;
+  for (let i = 0; i < 30 && !reached; i++) {
+    await page.keyboard.press('Tab');
+    reached = await page.evaluate(() => !!(document.activeElement && document.activeElement.closest('.opt')));
+  }
+  if (!reached) errors.push('Tab nie dociera do opcji odpowiedzi');
+  console.log('  Tab dociera do odpowiedzi: ' + (reached ? 'tak' : 'NIE'));
+
+  // Każde płótno jest albo opisane, albo świadomie pominięte
+  const bareCanvas = await page.evaluate(() => [...document.querySelectorAll('canvas')]
+    .filter(c => !c.getAttribute('aria-label') && c.getAttribute('aria-hidden') !== 'true').length);
+  if (bareCanvas) errors.push(bareCanvas + ' płócien bez etykiety i bez aria-hidden');
+  console.log('  płócien nieobsłużonych: ' + bareCanvas);
+
+  // Odpowiedź z klawiatury: cyfra wybiera, Enter przechodzi dalej
+  await page.keyboard.press('1');
+  await page.waitForTimeout(200);
+  const answered = await page.evaluate(() => Session.answered);
+  if (!answered) errors.push('klawisz 1 nie wybiera odpowiedzi');
+  const live = await page.locator('.fb[aria-live]').count();
+  if (!live) errors.push('informacja zwrotna bez aria-live');
+  console.log('  klawisz 1 wybiera odpowiedź: ' + (answered ? 'tak' : 'NIE') + ', aria-live: ' + (live ? 'tak' : 'NIE'));
+
+  const before = await page.evaluate(() => Session.i);
+  await page.evaluate(() => document.activeElement.blur());
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(250);
+  const after = await page.evaluate(() => Session.i);
+  if (after <= before) errors.push('Enter nie przechodzi do kolejnego zadania');
+  console.log('  Enter przechodzi dalej: ' + (after > before ? 'tak' : 'NIE'));
+
+  // Edytor planu i pozycje kursu też muszą być przyciskami
+  await page.click('#nav button:has-text("Buduj")');
+  await page.waitForTimeout(250);
+  const cellsAreButtons = await page.evaluate(() => {
+    const all = [...document.querySelectorAll('.plan-cell')];
+    return all.length > 0 && all.every(e => e.tagName === 'BUTTON' && e.getAttribute('aria-label'));
+  });
+  if (!cellsAreButtons) errors.push('pola edytora planu nie są opisanymi przyciskami');
+
+  await page.click('#nav button:has-text("Kurs")');
+  await page.waitForTimeout(250);
+  const modsAreButtons = await page.evaluate(() => {
+    const all = [...document.querySelectorAll('.mod')];
+    return all.length > 0 && all.every(e => e.tagName === 'BUTTON');
+  });
+  if (!modsAreButtons) errors.push('pozycje kursu nie są przyciskami');
+
+  await page.click('#nav button:has-text("Teoria")');
+  await page.waitForTimeout(250);
+  const lessonsOk = await page.evaluate(() => {
+    const all = [...document.querySelectorAll('.lesson-h')];
+    return all.length > 0 && all.every(e => e.tagName === 'BUTTON' && e.hasAttribute('aria-expanded'));
+  });
+  if (!lessonsOk) errors.push('nagłówki lekcji bez aria-expanded');
+  console.log('  edytor planu, kurs i lekcje jako przyciski: ' +
+    (cellsAreButtons && modsAreButtons && lessonsOk ? 'tak' : 'NIE'));
+  await page.close();
+}
+
 (async () => {
   const browser = await chromium.launch();
   await testTrening(browser);
   await testKurs(browser);
+  await testDostepnosc(browser);
   await browser.close();
   if (errors.length) { console.log('\nBŁĘDY:\n' + errors.join('\n') + '\n'); process.exit(1); }
   console.log('\nTesty w przeglądarce przeszły.\n');

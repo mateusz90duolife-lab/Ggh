@@ -18,7 +18,7 @@ trap 'rm -rf "$TMP"' EXIT
 sed -n '/^<script>$/,/^<\/script>$/p' "$APP" | sed '1d;$d' > "$TMP/pelny.js"
 node --check "$TMP/pelny.js"
 echo "Składnia $APP: OK"
-sed '/^load();$/,/^render();$/d' "$TMP/pelny.js" > "$TMP/rdzen.js"
+sed '/START APLIKACJI/,$d' "$TMP/pelny.js" > "$TMP/rdzen.js"
 
 cat "$TMP/rdzen.js" testy/logika.js > "$TMP/testy.js"
 node "$TMP/testy.js"

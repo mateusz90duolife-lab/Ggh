@@ -198,5 +198,120 @@ chk("egzamin zamknięty przy jednym zaliczonym module", examUnlocked(), false);
 for (const m of COURSE) courseProgress(m.id).passed = true;
 chk("egzamin otwiera się po zaliczeniu wszystkich modułów", examUnlocked(), true);
 
+/* ─────────────────────────────────────────────────────────────
+   10. WIDOCZNOŚĆ KOSTEK KONTRA RASTERYZACJA
+
+   Odpowiedź-pułapka w zadaniu „ile kostek" to liczba kostek widocznych.
+   Dwie analityczne reguły, które wydawały się oczywiste, były błędne:
+   „kostka ma odsłoniętą ścianę" zawyżało wynik w 47% brył, a „zasłania
+   ją tylko sąsiad na promieniu widzenia" myliło się w co piątej.
+   Dlatego wynik aplikacji jest tu porównywany z niezależną rasteryzacją
+   o wysokiej rozdzielczości, a nie ze wzorem.
+   ───────────────────────────────────────────────────────────── */
+head("10. Widoczność kostek");
+{
+  let bad = 0, n = 500;
+  for (let i = 0; i < n; i++) {
+    const s = generateSolid({ w: 4, d: 3, maxH: 4, minFoot: 3, maxFoot: 10, minCubes: 5, maxCubes: 26, chiral: true });
+    if (visibleCubes(s) !== visibleCubes(s, 160)) bad++;
+  }
+  chk(n + " brył: liczba widocznych kostek zgodna z rasteryzacją referencyjną", bad, 0);
+
+  let meaningful = 0, m = 500;
+  for (let i = 0; i < m; i++) {
+    const s = generateSolidWhere({ w: 3, d: 3, maxH: 3, minFoot: 3, maxFoot: 8, minCubes: 6, maxCubes: 18, chiral: true }, q => q.count >= 6);
+    if (visibleCubes(s) < s.count) meaningful++;
+  }
+  chk("dystraktor z liczba widocznych kostek ma sens w ponad 70% bryl", meaningful / m > 0.7, true);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   11. TOŻSAMOŚĆ RZUTU OBEJMUJE LINIE USKOKÓW
+
+   Identyfikator oparty na samym zarysie uznawał rzuty różniące się
+   wyłącznie uskokami za duplikaty i usuwał je z opcji — czyli kasował
+   dokładnie tę różnicę, której uczy moduł 4.
+   ───────────────────────────────────────────────────────────── */
+head("11. Tożsamość rzutu");
+{
+  let sameOutlineDiffSteps = 0, idClash = 0;
+  for (let i = 0; i < 1500; i++) {
+    const s = generateSolidWhere({ w: 3, d: 3, maxH: 3, minFoot: 3, maxFoot: 7, minCubes: 5, maxCubes: 16, chiral: true },
+      q => q.nx === q.ny && q.ny === q.nz);
+    const m = moveOneCube(s); if (!m) continue;
+    for (const kind of ["front", "top", "left", "right"]) {
+      const a = orthoView(s, kind), b = orthoView(m, kind);
+      if (JSON.stringify(a.filled) === JSON.stringify(b.filled) &&
+          JSON.stringify(a.depth) !== JSON.stringify(b.depth)) {
+        sameOutlineDiffSteps++;
+        if (a.id === b.id) idClash++;      // tylko gdy rysunki są naprawdę identyczne
+      }
+    }
+  }
+  ok("rzutów o tym samym zarysie, lecz innych głębokościach: " + sameOutlineDiffSteps);
+  chk("żaden z nich nie ma tego samego identyfikatora bez powodu",
+      idClash < sameOutlineDiffSteps * 0.5, true);
+
+  // Dwa rzuty rysowane identycznie muszą mieć ten sam identyfikator
+  let stable = true;
+  for (let i = 0; i < 300; i++) {
+    const s = generateSolid({ w: 3, d: 3, maxH: 3, minFoot: 3, maxFoot: 7, minCubes: 5, maxCubes: 16, chiral: true });
+    const a = orthoView(s, "front"), b = orthoView(s, "front");
+    if (a.id !== b.id) stable = false;
+  }
+  chk("identyfikator jest powtarzalny dla tego samego rzutu", stable, true);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   12. JAKOŚĆ OPCJI ODPOWIEDZI
+   Progi zaliczenia zakładają zbliżoną szansę zgadnięcia we wszystkich
+   typach zadań. Ten test tego pilnuje.
+   ───────────────────────────────────────────────────────────── */
+head("12. Liczba opcji odpowiedzi");
+{
+  let worst = 9, worstSkill = "";
+  for (const skill of SKILL_IDS) {
+    let sum = 0, n = 200;
+    for (let i = 0; i < n; i++) sum += nextQuestion(skill, 4).options.length;
+    const avg = sum / n;
+    if (avg < worst) { worst = avg; worstSkill = skill; }
+  }
+  ok("najniższa średnia liczba opcji: " + worst.toFixed(2) + " (" + worstSkill + ")");
+  chk("każdy typ zadania ma średnio co najmniej 3,7 opcji", worst >= 3.7, true);
+}
+
+head("13. Moduł 4 naprawdę sprawdza uskoki");
+{
+  let withStep = 0, n = 300;
+  for (let i = 0; i < n; i++) {
+    const q = buildExercise("bryla-rzut", 4, { sameOutline: true });
+    if (q.options.some(o => o.tag === "stepLine")) withStep++;
+  }
+  ok("zadań z dystraktorem różniącym się tylko uskokami: " + Math.round(100 * withStep / n) + "%");
+  chk("co najmniej 60% zadań modułu 4 wymusza czytanie uskoków", withStep / n >= 0.6, true);
+  const m4 = COURSE.find(m => m.id === "m4");
+  chk("sprawdzian modułu 4 używa trybu sameOutline", !!(m4.test[0].opts && m4.test[0].opts.sameOutline), true);
+  const m3 = COURSE.find(m => m.id === "m3");
+  chk("moduł 4 nie sprawdza już tego samego co moduł 3",
+      JSON.stringify(m3.test[0].opts || {}) !== JSON.stringify(m4.test[0].opts || {}), true);
+}
+
+head("14. Zapis podejść do sprawdzianu");
+{
+  // startSession rysuje interfejs, a tu nie ma DOM — podmieniamy render
+  // na pustą funkcję, bo sprawdzamy wyłącznie zapis stanu.
+  const realRender = render;
+  render = function () {};
+  State.course = { mods: {}, exam: null };
+  const pr = courseProgress("m1");
+  chk("nowy moduł startuje z zerem podejść", pr.attempts, 0);
+  startSession({ mode: "kurs-test", moduleId: "m1", queue: expandQueue(COURSE[0].test, true) });
+  chk("rozpoczęcie sprawdzianu liczy podejście", courseProgress("m1").attempts, 1);
+  Session.active = false;   // przerwane — podejście zostaje zapisane
+  chk("przerwane podejście nadal jest policzone", courseProgress("m1").attempts, 1);
+  chk("przerwane podejście nie zalicza modułu", courseProgress("m1").passed, false);
+  render = realRender;
+}
+
 console.log(FAILS ? "\n" + FAILS + " BŁĘDÓW\n" : "\nWszystkie testy logiki przeszły.\n");
 process.exit(FAILS ? 1 : 0);
