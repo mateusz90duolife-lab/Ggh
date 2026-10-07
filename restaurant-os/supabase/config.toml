@@ -1,8 +1,9 @@
 # Konfiguracja Supabase CLI (funkcje Edge).
-# daily-shopping-summary jest wywoływana przez pg_cron sekretem CRON_SECRET (nie JWT), więc brama JWT jest wyłączona,
-# a funkcja sama weryfikuje albo CRON_SECRET, albo JWT użytkownika (manager+).
+# Obie funkcje same uwierzytelniają wywołującego: token użytkownika sprawdzają w Auth (/auth/v1/user), a rolę
+# w tabeli profiles (daily-shopping-summary przyjmuje też CRON_SECRET z crona). Brama JWT jest wyłączona,
+# bo nie współpracuje z nowymi kluczami podpisu JWT Supabase.
 [functions.admin-users]
-verify_jwt = true
+verify_jwt = false
 
 [functions.daily-shopping-summary]
 verify_jwt = false

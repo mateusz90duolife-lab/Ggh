@@ -53,3 +53,19 @@ Testy E2E działają przeciw `e2e/local-backend.mjs`: serwerowi zgodnemu z API S
 ## D12. Poza zakresem tego wydania
 
 OCR dokumentów (FAZA 3), wykresy i alerty cen (FAZA 4), receptury i food cost (FAZA 5), raporty i prognozy (FAZA 6). Schemat bazy dla receptur i OCR jest opisany w `MASTER_PROMPT.md`, ale nie ma go w migracjach.
+
+## D13. Funkcje API dostępne dla zalogowanych
+
+Doradca bezpieczeństwa Supabase ostrzega, że zalogowani mogą wywoływać funkcje `SECURITY DEFINER`. To zamierzone: to jest API aplikacji (zgłoszenie braku, zakup, inwentaryzacja…), a każda funkcja sama sprawdza rolę i restaurację. Rola `anon` nie wykona żadnej funkcji (migracja 005, test w `supabase/tests/20_app_functions.sql`). Funkcje wyzwalaczy są poza API.
+
+## D14. Klucz publishable i brama JWT funkcji
+
+Frontend używa nowego klucza `sb_publishable_…` (jawny z założenia). Funkcje Edge mają wyłączoną bramę JWT (`verify_jwt = false`), bo nie współpracuje ona z nowymi kluczami podpisu; obie funkcje same sprawdzają token w Auth i rolę w bazie (wywołanie bez tokenu zwraca 401 — sprawdzone na produkcji).
+
+## D15. Hosting na GitHub Pages z folderu `/docs`
+
+Repozytorium jest publiczne, więc GitHub Pages jest darmowy. Zbudowana aplikacja leży w `/docs` (skrypt `scripts/publish-pages.mjs`), co działa z dowolnej gałęzi bez dodatkowego CI. Alternatywa (Vercel) jest opisana w `SETUP.md`.
+
+## D16. Widok stanów jako `security_invoker`
+
+Po uwadze doradcy bezpieczeństwa widok `product_stock` działa z uprawnieniami użytkownika, a sumy ruchów liczy funkcja `stock_levels()` ograniczona do restauracji zalogowanego. Pracownik nadal widzi stany, ale nie historię ruchów (migracja 005).

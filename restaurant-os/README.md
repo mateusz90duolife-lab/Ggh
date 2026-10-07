@@ -14,6 +14,10 @@ Aplikacja PWA po polsku do prowadzenia restauracji: **magazyn, zgłaszanie brak�
 
 Najważniejsze zasady: stan magazynu to suma niezmiennych ruchów, uprawnienia wymusza baza danych (RLS), tryb offline obsługuje zgłoszenia braków i odhaczanie zadań, a każda ważna zmiana zapisuje się w historii.
 
+## Wersja produkcyjna
+
+Backend działa na Supabase (projekt `restaurant-os`), a zbudowana aplikacja leży w `/docs` repozytorium. Po jednorazowym włączeniu GitHub Pages będzie pod adresem **https://mateusz90duolife-lab.github.io/Ggh/**. Stan i kroki: [`docs/WDROZENIE.md`](docs/WDROZENIE.md).
+
 ## Szybki start
 
 1. Przeczytaj [`docs/SETUP.md`](docs/SETUP.md) — Supabase, migracje, pierwszy właściciel, e-mail, hosting.
