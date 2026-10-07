@@ -1,5 +1,5 @@
 import { h } from '../dom.js';
-import { productIcon } from '../lib/catalog.js';
+import { artEl } from './art.js';
 import { normalize } from '../lib/format.js';
 import { unitLabel } from '../lib/units.js';
 /**
@@ -56,7 +56,7 @@ export function productPicker(opts) {
                 'aria-selected': String(i === highlighted),
                 onmousedown: (e) => e.preventDefault(), // nie gub fokusu przed wyborem
                 onclick: () => choose(p),
-            }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(p, catName.get(p.category_id ?? ''))), h('span', { style: 'flex:1' }, h('strong', null, p.name), h('div', { class: 'item-sub' }, catName.get(p.category_id ?? '') ?? 'Inne')), h('span', { class: 'muted' }, unitLabel(p.unit))))
+            }, artEl(p, catName.get(p.category_id ?? '')), h('span', { style: 'flex:1' }, h('strong', null, p.name), h('div', { class: 'item-sub' }, catName.get(p.category_id ?? '') ?? 'Inne')), h('span', { class: 'muted' }, unitLabel(p.unit))))
             : [h('div', { class: 'picker-opt muted' }, 'Brak pasujących produktów')]));
         list.hidden = false;
         input.setAttribute('aria-expanded', 'true');
@@ -69,7 +69,7 @@ export function productPicker(opts) {
             input.value = p.name;
             input.hidden = true;
             chosen.hidden = false;
-            chosen.replaceChildren(h('div', { class: 'item', style: 'padding:0;min-height:0;border:0;background:transparent' }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(p, catName.get(p.category_id ?? ''))), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, p.name), h('div', { class: 'item-sub' }, `${catName.get(p.category_id ?? '') ?? 'Inne'} · jednostka: ${unitLabel(p.unit)}`)), h('button', {
+            chosen.replaceChildren(h('div', { class: 'item', style: 'padding:0;min-height:0;border:0;background:transparent' }, artEl(p, catName.get(p.category_id ?? '')), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, p.name), h('div', { class: 'item-sub' }, `${catName.get(p.category_id ?? '') ?? 'Inne'} · jednostka: ${unitLabel(p.unit)}`)), h('button', {
                 type: 'button',
                 class: 'btn btn-soft btn-sm',
                 onclick: () => {

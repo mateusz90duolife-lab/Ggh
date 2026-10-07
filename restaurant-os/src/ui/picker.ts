@@ -1,5 +1,5 @@
 import { h } from '../dom.js';
-import { productIcon } from '../lib/catalog.js';
+import { artEl } from './art.js';
 import { normalize } from '../lib/format.js';
 import { unitLabel } from '../lib/units.js';
 import type { Category, Product } from '../types.js';
@@ -91,11 +91,7 @@ export function productPicker(opts: {
                 onmousedown: (e: Event) => e.preventDefault(), // nie gub fokusu przed wyborem
                 onclick: () => choose(p),
               },
-              h(
-                'span',
-                { class: 'prod-icon', 'aria-hidden': 'true' },
-                productIcon(p, catName.get(p.category_id ?? '')),
-              ),
+              artEl(p, catName.get(p.category_id ?? '')),
               h(
                 'span',
                 { style: 'flex:1' },
@@ -123,7 +119,7 @@ export function productPicker(opts: {
         h(
           'div',
           { class: 'item', style: 'padding:0;min-height:0;border:0;background:transparent' },
-          h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(p, catName.get(p.category_id ?? ''))),
+          artEl(p, catName.get(p.category_id ?? '')),
           h(
             'div',
             { class: 'item-main' },

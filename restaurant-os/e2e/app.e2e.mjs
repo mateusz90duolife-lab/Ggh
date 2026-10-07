@@ -752,6 +752,13 @@ scenario('katalog z ilustracjami i szybki wybór kafelkami w „Zgłoś brak”'
   await mgr.getByRole('tab', { name: /Mięso/ }).click();
   await mgr.getByRole('button', { name: /^Boczek/ }).click();
   await mgr.getByRole('tab', { name: /Zupy \(2\)/ }).waitFor();
+  const arts = await mgr.evaluate(() =>
+    [...document.querySelectorAll('.tile img.tile-art')].map((i) => [i.getAttribute('src'), i.naturalWidth]),
+  );
+  assert.ok(
+    arts.length > 10 && arts.every(([src, w]) => /^img\/p\/[a-z-]+\.svg$/.test(src) && w > 0),
+    'każdy kafelek ma wczytaną ilustrację',
+  );
   await mgr.screenshot({ path: `${ARTIFACTS}/katalog-360.png` });
   const m = await mgr.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
   assert.ok(m[0] <= m[1] + 1, `katalog: poziomy scroll ${m[0]} > ${m[1]}`);
@@ -759,10 +766,10 @@ scenario('katalog z ilustracjami i szybki wybór kafelkami w „Zgłoś brak”'
   await toast(mgr, 'Dodano 3 produkty');
   assert.equal(
     await env.be.sql(
-      `select string_agg(p.name || ':' || p.icon || ':' || coalesce(c.name, '-'), ',' order by p.name) from products p left join product_categories c on c.id = p.category_id where p.name in ('Rosół','Żurek','Boczek')`,
+      `select string_agg(p.name || ':' || coalesce(p.icon, 'auto') || ':' || coalesce(c.name, '-'), ',' order by p.name) from products p left join product_categories c on c.id = p.category_id where p.name in ('Rosół','Żurek','Boczek')`,
     ),
-    'Boczek:🥓:Mięso,Rosół:🍲:Zupy,Żurek:🥣:Zupy',
-    'produkty z ikonami; brakująca kategoria „Zupy” utworzona, istniejąca „Mięso” użyta ponownie',
+    'Boczek:auto:Mięso,Rosół:auto:Zupy,Żurek:auto:Zupy',
+    'ilustracje dobierane automatycznie po nazwie; brakująca kategoria „Zupy” utworzona, istniejąca „Mięso” użyta ponownie',
   );
   await mgr.getByRole('tab', { name: /Zupy/ }).click();
   // produkt już w magazynie: kafelek prowadzi do ekranu Produkty z tym produktem zaznaczonym

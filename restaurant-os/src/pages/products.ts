@@ -1,7 +1,8 @@
 import { eq, list, rpc } from '../api/db.js';
 import { enqueue } from '../api/queue.js';
 import { h, icon, mount } from '../dom.js';
-import { categoryIcon, productIcon } from '../lib/catalog.js';
+import { categoryIcon } from '../lib/catalog.js';
+import { artEl } from '../ui/art.js';
 import { errorMessage, isNetworkError } from '../lib/errors.js';
 import { formatQty, normalize, plural, relativeTime } from '../lib/format.js';
 import { allowsFraction, unitLabel } from '../lib/units.js';
@@ -105,8 +106,8 @@ export async function productsPage(c: PageCtx): Promise<void> {
             'aria-label': `${s.name}, na stanie ${formatQty(s.stock)} ${unitLabel(s.unit)}`,
             onclick: () => toggle(s),
           },
-          h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, productIcon(s, names.get(s.category_id ?? ''))),
-          h('span', null, s.name),
+          artEl(s, names.get(s.category_id ?? ''), 'tile-art'),
+          h('span', { class: 'tile-name' }, s.name),
           h(
             'span',
             { class: `tile-sub${s.status === 'low' || s.status === 'out' ? ' tile-warn' : ''}` },
@@ -180,11 +181,7 @@ export async function productsPage(c: PageCtx): Promise<void> {
           return h(
             'div',
             { class: 'pick-row' },
-            h(
-              'span',
-              { class: 'prod-icon', 'aria-hidden': 'true' },
-              productIcon(it.p, names.get(it.p.category_id ?? '')),
-            ),
+            artEl(it.p, names.get(it.p.category_id ?? '')),
             h('span', { class: 'pick-name' }, it.p.name),
             h(
               'button',
@@ -318,7 +315,7 @@ export async function productsPage(c: PageCtx): Promise<void> {
               return h(
                 'div',
                 { class: 'item' },
-                h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, p ? productIcon(p) : '📦'),
+                p ? artEl(p) : h('span', { class: 'prod-art art-emoji', 'aria-hidden': 'true' }, '📦'),
                 h(
                   'div',
                   { class: 'item-main' },

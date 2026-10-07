@@ -89,18 +89,49 @@ test('tabela paragonu: TSV do arkusza i CSV dla polskiego Excela', () => {
   assert.ok(csv.includes('"TORBA; ""duża"""'));
 });
 
-test('katalog: ilustracje dla produktów, kategorii i nazw wpisanych ręcznie', () => {
+test('katalog: kategorie, ilustracja dla każdego produktu, dopasowanie po nazwie', async () => {
+  const { existsSync, readFileSync } = await import('node:fs');
   const groups = cat.CATALOG.map((g) => g.category);
-  assert.deepEqual(groups, ['Mięso', 'Warzywa', 'Zupy', 'Przyprawy', 'Sosy']);
+  assert.deepEqual(groups, ['Mięso', 'Warzywa', 'Nabiał', 'Zupy', 'Przyprawy', 'Sosy', 'Akcesoria']);
   const all = cat.CATALOG.flatMap((g) => g.items);
-  assert.ok(all.length >= 100, `pozycji: ${all.length}`);
+  assert.ok(all.length >= 150, `pozycji: ${all.length}`);
   assert.equal(new Set(all.map((i) => i.name.toLowerCase())).size, all.length, 'bez duplikatów nazw');
-  assert.ok(all.every((i) => i.icon && i.icon.length <= 16 && i.name.length <= 80));
-  assert.equal(cat.guessIcon('Pierś z kurczaka'), '🐔');
-  assert.equal(cat.guessIcon('Fasola czerwona'), '🫘');
-  assert.equal(cat.guessIcon('Mleko 3,2%'), '🥛');
-  assert.equal(cat.guessIcon('qwerty'), null);
-  assert.equal(cat.productIcon({ name: 'qwerty', icon: null }, 'Nabiał'), '🧀');
-  assert.equal(cat.productIcon({ name: 'qwerty', icon: '🍕' }, 'Nabiał'), '🍕');
-  assert.equal(cat.categoryIcon('Chemia i czystość'), '🧴');
+  assert.equal(new Set(all.map((i) => i.art)).size, all.length, 'każdy produkt ma własną ilustrację');
+  for (const key of cat.ART_KEYS) {
+    const f = new URL(`../public/img/p/${key}.svg`, import.meta.url);
+    assert.ok(existsSync(f), `brak pliku ilustracji ${key}.svg`);
+    assert.match(readFileSync(f, 'utf8'), /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 64 64"/);
+    assert.ok(key.length <= 15, 'klucz mieści się w kolumnie icon („@klucz” ≤ 16 znaków)');
+  }
+  // oleje i oliwy są w przyprawach
+  const spices = cat.CATALOG.find((g) => g.category === 'Przyprawy').items.map((i) => i.name);
+  assert.ok(
+    spices.includes('Oliwa z oliwek') && spices.includes('Olej rzepakowy') && spices.includes('Olej słonecznikowy'),
+  );
+  // dopasowanie ilustracji: dokładna nazwa z katalogu, potem słowa kluczowe (szczegółowe przed ogólnymi)
+  const key = (name) => cat.artKeyFor(name);
+  assert.equal(key('Pierś z kurczaka'), 'piers-kurczak');
+  assert.equal(key('Mleko 3,2%'), 'mleko');
+  assert.equal(key('Mleko 2% UHT'), 'mleko');
+  assert.equal(key('Śmietana'), 'smietana');
+  assert.equal(key('Ser żółty gouda'), 'ser-zolty');
+  assert.equal(key('Serwetki białe'), 'serwetki');
+  assert.equal(key('Sos pomidorowy z bazylią'), 'sos-pomidor');
+  assert.equal(key('Pomidor malinowy'), 'pomidory');
+  assert.equal(key('Papryka słodka wędzona'), 'papryka-slod');
+  assert.equal(key('Oliwa z pierwszego tłoczenia'), 'oliwa');
+  assert.equal(key('Olej'), 'olej-rzep');
+  assert.equal(key('Folia aluminiowa 30 cm'), 'folia-alu');
+  assert.equal(key('Por'), 'por');
+  assert.equal(key('Porcja ryżu'), 'ryz', '„por” tylko jako całe słowo');
+  assert.equal(key('Mąka pszenna'), 'maka');
+  assert.equal(key('qwerty'), null);
+  // kolejność: ręczny wybór → ilustracja z nazwy → emoji → ikona kategorii
+  assert.deepEqual(cat.artFor({ name: 'Kurczak', icon: '@kaczka' }), { kind: 'img', key: 'kaczka' });
+  assert.deepEqual(cat.artFor({ name: 'Kurczak', icon: '🍕' }), { kind: 'emoji', char: '🍕' });
+  assert.deepEqual(cat.artFor({ name: 'Kurczak', icon: null }), { kind: 'img', key: 'kurczak' });
+  assert.deepEqual(cat.artFor({ name: 'Kawa ziarnista' }), { kind: 'emoji', char: '☕' });
+  assert.deepEqual(cat.artFor({ name: 'qwerty' }, 'Nabiał'), { kind: 'emoji', char: '🧀' });
+  assert.equal(cat.artUrl('mleko'), 'img/p/mleko.svg');
+  assert.equal(cat.categoryIcon('Akcesoria'), '🧻');
 });

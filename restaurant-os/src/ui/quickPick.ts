@@ -1,5 +1,6 @@
 import { h } from '../dom.js';
-import { categoryIcon, productIcon } from '../lib/catalog.js';
+import { categoryIcon } from '../lib/catalog.js';
+import { artEl } from './art.js';
 import { unitLabel } from '../lib/units.js';
 import type { Category, Product } from '../types.js';
 
@@ -75,8 +76,8 @@ export function quickPick(opts: {
             'aria-label': `Wybierz: ${p.name}`,
             onclick: () => opts.onPick(p),
           },
-          h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, productIcon(p, catName.get(p.category_id ?? ''))),
-          h('span', null, p.name),
+          artEl(p, catName.get(p.category_id ?? ''), 'tile-art'),
+          h('span', { class: 'tile-name' }, p.name),
           h('span', { class: 'tile-sub' }, unitLabel(p.unit)),
         ),
       ),

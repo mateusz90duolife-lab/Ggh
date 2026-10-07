@@ -70,9 +70,9 @@ Repozytorium jest publiczne, więc GitHub Pages jest darmowy. Zbudowana aplikacj
 
 Po uwadze doradcy bezpieczeństwa widok `product_stock` działa z uprawnieniami użytkownika, a sumy ruchów liczy funkcja `stock_levels()` ograniczona do restauracji zalogowanego. Pracownik nadal widzi stany, ale nie historię ruchów (migracja 005).
 
-## D17. Katalog produktów z ilustracjami (emoji)
+## D17. Katalog produktów z ilustracjami
 
-Ilustracje produktów to emoji: działają offline, nie wymagają pobierania obrazków ani magazynu plików, są kolorowe i czytelne na każdym telefonie. Katalog startowy (`src/lib/catalog.ts`, ok. 110 pozycji: mięsa, warzywa, zupy, przyprawy, sosy) dodaje produkty z ikoną w kolumnie `products.icon`; produktom bez ikony aplikacja dobiera ją po słowach w nazwie, a w ostateczności po kategorii. Produkt bez minimalnego stanu i bez zapasu ma status **„Bez stanu”** (`none`), a nie „BRAK” — inaczej każdy produkt dodany z katalogu od razu liczyłby się na pulpicie jako brak.
+Katalog startowy (`src/lib/catalog.ts`, 153 pozycje: mięso, warzywa, nabiał, zupy, przyprawy i oleje, sosy, akcesoria). Ilustracje opisuje D21; pierwotnie były to emoji. Produkt bez minimalnego stanu i bez zapasu ma status **„Bez stanu”** (`none`), a nie „BRAK” — inaczej każdy produkt dodany z katalogu od razu liczyłby się na pulpicie jako brak.
 
 ## D18. Skaner paragonów (Claude, odczyt obrazu)
 
@@ -98,3 +98,9 @@ Ilustracje produktów to emoji: działają offline, nie wymagają pobierania obr
 - **Godziny** (tabela `work_shifts`): „Zaczynam pracę” / „Kończę pracę” albo ręczny wpis (dzień, od, do). Pracownik wpisuje tylko swoje godziny z ostatnich 14 dni, wpisy nie mogą się nakładać ani być z przyszłości, zmiana trwa najwyżej 16 h (ręcznie) / 24 h (zegar). Poprawki i starsze wpisy robi manager.
 - **Zespół** (manager i właściciel): kto jest w pracy, godziny w tym tygodniu i miesiącu, zamówienia (zgłoszone braki), zmiany stanu i zadania każdej osoby; z karty osoby szef przydziela zadanie i dopisuje godziny. Zadania przydzielone konkretnej osobie widzi tylko ona (i szefowie); zadania „dla wszystkich” — cały zespół.
 - Kafelki w **Katalogu**, które są już w magazynie, prowadzą teraz do ekranu Produkty (wcześniej były wyszarzone i nie dało się ich zaznaczyć).
+
+## D21. Ilustracje SVG zamiast emoji
+
+Emoji nie odróżniały produktów (np. jedna ikona dla wszystkich sosów czy mięs), więc każdy produkt katalogu ma własny rysunek SVG 64×64 w jednym, płaskim stylu. Rysunki powstają w kodzie (`scripts/gen-art.mjs` + moduły `scripts/art/*.mjs`) podczas `npm run build`, trafiają do `public/img/p/` i do pamięci service workera, więc działają offline i nie wymagają magazynu plików. Podgląd wszystkich: `npm run art:sheet`.
+
+Kolejność doboru obrazka: wybór ręczny w karcie produktu (`products.icon = '@klucz'`), emoji wpisane ręcznie, dokładna nazwa z katalogu, słowa w nazwie (np. „Mąka pszenna” → mąka), a na końcu emoji kategorii. Kafelki pokazują obrazek i pełną nazwę pogrubioną, bez ucinania. Nowe kategorie: **Nabiał**, **Akcesoria** (folie, papier, rękawiczki, pojemniki…); oleje i oliwy są w **Przyprawach**.

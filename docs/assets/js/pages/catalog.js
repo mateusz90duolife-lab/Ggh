@@ -1,6 +1,7 @@
 import { insert } from '../api/db.js';
 import { h, mount } from '../dom.js';
 import { CATALOG } from '../lib/catalog.js';
+import { artImg } from '../ui/art.js';
 import { errorMessage } from '../lib/errors.js';
 import { normalize, plural } from '../lib/format.js';
 import { unitLabel } from '../lib/units.js';
@@ -58,7 +59,7 @@ export async function catalogPage(c) {
                     class: 'tile tile-have',
                     href: `#/produkty?produkt=${idByName.get(normalize(it.name)) ?? ''}`,
                     'aria-label': `${it.name} — już w magazynie, otwórz`,
-                }, h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, it.icon), h('span', null, it.name), h('span', { class: 'tile-sub' }, '✓ w magazynie'));
+                }, artImg(it.art, 'tile-art'), h('span', { class: 'tile-name' }, it.name), h('span', { class: 'tile-sub' }, '✓ w magazynie'));
             return h('button', {
                 type: 'button',
                 class: `tile${on ? ' tile-selected' : ''}`,
@@ -71,7 +72,7 @@ export async function catalogPage(c) {
                         selected.add(it);
                     draw();
                 },
-            }, h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, it.icon), h('span', null, it.name), h('span', { class: 'tile-sub' }, unitLabel(it.unit)));
+            }, artImg(it.art, 'tile-art'), h('span', { class: 'tile-name' }, it.name), h('span', { class: 'tile-sub' }, unitLabel(it.unit)));
         }));
         const free = (group?.items ?? []).filter((it) => !have.has(normalize(it.name)));
         selectAllBtn.hidden = free.length === 0;
@@ -118,7 +119,6 @@ export async function catalogPage(c) {
             .map((it) => ({
             name: it.name,
             unit: it.unit,
-            icon: it.icon,
             minimum_stock: 0,
             category_id: catByName.get(normalize(groupOf.get(it) ?? '')) ?? null,
         }));

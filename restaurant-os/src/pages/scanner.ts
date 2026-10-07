@@ -1,6 +1,6 @@
 import { callFunction, eq, insert, list, one, rpc, update } from '../api/db.js';
 import { h, icon, mount } from '../dom.js';
-import { guessIcon, productIcon } from '../lib/catalog.js';
+import { productIcon } from '../lib/catalog.js';
 import { ApiError, errorMessage } from '../lib/errors.js';
 import { formatDate, formatDateTime, formatPLN, formatQty, normalize, plural } from '../lib/format.js';
 import {
@@ -266,11 +266,11 @@ export async function scannerPage(c: PageCtx): Promise<void> {
 
     async function createProduct(it: ReceiptItem): Promise<string | null> {
       const name = (it.name_guess || it.name).slice(0, 80);
-      const row = { name, unit: unitForNewProduct(it), icon: guessIcon(name), minimum_stock: 0 };
+      const row = { name, unit: unitForNewProduct(it), minimum_stock: 0 };
       try {
         const [p] = await insert<Product>('products', row);
         if (p) {
-          products.push({ ...p, icon: row.icon });
+          products.push(p);
           return p.id;
         }
       } catch (e) {
@@ -627,7 +627,7 @@ export async function scannerPage(c: PageCtx): Promise<void> {
                   class: 'item item-btn',
                   onclick: () => openScan(r),
                 },
-                h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, '🧾'),
+                h('span', { class: 'prod-art art-emoji', 'aria-hidden': 'true' }, '🧾'),
                 h(
                   'div',
                   { class: 'item-main' },

@@ -1,7 +1,7 @@
 import { eq, gte, list, remove, rpc } from '../api/db.js';
 import { h, icon, mount } from '../dom.js';
 import type { Child } from '../dom.js';
-import { productIcon } from '../lib/catalog.js';
+import { artEl } from '../ui/art.js';
 import { errorMessage } from '../lib/errors.js';
 import { formatDate, formatLongDate, relativeTime } from '../lib/format.js';
 import {
@@ -473,7 +473,7 @@ export async function memberPage(c: PageCtx): Promise<void> {
                     return h(
                       'div',
                       { class: 'item' },
-                      h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, pr ? productIcon(pr) : '📦'),
+                      pr ? artEl(pr) : h('span', { class: 'prod-art art-emoji', 'aria-hidden': 'true' }, '📦'),
                       h(
                         'div',
                         { class: 'item-main' },
@@ -504,7 +504,7 @@ export async function memberPage(c: PageCtx): Promise<void> {
                     return h(
                       'div',
                       { class: 'item' },
-                      h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, pr ? productIcon(pr) : '📦'),
+                      pr ? artEl(pr) : h('span', { class: 'prod-art art-emoji', 'aria-hidden': 'true' }, '📦'),
                       h(
                         'div',
                         { class: 'item-main' },

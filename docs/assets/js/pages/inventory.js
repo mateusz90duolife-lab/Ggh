@@ -4,7 +4,8 @@ import { h, icon, mount } from '../dom.js';
 import { ApiError, errorMessage } from '../lib/errors.js';
 import { formatDateTime, formatPLN, formatQty, normalize, plural } from '../lib/format.js';
 import { storage } from '../lib/storage.js';
-import { ICON_CHOICES, guessIcon, productIcon } from '../lib/catalog.js';
+import { ART_KEYS, artIcon } from '../lib/catalog.js';
+import { artEl, artImg } from '../ui/art.js';
 import { UNITS, unitLabel } from '../lib/units.js';
 import { parseQuantity, parseSignedQuantity, validateText } from '../lib/validate.js';
 import { navigate } from '../router.js';
@@ -103,7 +104,7 @@ export async function inventoryPage(c) {
             h('div', { class: 'group-title' }, g.name),
             ...g.rows
                 .sort((a, b) => a.name.localeCompare(b.name, 'pl'))
-                .map((s) => h('a', { class: 'item', href: `#/magazyn/${s.product_id}` }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(s, g.name)), h('div', { class: 'item-main stock-row' }, h('div', null, h('div', { class: 'item-title' }, s.name, s.active
+                .map((s) => h('a', { class: 'item', href: `#/magazyn/${s.product_id}` }, artEl(s, g.name), h('div', { class: 'item-main stock-row' }, h('div', null, h('div', { class: 'item-title' }, s.name, s.active
                 ? null
                 : h('span', { class: 'badge badge-neutral', style: 'margin-left:8px' }, 'nieaktywny')), h('div', { class: 'item-sub' }, `minimum: ${qtyText(s.minimum_stock, s.unit)}`)), h('div', { class: 'stock-qty' }, qtyText(s.stock, s.unit)), stockBar(num(s.stock), num(s.minimum_stock), s.status)), stockBadge(s.status))),
         ])));
@@ -140,37 +141,39 @@ export function openProductForm(existing, categories, onSaved) {
         hint: existing ? 'Jednostki nie można zmienić po utworzeniu produktu.' : undefined,
     });
     const min = field('Minimalny stan (alert poniżej)', numberInput({ value: existing ? formatQty(existing.minimum_stock) : '0' }));
+    // ręczny wybór ilustracji („@klucz”); null = dobierz automatycznie po nazwie
     let chosenIcon = existing?.icon ?? null;
     const iconHost = h('div', { class: 'icon-choices', role: 'radiogroup', 'aria-label': 'Ilustracja' });
     function drawIcons() {
-        const auto = guessIcon(name.input.value);
+        const nameNow = name.input.value;
         iconHost.replaceChildren(h('button', {
             type: 'button',
-            class: `chip${chosenIcon ? '' : ' chip-active'}`,
+            class: `icon-choice icon-auto${chosenIcon ? '' : ' tile-selected'}`,
             role: 'radio',
             'aria-checked': String(!chosenIcon),
+            'aria-label': 'Ilustracja automatyczna (po nazwie)',
             onclick: () => {
                 chosenIcon = null;
                 drawIcons();
             },
-        }, `Auto ${auto ?? ''}`.trim()), ...ICON_CHOICES.map((ic) => h('button', {
+        }, artEl({ name: nameNow || '?' }), h('span', null, 'Auto')), ...ART_KEYS.map((key) => h('button', {
             type: 'button',
-            class: `icon-choice${chosenIcon === ic ? ' tile-selected' : ''}`,
+            class: `icon-choice${chosenIcon === artIcon(key) ? ' tile-selected' : ''}`,
             role: 'radio',
-            'aria-checked': String(chosenIcon === ic),
-            'aria-label': `Ikona ${ic}`,
+            'aria-checked': String(chosenIcon === artIcon(key)),
+            'aria-label': `Ilustracja ${key}`,
             onclick: () => {
-                chosenIcon = ic;
+                chosenIcon = artIcon(key);
                 drawIcons();
             },
-        }, ic)));
+        }, artImg(key))));
     }
     drawIcons();
     name.input.addEventListener('change', drawIcons);
     const activeBox = h('input', { type: 'checkbox', id: 'p_active', checked: existing?.active ?? true });
     const m = openModal({ title: existing ? 'Edytuj produkt' : 'Nowy produkt', body: null });
     const save = button(existing ? 'Zapisz zmiany' : 'Dodaj produkt', { type: 'submit', size: 'lg', block: true });
-    const form = h('form', { class: 'form', novalidate: true }, name.el, category.el, h('div', { class: 'form-row' }, unit.el, min.el), h('details', { class: 'field' }, h('summary', { class: 'muted', style: 'cursor:pointer;padding:6px 0' }, 'Ilustracja (ikona)'), iconHost), existing
+    const form = h('form', { class: 'form', novalidate: true }, name.el, category.el, h('div', { class: 'form-row' }, unit.el, min.el), h('details', { class: 'field' }, h('summary', { class: 'muted', style: 'cursor:pointer;padding:6px 0' }, 'Ilustracja (obrazek produktu)'), iconHost), existing
         ? h('label', { class: 'check', for: 'p_active', style: '--x:1' }, activeBox, h('span', null, 'Produkt aktywny (widoczny w zgłoszeniach)'))
         : null, save);
     form.addEventListener('submit', (e) => {

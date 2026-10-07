@@ -11,7 +11,7 @@ Przyciski: **Kopiuj listę**, **Udostępnij** i **Wyślij mailem** (wysyła list
 
 **Magazyn** pokazuje stany z paskami. Filtr **Niski stan i braki** pokazuje tylko to, co trzeba dokupić. Dotknij produktu, aby zobaczyć historię ruchów, ostatnią cenę i zmienić dane (**Edytuj**).
 **+ Produkt** dodaje nowy produkt (nazwa, kategoria, jednostka, minimalny stan, ilustracja). Jednostki nie da się później zmienić.
-**Katalog** to gotowa lista produktów z ilustracjami (mięsa, warzywa, zupy, przyprawy, sosy): dotknij kafelki i **Dodaj … do magazynu**. Produkty, które już masz, są wyszarzone. Minimalny stan ustawisz potem w karcie produktu — do tego czasu produkt bez zapasu ma status **Bez stanu**, a nie BRAK.
+**Katalog** to gotowa lista produktów z ilustracjami (mięso, warzywa, nabiał, zupy, przyprawy i oleje, sosy, akcesoria): dotknij kafelki i **Dodaj … do magazynu**. Produkty, które już masz, są wyszarzone. Minimalny stan ustawisz potem w karcie produktu — do tego czasu produkt bez zapasu ma status **Bez stanu**, a nie BRAK. Obrazek produktu dobiera się sam po nazwie; inny wybierzesz w karcie produktu (Magazyn → produkt → **Ilustracja**).
 
 Ruchy w karcie produktu:
 

@@ -4,7 +4,8 @@ import { h, icon, mount } from '../dom.js';
 import { ApiError, errorMessage } from '../lib/errors.js';
 import { formatDateTime, formatPLN, formatQty, normalize, plural } from '../lib/format.js';
 import { storage } from '../lib/storage.js';
-import { ICON_CHOICES, guessIcon, productIcon } from '../lib/catalog.js';
+import { ART_KEYS, artIcon } from '../lib/catalog.js';
+import { artEl, artImg } from '../ui/art.js';
 import { UNITS, unitLabel } from '../lib/units.js';
 import { parseQuantity, parseSignedQuantity, validateText } from '../lib/validate.js';
 import { navigate } from '../router.js';
@@ -162,7 +163,7 @@ export async function inventoryPage(c: PageCtx): Promise<void> {
               h(
                 'a',
                 { class: 'item', href: `#/magazyn/${s.product_id}` },
-                h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(s, g.name)),
+                artEl(s, g.name),
                 h(
                   'div',
                   { class: 'item-main stock-row' },
@@ -238,40 +239,43 @@ export function openProductForm(existing: Product | null, categories: Category[]
     'Minimalny stan (alert poniżej)',
     numberInput({ value: existing ? formatQty(existing.minimum_stock) : '0' }),
   );
+  // ręczny wybór ilustracji („@klucz”); null = dobierz automatycznie po nazwie
   let chosenIcon: string | null = existing?.icon ?? null;
   const iconHost = h('div', { class: 'icon-choices', role: 'radiogroup', 'aria-label': 'Ilustracja' });
   function drawIcons() {
-    const auto = guessIcon((name.input as HTMLInputElement).value);
+    const nameNow = (name.input as HTMLInputElement).value;
     iconHost.replaceChildren(
       h(
         'button',
         {
           type: 'button',
-          class: `chip${chosenIcon ? '' : ' chip-active'}`,
+          class: `icon-choice icon-auto${chosenIcon ? '' : ' tile-selected'}`,
           role: 'radio',
           'aria-checked': String(!chosenIcon),
+          'aria-label': 'Ilustracja automatyczna (po nazwie)',
           onclick: () => {
             chosenIcon = null;
             drawIcons();
           },
         },
-        `Auto ${auto ?? ''}`.trim(),
+        artEl({ name: nameNow || '?' }),
+        h('span', null, 'Auto'),
       ),
-      ...ICON_CHOICES.map((ic) =>
+      ...ART_KEYS.map((key) =>
         h(
           'button',
           {
             type: 'button',
-            class: `icon-choice${chosenIcon === ic ? ' tile-selected' : ''}`,
+            class: `icon-choice${chosenIcon === artIcon(key) ? ' tile-selected' : ''}`,
             role: 'radio',
-            'aria-checked': String(chosenIcon === ic),
-            'aria-label': `Ikona ${ic}`,
+            'aria-checked': String(chosenIcon === artIcon(key)),
+            'aria-label': `Ilustracja ${key}`,
             onclick: () => {
-              chosenIcon = ic;
+              chosenIcon = artIcon(key);
               drawIcons();
             },
           },
-          ic,
+          artImg(key),
         ),
       ),
     );
@@ -290,7 +294,7 @@ export function openProductForm(existing: Product | null, categories: Category[]
     h(
       'details',
       { class: 'field' },
-      h('summary', { class: 'muted', style: 'cursor:pointer;padding:6px 0' }, 'Ilustracja (ikona)'),
+      h('summary', { class: 'muted', style: 'cursor:pointer;padding:6px 0' }, 'Ilustracja (obrazek produktu)'),
       iconHost,
     ),
     existing

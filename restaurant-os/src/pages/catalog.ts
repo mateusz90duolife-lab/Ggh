@@ -1,6 +1,7 @@
 import { insert } from '../api/db.js';
 import { h, mount } from '../dom.js';
 import { CATALOG } from '../lib/catalog.js';
+import { artImg } from '../ui/art.js';
 import type { CatalogItem } from '../lib/catalog.js';
 import { errorMessage } from '../lib/errors.js';
 import { normalize, plural } from '../lib/format.js';
@@ -83,8 +84,8 @@ export async function catalogPage(c: PageCtx): Promise<void> {
               href: `#/produkty?produkt=${idByName.get(normalize(it.name)) ?? ''}`,
               'aria-label': `${it.name} — już w magazynie, otwórz`,
             },
-            h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, it.icon),
-            h('span', null, it.name),
+            artImg(it.art, 'tile-art'),
+            h('span', { class: 'tile-name' }, it.name),
             h('span', { class: 'tile-sub' }, '✓ w magazynie'),
           );
         return h(
@@ -100,8 +101,8 @@ export async function catalogPage(c: PageCtx): Promise<void> {
               draw();
             },
           },
-          h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, it.icon),
-          h('span', null, it.name),
+          artImg(it.art, 'tile-art'),
+          h('span', { class: 'tile-name' }, it.name),
           h('span', { class: 'tile-sub' }, unitLabel(it.unit)),
         );
       }),
@@ -158,7 +159,6 @@ export async function catalogPage(c: PageCtx): Promise<void> {
       .map((it) => ({
         name: it.name,
         unit: it.unit,
-        icon: it.icon,
         minimum_stock: 0,
         category_id: catByName.get(normalize(groupOf.get(it) ?? '')) ?? null,
       }));

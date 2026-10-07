@@ -1,7 +1,8 @@
 import { eq, list, rpc } from '../api/db.js';
 import { enqueue } from '../api/queue.js';
 import { h, icon, mount } from '../dom.js';
-import { categoryIcon, productIcon } from '../lib/catalog.js';
+import { categoryIcon } from '../lib/catalog.js';
+import { artEl } from '../ui/art.js';
 import { errorMessage, isNetworkError } from '../lib/errors.js';
 import { formatQty, normalize, plural, relativeTime } from '../lib/format.js';
 import { allowsFraction, unitLabel } from '../lib/units.js';
@@ -80,7 +81,7 @@ export async function productsPage(c) {
                 'aria-pressed': String(!!on),
                 'aria-label': `${s.name}, na stanie ${formatQty(s.stock)} ${unitLabel(s.unit)}`,
                 onclick: () => toggle(s),
-            }, h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, productIcon(s, names.get(s.category_id ?? ''))), h('span', null, s.name), h('span', { class: `tile-sub${s.status === 'low' || s.status === 'out' ? ' tile-warn' : ''}` }, on ? `wybrano: ${on.qty} ${unitLabel(s.unit)}` : `stan: ${formatQty(s.stock)} ${unitLabel(s.unit)}`));
+            }, artEl(s, names.get(s.category_id ?? ''), 'tile-art'), h('span', { class: 'tile-name' }, s.name), h('span', { class: `tile-sub${s.status === 'low' || s.status === 'out' ? ' tile-warn' : ''}` }, on ? `wybrano: ${on.qty} ${unitLabel(s.unit)}` : `stan: ${formatQty(s.stock)} ${unitLabel(s.unit)}`));
         }));
     }
     function toggle(s) {
@@ -129,7 +130,7 @@ export async function productsPage(c) {
                 it.qty = qty.value.trim();
                 drawTiles();
             });
-            return h('div', { class: 'pick-row' }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(it.p, names.get(it.p.category_id ?? ''))), h('span', { class: 'pick-name' }, it.p.name), h('button', {
+            return h('div', { class: 'pick-row' }, artEl(it.p, names.get(it.p.category_id ?? '')), h('span', { class: 'pick-name' }, it.p.name), h('button', {
                 type: 'button',
                 class: 'qty-btn qty-btn-sm',
                 'aria-label': `Mniej: ${it.p.name}`,
@@ -231,7 +232,7 @@ export async function productsPage(c) {
             ? h('div', { class: 'card card-flush' }, rows.map((m) => {
                 const p = byId.get(m.product_id);
                 const d = Number(m.quantity_delta);
-                return h('div', { class: 'item' }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, p ? productIcon(p) : '📦'), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, p?.name ?? 'Produkt'), h('div', { class: 'item-sub' }, `${relativeTime(m.created_at, new Date(), tz())}${m.note ? ` · ${m.note}` : ''}`)), h('div', { class: `item-end ${d > 0 ? 'pos' : 'neg'}` }, `${d > 0 ? '+' : '−'}${qtyText(Math.abs(d), p?.unit ?? '')}`));
+                return h('div', { class: 'item' }, p ? artEl(p) : h('span', { class: 'prod-art art-emoji', 'aria-hidden': 'true' }, '📦'), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, p?.name ?? 'Produkt'), h('div', { class: 'item-sub' }, `${relativeTime(m.created_at, new Date(), tz())}${m.note ? ` · ${m.note}` : ''}`)), h('div', { class: `item-end ${d > 0 ? 'pos' : 'neg'}` }, `${d > 0 ? '+' : '−'}${qtyText(Math.abs(d), p?.unit ?? '')}`));
             }))
             : h('p', { class: 'muted' }, 'Brak Twoich zmian stanu.'));
     }
