@@ -16,7 +16,7 @@ Najważniejsze zasady: stan magazynu to suma niezmiennych ruchów, uprawnienia w
 
 ## Wersja produkcyjna
 
-Backend działa na Supabase (projekt `restaurant-os`), a zbudowana aplikacja leży w `/docs` repozytorium. Po jednorazowym włączeniu GitHub Pages będzie pod adresem **https://mateusz90duolife-lab.github.io/Ggh/**. Stan i kroki: [`docs/WDROZENIE.md`](docs/WDROZENIE.md).
+Backend działa na Supabase (projekt `restaurant-os`), a aplikacja jest opublikowana na GitHub Pages (gałąź `gh-pages`): **https://mateusz90duolife-lab.github.io/Ggh/**. Stan i kroki: [`docs/WDROZENIE.md`](docs/WDROZENIE.md).
 
 ## Szybki start
 

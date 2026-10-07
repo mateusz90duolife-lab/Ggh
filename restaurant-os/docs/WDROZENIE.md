@@ -19,14 +19,10 @@ bez tokenu 401; tabele bez logowania niedostępne.
 
 ## Co musisz zrobić (ok. 5 minut)
 
-### 1. Włącz GitHub Pages (obowiązkowe — wtedy aplikacja ma adres)
+### 1. GitHub Pages — gotowe
 
-GitHub → repozytorium **Ggh** → **Settings → Pages** → _Build and deployment_:
-
-- **Source:** Deploy from a branch
-- **Branch:** `ccr-fb37870d-vqxmgt` (albo `main` po scaleniu zmian), folder **`/docs`** → **Save**
-
-Po 1–2 minutach aplikacja będzie pod adresem: **https://mateusz90duolife-lab.github.io/Ggh/**
+Aplikacja jest publikowana z gałęzi **`gh-pages`** (zawiera tylko zbudowane pliki). GitHub włączył Pages automatycznie
+po jej utworzeniu. Adres: **https://mateusz90duolife-lab.github.io/Ggh/**
 
 ### 2. Adres aplikacji w Supabase (dla linku „Nie pamiętasz hasła?”)
 
@@ -49,5 +45,6 @@ ustaw własny SMTP (np. Resend) w _Authentication → SMTP Settings_ albo resetu
 
 ## Aktualizacja aplikacji
 
-Po zmianach w kodzie: `cd restaurant-os && node scripts/publish-pages.mjs`, potem commit i push katalogu `docs/`.
+Po zmianach w kodzie: `cd restaurant-os && node scripts/publish-pages.mjs` (buduje do `/docs`), a następnie skopiuj
+zawartość `/docs` na gałąź `gh-pages` i wypchnij ją — GitHub opublikuje nową wersję w 1–2 minuty.
 Nowe migracje SQL wgrywasz przez `supabase db push` albo w SQL Editor.
