@@ -1218,7 +1218,13 @@ function exPsvt(cfg, opts) {
       solution: correct,
     };
   }
-  return exObrot(cfg, {});   // awaryjnie, gdyby losowanie wielokrotnie zawiodło
+  // Wyczerpanie prób jest praktycznie nieosiągalne: w pomiarze najwięcej
+  // potrzebnych prób to 4 na 80. Gdyby jednak nastąpiło, ponawiamy na
+  // najprostszych bryłach, ale zawsze w formacie PSVT. Wcześniej w tym
+  // miejscu zwracane było zadanie ze słownym opisem obrotu, czyli inne
+  // narzędzie pomiarowe podmienione w środku testu.
+  if (!(opts && opts._retry)) return exPsvt(cfgFor(1), Object.assign({}, opts, { _retry: true }));
+  throw new Error("Nie udało się zbudować zadania w formacie PSVT");
 }
 
 const BUILDERS = {
@@ -1254,7 +1260,7 @@ const SESSION_LEN = 10;
 const State = {
   level: 2, method: "E",
   skills: {}, seen: 0, ok: 0, streak: 0, best: 0,
-  recent: [], lastSkills: [], diag: null, diagPost: null, sessions: 0,
+  recent: [], lastSkills: [], diag: null, diagPost: null, diagPostAttempts: 0, sessions: 0,
   course: { mods: {}, exam: null },
 };
 
@@ -1328,10 +1334,15 @@ function chooseSkill() {
 
 function nextQuestion(skill, level, opts) {
   for (let i = 0; i < 12; i++) {
-    const q = buildExercise(skill || chooseSkill(), level || State.level, opts);
+    let q;
+    try { q = buildExercise(skill || chooseSkill(), level || State.level, opts); }
+    catch (e) { continue; }   // nieudana próba generatora nie może przerwać sesji
     if (q.options.length >= 3 && q.correct >= 0) return q;
   }
-  return buildExercise("liczenie", 2);
+  // Ostatnia próba: ten sam typ zadania, bez wymogu liczby opcji. Podmiana
+  // na inny typ zmieniałaby treść sprawdzianu albo testu pomiarowego, więc
+  // zastępczy typ wolno wybrać tylko w treningu, gdzie typu nie narzucono.
+  return skill ? buildExercise(skill, level || State.level, opts) : buildExercise("liczenie", 2);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1563,11 +1574,16 @@ function renderOptionBody(opt, scale) {
    CZĘŚĆ 11 — SESJA TRENINGOWA
    ═══════════════════════════════════════════════════════════════ */
 
-const UI = { screen: "kurs", module: null };
+const UI = { screen: "kurs", module: null, error: null };
 const DIAG_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8];
 // Wersja narzędzia pomiarowego. Wynik z innej wersji nie jest porównywalny,
 // dlatego przyrost liczy się tylko, gdy oba testy mają tę samą wartość.
 const PSVT_INSTRUMENT = "psvt-v1";
+
+/** Dopisek o numerze podejścia — pierwsze podejście jest pomiarem, kolejne to już ćwiczenie. */
+function attemptNote(g) {
+  return g.attempt > 1 ? ", podejście " + g.attempt + " do testu końcowego" : "";
+}
 
 /** Przyrost między testem wstępnym a końcowym, albo powód, dla którego go brak. */
 function measuredGain() {
@@ -1577,7 +1593,7 @@ function measuredGain() {
     return { ok: false, why: "test wstępny wykonano w starszej wersji narzędzia, której wyniku nie da się porównać" };
   if (!post) return { ok: false, why: "test końcowy niewykonany" };
   const a = Math.round(pre.score / pre.total * 100), b = Math.round(post.score / post.total * 100);
-  return { ok: true, pre: a, post: b, delta: b - a };
+  return { ok: true, pre: a, post: b, delta: b - a, attempt: post.attempt || 1 };
 }
 
 const Session = { active: false, mode: "trening", diag: false, queue: null, moduleId: null,
@@ -1603,14 +1619,24 @@ function startSession(opts) {
 }
 
 function loadQuestion() {
-  if (Session.queue) {
-    const spec = Session.queue[Session.i];
-    Session.q = nextQuestion(spec.skill, spec.level, spec.opts);
-  } else if (Session.diag) {
-    const lvl = DIAG_LEVELS[Session.i];
-    Session.q = nextQuestion("psvt", lvl, { level: lvl });
-  } else {
-    Session.q = nextQuestion();
+  try {
+    if (Session.queue) {
+      const spec = Session.queue[Session.i];
+      Session.q = nextQuestion(spec.skill, spec.level, spec.opts);
+    } else if (Session.diag) {
+      const lvl = DIAG_LEVELS[Session.i];
+      Session.q = nextQuestion("psvt", lvl, { level: lvl });
+    } else {
+      Session.q = nextQuestion();
+    }
+  } catch (e) {
+    // Generator może zgłosić błąd zamiast podmienić typ zadania. Wtedy sesję
+    // kończymy bez zapisu wyniku i mówimy o tym wprost, zamiast zostawić
+    // zamrożony ekran. Niepełne podejście nie jest liczone jako wynik.
+    Session.active = false; Session.summary = null; Session.q = null;
+    UI.error = "Nie udało się przygotować zadania, więc ta sesja została przerwana bez zapisu wyniku. Spróbuj ponownie.";
+    render();
+    return;
   }
   Session.answered = false; Session.chosen = -1;
   render();
@@ -1654,9 +1680,14 @@ function finishSession() {
     State.diag = { score: Session.ok, total: Session.len, level: lvl, date: Date.now(), instrument: PSVT_INSTRUMENT };
     State.level = lvl;
     State.diagPost = null;   // nowy punkt wyjścia unieważnia stary test końcowy
+    State.diagPostAttempts = 0;
   } else if (m === "post") {
     // Test końcowy nie zmienia poziomu: mierzy, a nie steruje nauką.
-    State.diagPost = { score: Session.ok, total: Session.len, date: Date.now(), instrument: PSVT_INSTRUMENT };
+    // Liczba podejść jest zapisywana, bo zachowujemy ostatni wynik, a test
+    // powtarzany do skutku zawyża przyrost — zapis ma to pokazywać.
+    State.diagPostAttempts = (State.diagPostAttempts || 0) + 1;
+    State.diagPost = { score: Session.ok, total: Session.len, date: Date.now(),
+                       instrument: PSVT_INSTRUMENT, attempt: State.diagPostAttempts };
   } else if (m === "trening") {
     State.sessions++;
   } else if (m === "kurs-drill") {
@@ -1698,7 +1729,7 @@ function screenTrening(root) {
     if (s.mode === "post") {
       const g = measuredGain();
       card.appendChild(el("p", null, g.ok
-        ? "Test wstępny " + g.pre + "% → test końcowy " + g.post + "%. " +
+        ? "Test wstępny " + g.pre + "% → test końcowy " + g.post + "%" + attemptNote(g) + ". " +
           (g.delta > 0 ? "Przyrost: " + g.delta + " pkt proc." : g.delta < 0 ? "Spadek: " + (-g.delta) + " pkt proc." : "Bez zmiany.") +
           " Oba wyniki pochodzą z tego samego narzędzia, więc da się je porównać."
         : "Przyrostu nie da się policzyć: " + g.why + "."));
@@ -2356,7 +2387,7 @@ function screenPostepy(root) {
     const p = el("p", null, "Test wstępny: " + State.diag.score + " / " + State.diag.total +
       ", poziom startowy " + State.diag.level + ". " +
       (g.ok ? "Test końcowy: " + State.diagPost.score + " / " + State.diagPost.total +
-              " (" + (g.delta >= 0 ? "+" : "") + g.delta + " pkt proc.)."
+              " (" + (g.delta >= 0 ? "+" : "") + g.delta + " pkt proc.)" + attemptNote(g) + "."
             : "Przyrost: " + g.why + "."));
     p.style.marginTop = "14px";
     c1.appendChild(p);
@@ -2414,7 +2445,8 @@ function screenPostepy(root) {
     if (!window.confirm("Usunąć cały zapisany postęp? Tej operacji nie da się cofnąć.")) return;
     try { localStorage.removeItem(STORE_KEY); } catch (e) {}
     State.skills = {}; State.seen = 0; State.ok = 0; State.streak = 0; State.best = 0;
-    State.recent = []; State.lastSkills = []; State.diag = null; State.diagPost = null; State.sessions = 0; State.level = 2;
+    State.recent = []; State.lastSkills = []; State.diag = null; State.diagPost = null; State.diagPostAttempts = 0;
+    State.sessions = 0; State.level = 2;
     State.course = { mods: {}, exam: null }; UI.module = null;
     for (const id of SKILL_IDS) skillOf(id);
     save(); render();
@@ -2473,6 +2505,15 @@ function render() {
   renderNav();
   const root = $("#view");
   root.innerHTML = "";
+  if (UI.error) {
+    const c = el("div", "fb err");
+    c.setAttribute("role", "alert");
+    c.appendChild(el("div", "fb-title", "Sesja przerwana"));
+    c.appendChild(el("div", "fb-body", UI.error));
+    c.style.marginBottom = "16px";
+    root.appendChild(c);
+    UI.error = null;   // komunikat pokazujemy raz
+  }
   if (UI.screen === "kurs")         screenKurs(root);
   else if (UI.screen === "trening") screenTrening(root);
   else if (UI.screen === "buduj")   screenBuduj(root);
@@ -2853,7 +2894,7 @@ function certificate() {
   // różne narzędzia, i różnica niczego nie mierzyła.
   const g = measuredGain();
   c.appendChild(el("div", "meta", g.ok
-    ? "Test wstępny " + g.pre + "% → test końcowy " + g.post + "% (" + (g.delta >= 0 ? "+" : "") + g.delta + " pkt proc.)"
+    ? "Test wstępny " + g.pre + "% → test końcowy " + g.post + "% (" + (g.delta >= 0 ? "+" : "") + g.delta + " pkt proc.)" + attemptNote(g)
     : "Przyrost niezmierzony: " + g.why));
   let att = 0;
   for (const m of COURSE) att += courseProgress(m.id).attempts;

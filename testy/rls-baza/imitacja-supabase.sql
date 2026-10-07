@@ -11,9 +11,13 @@ create role service_role nologin bypassrls;
 create schema auth;
 create table auth.users (id uuid primary key);
 
--- Supabase odczytuje identyfikator użytkownika z tokenu JWT; tu z ustawienia sesji.
+-- Ta sama definicja co w Supabase: identyfikator z tokenu JWT, najpierw ze
+-- starszego ustawienia request.jwt.claim.sub, potem z request.jwt.claims.
 create function auth.uid() returns uuid language sql stable as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
 $$;
 
 grant usage on schema auth to anon, authenticated, service_role;

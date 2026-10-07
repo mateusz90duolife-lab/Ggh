@@ -195,6 +195,10 @@ drugą bryłę, którą trzeba obrócić tak samo. Osiem zadań o rosnącej
 trudności. Certyfikat porównuje test wstępny z końcowym, a wynik egzaminu
 podaje osobno.
 
+Test końcowy da się powtarzać, a zapisywany jest ostatni wynik. Powtarzanie
+do skutku zawyżyłoby przyrost, więc przy wyniku stoi numer podejścia.
+Rzetelnym pomiarem jest pierwsze podejście.
+
 Jest to test **wzorowany** na PSVT:R, a nie PSVT:R. Ma 8 zadań zamiast 30,
 bryły z kostek zamiast brył z płaszczyznami ukośnymi i nie przeszedł
 walidacji psychometrycznej. Jego wynik pokazuje kierunek zmiany u jednej

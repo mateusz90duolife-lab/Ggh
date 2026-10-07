@@ -19,7 +19,7 @@ create function pg_temp.ile(rola text, uid text, zapytanie text) returns bigint
 language plpgsql as $$
 declare n bigint;
 begin
-  perform set_config('request.jwt.claim.sub', coalesce(uid, ''), true);
+  perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role', rola)::text, true);
   execute format('set local role %I', rola);
   execute 'select count(*) from (' || zapytanie || ') t' into n;
   execute 'reset role';
@@ -31,7 +31,7 @@ create function pg_temp.wykonaj(rola text, uid text, polecenie text) returns tex
 language plpgsql as $$
 declare n bigint;
 begin
-  perform set_config('request.jwt.claim.sub', coalesce(uid, ''), true);
+  perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role', rola)::text, true);
   execute format('set local role %I', rola);
   begin
     execute polecenie;
@@ -42,6 +42,19 @@ begin
     execute 'reset role';
     return 'błąd ' || sqlstate;
   end;
+end $$;
+
+-- Plan zapytania wykonanego w imieniu roli — do sprawdzenia, czy auth.uid()
+-- liczy się raz na zapytanie (InitPlan), czy dla każdego wiersza.
+create function pg_temp.plan(rola text, uid text, zapytanie text) returns text
+language plpgsql as $$
+declare r record; wynik text := '';
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role', rola)::text, true);
+  execute format('set local role %I', rola);
+  for r in execute 'explain ' || zapytanie loop wynik := wynik || r."QUERY PLAN" || E'\n'; end loop;
+  execute 'reset role';
+  return wynik;
 end $$;
 
 create function pg_temp.oczekuj(opis text, wynik text, oczekiwany text) returns void
@@ -88,4 +101,12 @@ select pg_temp.oczekuj('webhook (service_role) nadaje subskrypcję',
   pg_temp.wykonaj('service_role', null, format('insert into public.subscriptions values (%L, true, null)', :U2)),
   'zmieniono 1');
 select pg_temp.oczekuj('po opłaceniu U2 widzi pytania', pg_temp.ile('authenticated', :U2, 'select * from public.questions')::text, '2');
+
+-- Wydajność: zalecenie Supabase (lint 0003_auth_rls_initplan). Sprawdzane
+-- tylko dla progress i subscriptions, bo w polityce questions podzapytanie
+-- jest nieskorelowane i staje się InitPlanem niezależnie od opakowania.
+select pg_temp.oczekuj('progress: auth.uid() liczone raz na zapytanie (InitPlan)',
+  (pg_temp.plan('authenticated', :U1, 'select * from public.progress') like '%InitPlan%')::text, 'true');
+select pg_temp.oczekuj('subscriptions: auth.uid() liczone raz na zapytanie (InitPlan)',
+  (pg_temp.plan('authenticated', :U1, 'select * from public.subscriptions') like '%InitPlan%')::text, 'true');
 rollback;

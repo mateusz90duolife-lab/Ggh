@@ -88,6 +88,10 @@ więcej niż jednego z 24 obrotów sześcianu, bo wtedy poprawnie odczytany obr�
 mógłby prowadzić do innej odpowiedzi.
 
 Certyfikat porównuje test wstępny z końcowym, a wynik egzaminu podaje osobno.
+Test końcowy można powtarzać, a zapisywany jest ostatni wynik. Dlatego przy
+wyniku z drugiego i kolejnego podejścia stoi jego numer: pomiarem jest
+pierwsze podejście, każde następne jest już ćwiczeniem na tym samym typie
+zadań.
 Test jest wzorowany na PSVT:R, ale nim nie jest: ma 8 zadań zamiast 30 i nie
 przeszedł walidacji psychometrycznej, więc pokazuje kierunek zmiany, nie wynik
 porównywalny z normami.
@@ -132,9 +136,10 @@ zwykłe sprawdzenie struktury, bo konfrontują kod z niezależnym wyliczeniem:
   24 obroty sześcianu. Kontrola ograniczona do obrotów obecnych w opcjach
   przepuszczała 7% zadań z dwiema poprawnymi interpretacjami.
 - **Polityki RLS na prawdziwej bazie** — migracja jest uruchamiana dwukrotnie
-  na tymczasowym PostgreSQL z imitacją Supabase, a 17 sprawdzeń weryfikuje,
-  co widzi i co może zmienić każda rola. Sprawdzono też, że test wychwytuje
-  celowo zepsutą politykę.
+  na tymczasowym PostgreSQL z imitacją Supabase, a 19 sprawdzeń weryfikuje,
+  co widzi i co może zmienić każda rola oraz czy `auth.uid()` jest liczone
+  raz na zapytanie. Sprawdzono też, że test wychwytuje celowo zepsutą
+  politykę i nieopakowane `auth.uid()`.
 
 Test przeglądarkowy przechodzi cały kurs od pierwszego modułu po certyfikat,
 potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu, i sprawdza
@@ -216,6 +221,11 @@ supabase db push
 # albo wklej supabase/migrations/20261007120000_rls_paywall.sql
 # w Supabase → SQL Editor → Run
 ```
+
+Polityki wywołują `(select auth.uid())`, a nie samo `auth.uid()`. Według
+dokumentacji Supabase dzięki temu identyfikator liczy się raz na zapytanie
+zamiast dla każdego wiersza, a doradca bazy nie zgłasza ostrzeżenia
+`0003_auth_rls_initplan`.
 
 Migracja chroni trzy tabele:
 

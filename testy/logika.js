@@ -403,5 +403,76 @@ head("18. Zadanie: metoda odczytana z symbolu");
   chk("dystraktor „zła metoda” to miejsce poprawne w drugiej metodzie", misreadOk, n);
 }
 
+/* ─────────────────────────────────────────────────────────────
+   19. TYP ZADANIA NIGDY NIE JEST PODMIENIANY
+   Generator, który wyczerpie próby, nie może po cichu zwrócić zadania
+   innego typu — w teście pomiarowym zmieniałoby to narzędzie, a w
+   sprawdzianie modułu jego treść.
+   ───────────────────────────────────────────────────────────── */
+head("19. Brak podmiany typu zadania");
+{
+  // Wymuszone wyczerpanie prób: pusta grupa obrotów sprawia, że żadne
+  // zadanie nie przejdzie warunku jednoznaczności.
+  const realRot = cubeRotations;
+  cubeRotations = () => [];
+  let threw = false, otherFormat = false;
+  try { const q = exPsvt(cfgFor(4), { level: 4 }); if (!q.stimulus[0] || q.stimulus[0].type !== "psvt") otherFormat = true; }
+  catch (e) { threw = true; }
+  cubeRotations = realRot;
+  chk("wyczerpanie prób PSVT kończy się wyjątkiem, nie zadaniem w innym formacie", [threw, otherFormat], [true, false]);
+
+  // Pojedyncze wyjątki generatora nie przerywają sesji
+  const realPsvt = BUILDERS.psvt;
+  let calls = 0;
+  BUILDERS.psvt = (c, o) => { calls++; if (calls <= 3) throw new Error("próba"); return realPsvt(c, o); };
+  const q = nextQuestion("psvt", 4, { level: 4 });
+  BUILDERS.psvt = realPsvt;
+  chk("nextQuestion przetrwa wyjątki generatora i zwróci zadanie PSVT", q.stimulus[0].type, "psvt");
+
+  // Generator trwale zepsuty: nextQuestion nie może podsunąć liczenia kostek
+  const realPrz = BUILDERS.przekroj;
+  BUILDERS.przekroj = () => { throw new Error("zepsuty"); };
+  let substituted = false, failed = false;
+  try { const r = nextQuestion("przekroj", 4); if (r.skill !== "przekroj") substituted = true; }
+  catch (e) { failed = true; }
+  BUILDERS.przekroj = realPrz;
+  chk("zadanie zamówionego typu nie jest podmieniane innym", substituted, false);
+  chk("trwale zepsuty generator zgłasza błąd zamiast podmiany", failed, true);
+}
+
+{
+  // Błąd generatora w trakcie sesji: koniec sesji z komunikatem, bez zapisu
+  const realRender = render, realPsvt = BUILDERS.psvt;
+  render = function () {};
+  BUILDERS.psvt = () => { throw new Error("zepsuty"); };
+  const before = State.diag;
+  let crashed = false;
+  try { startSession({ mode: "diag" }); } catch (e) { crashed = true; }
+  chk("błąd generatora nie wywraca aplikacji", crashed, false);
+  chk("sesja zostaje zakończona z komunikatem", [Session.active, typeof UI.error], [false, "string"]);
+  chk("przerwany test nie zapisuje wyniku", State.diag, before);
+  BUILDERS.psvt = realPsvt; render = realRender; UI.error = null;
+}
+
+head("20. Podejścia do testu końcowego");
+{
+  const realRender = render;
+  render = function () {};
+  const save = { d: State.diag, p: State.diagPost, a: State.diagPostAttempts };
+  State.diag = { score: 4, total: 8, instrument: PSVT_INSTRUMENT };
+  State.diagPost = null; State.diagPostAttempts = 0;
+  const finishPost = (ok) => { startSession({ mode: "post" }); Session.ok = ok; finishSession(); };
+  finishPost(5);
+  chk("pierwsze podejście ma numer 1", State.diagPost.attempt, 1);
+  chk("pierwsze podejście nie ma dopisku", attemptNote(measuredGain()), "");
+  finishPost(8);
+  chk("drugie podejście ma numer 2", State.diagPost.attempt, 2);
+  chk("drugie podejście jest oznaczone w wyniku", /podejście 2/.test(attemptNote(measuredGain())), true);
+  startSession({ mode: "diag" }); Session.ok = 3; finishSession();
+  chk("nowy test wstępny zeruje licznik podejść", [State.diagPost, State.diagPostAttempts], [null, 0]);
+  State.diag = save.d; State.diagPost = save.p; State.diagPostAttempts = save.a;
+  render = realRender;
+}
+
 console.log(FAILS ? "\n" + FAILS + " BŁĘDÓW\n" : "\nWszystkie testy logiki przeszły.\n");
 process.exit(FAILS ? 1 : 0);

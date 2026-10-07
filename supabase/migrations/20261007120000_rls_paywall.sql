@@ -8,6 +8,10 @@
 -- Migracja jest idempotentna: można ją uruchomić ponownie bez błędów.
 -- Zakłada schemat tabel opisany w README.md.
 --
+-- auth.uid() jest zawsze opakowane w (select ...). Dzięki temu Postgres
+-- liczy je raz na zapytanie (InitPlan), a nie dla każdego wiersza.
+-- Bez tego doradca Supabase zgłasza ostrzeżenie 0003_auth_rls_initplan.
+--
 -- Wdrożenie:  supabase db push
 --        albo: wklej całość w Supabase → SQL Editor → Run
 -- Weryfikacja: ./testy/sprawdz-rls.sh
@@ -24,7 +28,7 @@ create policy "pytania dla subskrybentow" on public.questions
   to authenticated
   using (exists (
     select 1 from public.subscriptions s
-    where s.user_id = auth.uid()
+    where s.user_id = (select auth.uid())
       and s.active
       and (s.expires_at is null or s.expires_at > now())
   ));
@@ -36,8 +40,8 @@ drop policy if exists "wlasne postepy" on public.progress;
 create policy "wlasne postepy" on public.progress
   for all
   to authenticated
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
 
 -- Polityka filtruje po user_id przy każdym zapytaniu.
 create index if not exists progress_user_id_idx on public.progress (user_id);
@@ -52,6 +56,6 @@ drop policy if exists "odczyt wlasnej subskrypcji" on public.subscriptions;
 create policy "odczyt wlasnej subskrypcji" on public.subscriptions
   for select
   to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 commit;
