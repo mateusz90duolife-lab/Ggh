@@ -6,7 +6,7 @@ Repozytorium zawiera dwie aplikacje, obie bez frameworka i bez kroku budowania.
 | Plik | Co to jest | Czego wymaga |
 | --- | --- | --- |
 | `trener.html` | **Trener izometryki** — generator ćwiczeń przestrzennych z adaptacyjną trudnością | nic, działa offline |
-| `index.html` | Powłoka SaaS: logowanie, subskrypcja, prosty quiz | konta Supabase i Stripe |
+| `index.html` | Powłoka SaaS: logowanie, prosty quiz, siatka izometryczna — bezpłatnie | konta Supabase |
 
 Metodyka, na której oparto trener, wraz ze źródłami: [METODYKA.md](METODYKA.md).
 
@@ -17,32 +17,35 @@ Metodyka, na której oparto trener, wraz ze źródłami: [METODYKA.md](METODYKA.
 Otwórz plik w przeglądarce i gotowe. Bez logowania, bez serwera, bez zależności
 zewnętrznych. Postęp zapisuje się w pamięci przeglądarki.
 
-Aplikacja ma pięć zakładek: **Kurs**, **Trening**, **Buduj**, **Teoria**
-i **Postępy**.
+Aplikacja ma sześć zakładek: **Kurs**, **Trening**, **Szkicuj**, **Buduj**,
+**Teoria** i **Postępy**.
 
 ### Kurs — ścieżka prowadzona
 
-Dziesięć modułów w ustalonej kolejności, około dwóch godzin. Każdy moduł to
-teoria, ćwiczenia bez oceny i sprawdzian z progiem 5 z 6, który otwiera
-kolejny moduł. Na końcu egzamin z 12 zadań ze wszystkich modułów, próg 9,
+Dwanaście modułów w ustalonej kolejności, niecałe trzy godziny. Każdy moduł
+to teoria, ćwiczenia bez oceny i sprawdzian z progiem około 80%, który otwiera
+kolejny moduł. Na końcu egzamin z 14 zadań ze wszystkich modułów, próg 11,
 oraz certyfikat do wydruku.
 
 | # | Moduł | # | Moduł |
 | --- | --- | --- | --- |
-| 1 | Układ osi i rzut izometryczny | 6 | Obroty wokół osi pionowej |
-| 2 | Plan kodowany | 7 | Obroty wokół osi poziomych |
-| 3 | Trzy rzuty prostokątne | 8 | Odbicia i symetria |
-| 4 | Uskoki i linie wewnętrzne | 9 | Przekroje brył |
-| 5 | Czytanie rzutów: od rysunku do bryły | 10 | Metoda pierwszego i trzeciego kąta |
+| 1 | Układ osi i rzut izometryczny | 7 | Powierzchnie pochyłe i okręgi |
+| 2 | Plan kodowany | 8 | Obroty wokół osi pionowej |
+| 3 | Szkicowanie izometryczne | 9 | Obroty wokół osi poziomych |
+| 4 | Trzy rzuty prostokątne | 10 | Odbicia i symetria |
+| 5 | Krawędzie widoczne i niewidoczne | 11 | Przekroje i kłady |
+| 6 | Czytanie rzutów: od rysunku do bryły | 12 | Metoda pierwszego i trzeciego kąta |
 
-Układ modułów odwzorowuje strukturę kursu „Developing Spatial Thinking".
+Kolejność tematów idzie za kursem „Developing Spatial Thinking" (Sorby).
+Z jego dziesięciu modułów aplikacja nie obejmuje trzech: brył obrotowych,
+łączenia brył i rozwinięć.
 Kurs buduje rozumienie po kolei, tryb Trening je potem utrwala, mieszając
 materiał. Uzasadnienie tego podziału opisuje sekcja 9 w
 [METODYKA.md](METODYKA.md).
 
 ### Trening — praktyka przeplatana
 
-Sesja to 10 zadań dobieranych przez model ucznia. **Osiem typów zadań**,
+Sesja to 10 zadań dobieranych przez model ucznia. **Jedenaście typów zadań**,
 generowanych proceduralnie, więc pule zadań się nie wyczerpują:
 
 | Zadanie | Umiejętność |
@@ -52,52 +55,138 @@ generowanych proceduralnie, więc pule zadań się nie wyczerpują:
 | Bryła → rzut | wskazanie poprawnego rzutu |
 | Obroty przestrzenne | obrót o 90° wokół wybranej osi |
 | Odbicia i symetria | odróżnienie odbicia od obrotu |
-| Przekroje brył | przekrój płaszczyzną |
+| Przekroje brył | figura przekroju (kład) |
 | Liczenie kostek | objętość wraz z kostkami zasłoniętymi |
 | Układ rzutów | metoda pierwszego i trzeciego kąta |
+| Szkic izometryczny | rysunek bryły na siatce punktowej — bez wyboru z listy |
+| Linie pochyłe | rzuty bryły ze skosem → rysunek izometryczny |
+| Okręgi w izometrii | orientacja i wymiary elipsy |
 
-### Buduj, Teoria, Postępy
+Rzuty są rysowane zgodnie z PN-EN ISO 128: krawędzie widoczne linią ciągłą
+grubą, niewidoczne kreskową cienką, a pole kładu jest kreskowane.
+
+### Szkicuj, Buduj, Teoria, Postępy
+
+**Szkicuj** to rysowanie bryły na siatce punktów izometrycznych, z planu
+kodowanego albo z trzech rzutów. Kliknięcie w punkt zaczyna odcinek,
+kliknięcie w drugi punkt na tej samej linii siatki go rysuje; z klawiatury
+strzałki przesuwają kursor, a `Enter` działa jak kliknięcie. Program porównuje
+szkic z rysunkiem bryły odcinek po odcinku, z dokładnością do przesunięcia,
+i zaznacza odcinki zbędne i brakujące. Na szkic są dwie próby.
 
 **Buduj** daje zadanie konstrukcyjne zamiast wyboru z listy: trzy rzuty
-i pusta siatka, w której trzeba postawić bryłę słupek po słupku. Sprawdzenie
-porównuje zbiory kostek, więc zgadywanie nie działa.
+i pusta siatka, w której trzeba postawić bryłę słupek po słupku. Poprawna
+jest bryła wzorcowa i każda inna o identycznych trzech rzutach.
 
-**Teoria** to dwanaście lekcji z rysunkami generowanymi tym samym silnikiem
-co zadania. **Postępy** pokazują opanowanie każdej umiejętności i termin
-najbliższej powtórki.
+**Teoria** to piętnaście lekcji z rysunkami generowanymi tym samym silnikiem
+co zadania; twierdzenia oparte na źródłach mają je podane pod lekcją.
+**Postępy** pokazują opanowanie każdej umiejętności i termin najbliższej
+powtórki.
 
-**Jak dobierany jest materiał w treningu:** typy zadań są przeplatane (ta sama umiejętność
-nie wystąpi dwa razy z rzędu), każda umiejętność ma własny harmonogram powtórek
-w rosnących odstępach, a poziom trudności podąża za skutecznością, celując
-w okolice 75–85% trafień. Błędne odpowiedzi nie są losowe — kodują typowe
+**Jak dobierany jest materiał w treningu:** typy zadań są przeplatane (ta sama
+umiejętność nie powtórzy się w ciągu trzech kolejnych zadań), każda
+umiejętność ma własny harmonogram powtórek w rosnących odstępach, a poziom
+trudności rośnie po 8 poprawnych odpowiedziach z rzędu i spada przy 2 błędach
+na 8. W symulacji z modelowym uczniem utrzymuje to skuteczność 75–85%. Błędne odpowiedzi nie są losowe — kodują typowe
 pomyłki, a informacja zwrotna nazywa popełniony błąd zamiast tylko go
 odnotować.
 
 Domyślną metodą rzutowania jest **metoda pierwszego kąta** (europejska,
 PN-EN ISO 5456-2). W ustawieniach można przełączyć na metodę trzeciego kąta.
+Każdy układ rzutów ma obok symbol metody wymagany przez normę, a jeden
+z wariantów zadania wymaga odczytania metody z samego symbolu.
+
+### Test wstępny i końcowy
+
+Przyrost mierzy się tym samym narzędziem przed nauką i po niej, tak jak robili
+to Sorby i Baartmans z testem PSVT:R. Każde z ośmiu zadań pokazuje obrót na
+jednej bryle i każe zastosować go do drugiej; na wyższych poziomach obrót jest
+złożony z dwóch osi. Generator odrzuca zadania, w których przykład pasuje do
+więcej niż jednego z 24 obrotów sześcianu, bo wtedy poprawnie odczytany obrót
+mógłby prowadzić do innej odpowiedzi.
+
+Certyfikat porównuje test wstępny z końcowym, a wynik egzaminu podaje osobno.
+Test końcowy można powtarzać, a zapisywany jest ostatni wynik. Dlatego przy
+wyniku z drugiego i kolejnego podejścia stoi jego numer: pomiarem jest
+pierwsze podejście, każde następne jest już ćwiczeniem na tym samym typie
+zadań.
+Test jest wzorowany na PSVT:R, ale nim nie jest: ma 8 zadań zamiast 30 i nie
+przeszedł walidacji psychometrycznej, więc pokazuje kierunek zmiany, nie wynik
+porównywalny z normami.
 
 ---
+
+### Dostępność
+
+Całą aplikację da się obsłużyć z klawiatury. Opcje odpowiedzi, pola edytora
+planu, pozycje kursu i nagłówki lekcji są przyciskami, więc działają pod Tab
+i Enter. W trakcie zadania klawisze `1`–`5` wybierają odpowiedź, a `Enter`
+przechodzi dalej. W edytorze planu strzałki w górę i w dół zmieniają wysokość
+słupka. Na siatce szkicu strzałki przesuwają kursor po punktach (z `Shift` po
+drugiej przekątnej), `Enter` rysuje, `Escape` przerywa, `Backspace` cofa,
+a każdy ruch jest ogłaszany przez czytnik ekranu. Fokus jest widoczny, a informacja zwrotna po odpowiedzi ogłaszana
+przez czytnik ekranu.
+
+Ograniczenie, które warto znać: rysunki na płótnie mają opis słowny
+(„bryła z 9 kostek, podstawa 3 na 3 pola, wysokość 3"), ale **opis nie
+zastępuje obrazu**. Zadania na wyobraźnię przestrzenną wymagają zobaczenia
+rysunku, więc dla osoby niewidomej aplikacja pozostaje nieprzydatna
+merytorycznie, choć jest nawigowalna. Udawanie, że jest inaczej, byłoby
+nieuczciwe.
 
 ### Testy
 
 ```bash
-./testy/uruchom.sh          # logika: geometria, zadania, model ucznia, kurs
+./testy/uruchom.sh          # logika, skrypt RLS, migracja RLS na PostgreSQL
 ./testy/uruchom.sh --all    # dodatkowo przebieg w przeglądarce (Playwright)
 ```
 
 Testy logiki działają na kodzie wyciętym z `trener.html`, więc aplikacja nie
-zawiera żadnych ułatwień pod kątem testowania. Najmocniejszy z nich jest test
-krzyżowy: sprawdza, że obrót bryły w prawo faktycznie obraca jej rzut z góry
-w prawo, czyli że dwa niezależne fragmenty kodu opisują tę samą geometrię.
-Test przeglądarkowy przechodzi cały kurs od pierwszego modułu po certyfikat
-i potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu.
+zawiera żadnych ułatwień pod kątem testowania. Dwa z nich są mocniejsze niż
+zwykłe sprawdzenie struktury, bo konfrontują kod z niezależnym wyliczeniem:
+
+- **Obroty kontra rzuty** — obrót bryły w prawo musi obracać jej rzut z góry
+  w prawo, a rzut z prawej musi stawać się rzutem z przodu. Zgadza się to
+  tylko wtedy, gdy dwa osobne fragmenty kodu opisują tę samą geometrię.
+- **Widoczność kontra rasteryzacja** — liczba kostek widocznych na rysunku
+  jest porównywana z wynikiem rasteryzacji o wysokiej rozdzielczości.
+  Dwie analityczne reguły, które wydawały się oczywiste, poległy właśnie na
+  tym teście.
+- **Jednoznaczność zadań PSVT** — dla każdego zadania sprawdzane są wszystkie
+  24 obroty sześcianu. Kontrola ograniczona do obrotów obecnych w opcjach
+  przepuszczała 7% zadań z dwiema poprawnymi interpretacjami.
+- **Linie niewidoczne kontra krawędzie 3D** — linie w rzutach są porównywane
+  z wyliczeniem z krawędzi bryły w przestrzeni, niezależnym od kodu rzutów.
+- **Szkic kontra algorytm malarza** — przypisanie ścian do trójkątów siatki
+  jest porównywane z kolejnością rysowania używaną w rysunku bryły.
+- **Elipsy kontra rozkład macierzy** — osie i obrót elips są liczone
+  z wartości osobliwych rzutu ściany i porównywane ze stałymi aplikacji.
+- **Jednoznaczność rzutów** — wyczerpujące przeszukanie brył o tych samych
+  rzutach; bez linii niewidocznych 3–30% brył miało więcej niż jedno
+  rozwiązanie.
+- **Regulator trudności** — symulacja modelowego ucznia musi dać 75–85%
+  skuteczności, bo tyle obiecuje opis.
+- **Polityki RLS na prawdziwej bazie** — migracja jest uruchamiana dwukrotnie
+  na tymczasowym PostgreSQL z imitacją Supabase oraz raz na bazie bez dawnej
+  tabeli `subscriptions`, a 19 sprawdzeń weryfikuje,
+  co widzi i co może zmienić każda rola oraz czy `auth.uid()` jest liczone
+  raz na zapytanie. Sprawdzono też, że test wychwytuje celowo zepsutą
+  politykę i nieopakowane `auth.uid()`.
+
+Test przeglądarkowy przechodzi cały kurs od pierwszego modułu po certyfikat,
+potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu, rysuje szkic
+prawdziwymi kliknięciami myszy i z klawiatury oraz sprawdza obsługę
+z klawiatury w całej aplikacji.
+
+Audyt treści i jego pomiary opisuje sekcja 11 w [METODYKA.md](METODYKA.md),
+a uzasadnienie nowych modułów — sekcja 12.
 
 ---
 
 ## Powłoka SaaS (`index.html`)
 
-Frontend bez frameworka. Backend to Supabase (autoryzacja i baza), płatności
-przez Stripe Payment Link.
+Frontend bez frameworka. Backend to Supabase (autoryzacja i baza). Dostęp jest
+bezpłatny: po założeniu konta wszystkie zakładki są otwarte.
 
 ### Uruchomienie lokalne
 
@@ -115,9 +204,8 @@ z `file://`.
 | Zakładka | Opis |
 | --- | --- |
 | Dashboard | Statystyki odpowiedzi: suma, poprawne, błędne, skuteczność |
-| Quiz | Pytania jednokrotnego wyboru, tylko dla subskrybentów PRO |
+| Quiz | Pytania jednokrotnego wyboru, dla każdego zalogowanego |
 | Siatka izometryczna | Canvas 8×8, podgląd współrzędnych, malowanie kafelków |
-| Cennik | Płatność przez Stripe Payment Link |
 | Trener izometryki | Odsyłacz do `trener.html` |
 
 ### Konfiguracja Supabase
@@ -145,18 +233,47 @@ create table progress (
   correct     boolean not null,
   created_at  timestamptz default now()
 );
-
-create table subscriptions (
-  user_id    uuid primary key references auth.users(id) on delete cascade,
-  active     boolean     not null default false,
-  expires_at timestamptz
-);
 ```
 
-Włącz RLS na `progress` i `subscriptions`, tak aby użytkownik widział wyłącznie
-własne wiersze. Tabelę `subscriptions` zapisuje wyłącznie webhook Stripe
-(rola `service_role`) — klient nie może jej modyfikować, inaczej każdy
-nadałby sobie dostęp PRO.
+#### Row Level Security
+
+Klucz `anon` jest wpisany w źródło strony, więc każdy może odpytać API
+bezpośrednio, z pominięciem interfejsu. Pytania są bezpłatne, ale bez polityk
+RLS każdy mógłby też czytać cudze postępy, podrabiać je albo zmieniać treść
+pytań. Polityki są w pliku migracji, który da się uruchamiać wielokrotnie:
+
+```bash
+supabase db push
+# albo wklej supabase/migrations/20261007120000_rls.sql
+# w Supabase → SQL Editor → Run
+```
+
+Polityki wywołują `(select auth.uid())`, a nie samo `auth.uid()`. Według
+dokumentacji Supabase dzięki temu identyfikator liczy się raz na zapytanie
+zamiast dla każdego wiersza, a doradca bazy nie zgłasza ostrzeżenia
+`0003_auth_rls_initplan`.
+
+| Tabela | Kto widzi | Kto zapisuje |
+| --- | --- | --- |
+| `questions` | każdy zalogowany | nikt z klientów — tylko panel Supabase |
+| `progress` | właściciel wiersza | właściciel, tylko we własnym imieniu |
+
+Jeśli w bazie została tabela `subscriptions` z czasów płatnego dostępu,
+migracja zamyka ją dla klientów, ale nie usuwa danych. Możesz ją usunąć ręcznie
+(`drop table subscriptions;`), gdy nie będzie już potrzebna.
+
+Po wdrożeniu sprawdź szczelność z zewnątrz, tak jak widzi ją każdy, kto
+otworzy źródło strony:
+
+```bash
+./testy/sprawdz-rls.sh
+```
+
+Skrypt tylko czyta i kończy się kodem `0`, gdy żadna tabela nie ujawnia danych,
+`1` przy wycieku i `2`, gdy wynik jest nierozstrzygnięty — na przykład z braku
+połączenia. Brak połączenia nigdy nie jest raportowany jako szczelność.
+Pusta odpowiedź oznacza albo działającą politykę, albo pustą tabelę, więc
+wynik rozstrzyga dopiero wtedy, gdy w `questions` jest co najmniej jedno pytanie.
 
 #### Logowanie nazwą użytkownika
 
@@ -170,20 +287,6 @@ Konieczne ustawienie w panelu Supabase:
 
 Adresy w domenie `isomaster.local` nie istnieją, więc e-mail potwierdzający
 nigdy by nie dotarł i rejestracja utknęłaby na etapie weryfikacji.
-
-### Konfiguracja Stripe
-
-Ustaw `STRIPE_LINK` na swój Payment Link. Aplikacja dokleja do niego
-`?client_reference_id=<user_id>`. Webhook po stronie serwera odczytuje
-`session.client_reference_id` ze zdarzenia `checkout.session.completed`
-i aktywuje subskrypcję:
-
-```sql
-insert into subscriptions (user_id, active, expires_at)
-values ($1, true, now() + interval '1 month')
-on conflict (user_id) do update
-  set active = true, expires_at = excluded.expires_at;
-```
 
 ### Znane ograniczenia powłoki SaaS
 

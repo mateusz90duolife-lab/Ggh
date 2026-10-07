@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ISO Master — Trener Izometryki</title>
+<title>ISO Master Trener</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    ISO MASTER — TRENER IZOMETRYKI
@@ -29,6 +29,7 @@
   --bad:       #FF3B30;
   --warn:      #FFD60A;
   --radius:    10px;
+  color-scheme: dark;
 }
 
 body {
@@ -40,9 +41,12 @@ body {
 
 /* ───── UKŁAD ───── */
 .shell { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+.dlg-back { position: fixed; inset: 0; background: rgba(0,0,0,.62); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 100; }
+.dlg { background: var(--card); border: 1px solid var(--line-hi); border-radius: var(--radius); padding: 22px; max-width: 420px; width: 100%; }
+.dlg p { color: var(--txt); margin-bottom: 18px; }
 
 .topbar {
-  position: sticky; top: 0; z-index: 50;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
   background: rgba(13,13,13,0.92); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
   display: flex; align-items: center; gap: 18px;
@@ -250,6 +254,48 @@ table.tbl td b { color: var(--txt); }
   .cert h2, .cert .who, .cert .meta { color: #000; }
 }
 
+/* ───── DOSTĘPNOŚĆ ─────
+   Opcje odpowiedzi, pola planu, pozycje kursu i nagłówki lekcji są
+   przyciskami, więc działają z klawiatury i są zapowiadane przez czytniki
+   ekranu. Poniższe reguły zdejmują z nich domyślny wygląd przycisku. */
+.opt, .plan-cell, .mod, .lesson-h {
+  font: inherit; color: inherit; margin: 0; -webkit-appearance: none; appearance: none;
+}
+.opt { width: 100%; text-align: center; }
+.mod { width: 100%; text-align: left; }
+.lesson-h { width: 100%; text-align: left; background: transparent; border: 0; }
+.plan-cell { line-height: 1; }
+.mod[aria-disabled="true"], .opt[aria-disabled="true"] { cursor: default; }
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.psvt { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.psvt-arrow { font-size: 26px; color: var(--txt-faint); }
+.psvt-sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 14px; }
+.psvt-q {
+  width: 152px; height: 132px; display: flex; align-items: center; justify-content: center;
+  font-size: 40px; color: var(--txt-faint); border: 2px dashed var(--line-hi); border-radius: 8px;
+}
+.method-cap {
+  display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px;
+  font-size: 11px; color: var(--txt-faint); text-transform: uppercase; letter-spacing: 1.2px;
+}
+.kbd-hint { font-size: 12px; color: var(--txt-faint); margin-top: 10px; }
+kbd {
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
+  background: #000; border: 1px solid var(--line-hi); border-radius: 4px;
+  padding: 1px 5px; color: var(--txt-dim);
+}
+
+.sketch-box { display: flex; flex-direction: column; align-items: center; margin-top: 8px; }
+.sketch-box .row { justify-content: center; }
+.sketch-canvas { cursor: crosshair; touch-action: manipulation; }
+.sketch-status { margin-top: 8px; min-height: 20px; text-align: center; }
+.sketch-box .fb { align-self: stretch; }
+
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .hide { display: none !important; }
 .center { text-align: center; }
@@ -257,7 +303,7 @@ table.tbl td b { color: var(--txt); }
 .muted { color: var(--txt-faint); font-size: 13px; }
 
 @media (max-width: 640px) {
-  .shell { padding: 0 14px 60px; }
+  .shell { padding: 0 16px 60px; }
   .stimulus { gap: 16px; }
   .plan-cell { width: 40px; height: 40px; font-size: 15px; }
 }
@@ -291,6 +337,35 @@ function shuffle(a) {
   const r = a.slice();
   for (let i = r.length - 1; i > 0; i--) { const j = randInt(i + 1); [r[i], r[j]] = [r[j], r[i]]; }
   return r;
+}
+
+/** Potwierdzenie zadawane przez stronę. window.confirm() bywa blokowane —
+    w osadzonych podglądach zwraca od razu false — więc pyta sama strona.
+    Okno przechwytuje klawisze, żeby cyfry nie wybierały odpowiedzi pod spodem. */
+function askConfirm(text, yesLabel, onYes) {
+  const prev = document.activeElement;
+  const back = el("div", "dlg-back");
+  const box = el("div", "dlg");
+  box.setAttribute("role", "alertdialog"); box.setAttribute("aria-modal", "true");
+  const p = el("p", null, text); p.id = "dlg-txt";
+  box.setAttribute("aria-describedby", "dlg-txt");
+  box.appendChild(p);
+  const row = el("div", "row"); row.style.justifyContent = "flex-end";
+  const no = el("button", "btn ghost sm", "Anuluj");
+  const yes = el("button", "btn sm", yesLabel);
+  row.appendChild(no); row.appendChild(yes); box.appendChild(row); back.appendChild(box);
+  const keys = e => {
+    if (e.key === "Escape") { e.preventDefault(); close(); }
+    else if (e.key === "Tab") { e.preventDefault(); (document.activeElement === no ? yes : no).focus(); }
+    e.stopPropagation();
+  };
+  const close = () => { back.remove(); document.removeEventListener("keydown", keys, true); if (prev && prev.focus) prev.focus(); };
+  no.onclick = close;
+  yes.onclick = () => { close(); onYes(); };
+  back.onclick = e => { if (e.target === back) close(); };
+  document.addEventListener("keydown", keys, true);
+  document.body.appendChild(back);
+  setTimeout(() => no.focus(), 0);
 }
 
 function setupCanvas(canvas, w, h) {
@@ -438,11 +513,21 @@ function randomFootprint(W, D, n) {
 
 function isFullBox(s) { return s.count === s.nx * s.ny * s.nz; }
 
-/** Bryła symetryczna psuje zadania na obrót i odbicie — odrzucamy takie. */
+/** Bryła chiralna: jej odbicia lustrzanego nie da się uzyskać żadnym z 24 obrotów.
+    Pierwsza wersja sprawdzała tylko mirX, mirY i rotZ, więc przepuszczała bryły
+    z płaszczyzną symetrii po przekątnej — na najniższym poziomie 45% losowań.
+    Dla takiej bryły „odbicie" jest zwykłym obrotem, a informacja zwrotna
+    „odbicia nie da się uzyskać obrotem" była nieprawdziwa. */
+function isChiral(s) {
+  const m = xform(s, XF.mirX);
+  for (const g of cubeRotations()) if (applySeq(m, g).id === s.id) return false;
+  return true;
+}
+
+/** Bryła nadaje się do zadań na obrót i odbicie: chiralna i bez symetrii
+    obrotowej wokół osi pionowej (inaczej obrót niczego by nie zmieniał). */
 function isChiralEnough(s) {
-  return xform(s, XF.mirX).id !== s.id
-      && xform(s, XF.mirY).id !== s.id
-      && xform(s, XF.rotZ).id !== s.id;
+  return isChiral(s) && xform(s, XF.rotZ).id !== s.id && xform(s, XF.rotZ, 2).id !== s.id;
 }
 
 function generateSolid(cfg) {
@@ -459,8 +544,9 @@ function generateSolid(cfg) {
     if (cfg.chiral && !isChiralEnough(s)) continue;
     return s;
   }
-  // Awaryjna bryła — zawsze poprawna, gdyby losowanie zawiodło
-  return solidFromHeights([[2, 1], [1, 3]]);
+  // Awaryjna bryła — chiralna, gdyby losowanie zawiodło. Poprzednia,
+  // [[2,1],[1,3]], była symetryczna względem przekątnej, więc achiralna.
+  return solidFromHeights([[3, 1], [2, 0]]);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -549,6 +635,11 @@ function drawIso(canvas, solid, opt) {
    zmienia wyłącznie ROZMIESZCZENIE rzutów na arkuszu.
    depth = odległość od obserwatora (0 = powierzchnia najbliższa),
    różnica głębokości między sąsiednimi polami daje widoczną krawędź.
+
+   Linie jak w PN-EN ISO 128: krawędzie widoczne — zarys i krawędzie
+   wewnątrz niego — ciągłą grubą, krawędzie niewidoczne cienką kreskową.
+   Pierwsza wersja rysowała krawędzie wewnętrzne cienką linią ciągłą i nie
+   pokazywała krawędzi niewidocznych, co było umową aplikacji, a nie normą.
    ═══════════════════════════════════════════════════════════════ */
 
 const VIEW_LABEL = {
@@ -585,8 +676,73 @@ function orthoView(solid, kind) {
     }
     filled[r][c] = f; depth[r][c] = d;
   }
-  return { kind, cols, rows, filled, depth, label: VIEW_LABEL[kind],
-           id: filled.map(r => r.map(v => v ? "1" : "0").join("")).join("/") };
+  const v = { kind, cols, rows, filled, depth, label: VIEW_LABEL[kind] };
+  v.hid = hiddenEdges(solid, v);
+  v.id = viewSignature(v);
+  return v;
+}
+
+/** Kostka bryły w układzie rzutu: wiersz r, kolumna c, warstwa t licząc od obserwatora. */
+function viewCell(solid, kind, r, c, t) {
+  const nx = solid.nx, ny = solid.ny, nz = solid.nz;
+  if (kind === "front") return solid.has(c, t, nz - 1 - r);
+  if (kind === "top")   return solid.has(c, ny - 1 - r, nz - 1 - t);
+  if (kind === "left")  return solid.has(t, ny - 1 - c, nz - 1 - r);
+  return solid.has(nx - 1 - t, c, nz - 1 - r);
+}
+
+/** Czy wzdłuż prostej, wokół której leżą cztery kostki, biegnie krawędź bryły.
+    a1, a2 — kostki po jednej stronie granicy pól (warstwy t−1 i t), b1, b2 — po drugiej.
+    Krawędzi nie ma, gdy wszystkie są pełne albo puste, oraz gdy dwie pełne
+    tworzą płaską ścianę (ten sam bok albo ta sama warstwa). */
+function edgeAlong(a1, a2, b1, b2) {
+  const n = a1 + a2 + b1 + b2;
+  if (n === 0 || n === 4) return false;
+  if (n === 2 && ((a1 && a2) || (b1 && b2) || (a1 && b1) || (a2 && b2))) return false;
+  return true;
+}
+
+/** Krawędzie niewidoczne rzutu: odcinki granic między polami o tej samej
+    głębokości widocznej, wzdłuż których biegnie krawędź bryły położona głębiej.
+    Gdzie głębokości się różnią, leży już krawędź widoczna — ona ma
+    pierwszeństwo, więc pokrywająca się z nią krawędź niewidoczna nie jest
+    rysowana. Klucz "h:r,c" to granica pod polem (r,c), "v:r,c" — na prawo od niego. */
+function hiddenEdges(solid, view) {
+  const T = view.kind === "front" ? solid.ny : view.kind === "top" ? solid.nz : solid.nx;
+  const has = (r, c, t) => t >= 0 && t < T && viewCell(solid, view.kind, r, c, t) ? 1 : 0;
+  const out = new Set();
+  const check = (r1, c1, r2, c2, key) => {
+    if (!view.filled[r1][c1] || !view.filled[r2][c2] || view.depth[r1][c1] !== view.depth[r2][c2]) return;
+    for (let t = 0; t <= T; t++)
+      if (edgeAlong(has(r1, c1, t - 1), has(r1, c1, t), has(r2, c2, t - 1), has(r2, c2, t))) { out.add(key); return; }
+  };
+  for (let r = 0; r < view.rows; r++) for (let c = 0; c < view.cols; c++) {
+    if (r + 1 < view.rows) check(r, c, r + 1, c, "h:" + r + "," + c);
+    if (c + 1 < view.cols) check(r, c, r, c + 1, "v:" + r + "," + c);
+  }
+  return out;
+}
+
+/** Dokładnie to, co drawOrtho narysuje: zarys, krawędzie widoczne i niewidoczne.
+    Identyfikator oparty na samym wypełnieniu uznawał rzuty różniące się
+    wyłącznie uskokami za duplikaty i usuwał je z opcji odpowiedzi —
+    czyli kasował dokładnie tę różnicę, której uczy moduł o uskokach. */
+function viewSignature(view) {
+  const at = (r, c) => (r < 0 || c < 0 || r >= view.rows || c >= view.cols)
+    ? null : (view.filled[r][c] ? view.depth[r][c] : null);
+  const hid = view.hid || new Set();
+  let sig = view.cols + "x" + view.rows + ":";
+  for (let r = 0; r < view.rows; r++) for (let c = 0; c < view.cols; c++) {
+    if (!view.filled[r][c]) { sig += "."; continue; }
+    const d = view.depth[r][c];
+    const hk = ["h:" + (r - 1) + "," + c, "h:" + r + "," + c, "v:" + r + "," + (c - 1), "v:" + r + "," + c];
+    sig += "[";
+    [at(r - 1, c), at(r + 1, c), at(r, c - 1), at(r, c + 1)].forEach((nb, i) => {
+      sig += nb === null ? "T" : nb !== d ? "t" : hid.has(hk[i]) ? "h" : "-";
+    });
+    sig += "]";
+  }
+  return sig;
 }
 
 function drawOrtho(canvas, view, opt) {
@@ -603,10 +759,34 @@ function drawOrtho(canvas, view, opt) {
     if (view.filled[r][c]) ctx.fillRect(ox + c * cell, oy + r * cell, cell, cell);
 
   const line = opt.line || "#d8e6f0";
-  const seg = (x1, y1, x2, y2, lw) => {
+
+  // Kład (figura przekroju) — kreskowanie cienkimi liniami pod 45°, jak w normie.
+  if (view.kind === "section") {
+    ctx.save();
+    ctx.beginPath();
+    for (let r = 0; r < view.rows; r++) for (let c = 0; c < view.cols; c++)
+      if (view.filled[r][c]) ctx.rect(ox + c * cell, oy + r * cell, cell, cell);
+    ctx.clip();
+    ctx.strokeStyle = line; ctx.globalAlpha = 0.55; ctx.lineWidth = 0.8;
+    const step = Math.max(5, cell / 4), span = (view.cols + view.rows) * cell;
+    for (let k = -view.rows * cell; k < span; k += step) {
+      ctx.beginPath(); ctx.moveTo(ox + k, oy + view.rows * cell); ctx.lineTo(ox + k + view.rows * cell, oy); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  const seg = (x1, y1, x2, y2, lw, dash) => {
     ctx.beginPath(); ctx.moveTo(ox + x1 * cell, oy + y1 * cell); ctx.lineTo(ox + x2 * cell, oy + y2 * cell);
-    ctx.strokeStyle = line; ctx.lineWidth = lw; ctx.lineCap = "round"; ctx.stroke();
+    ctx.strokeStyle = line; ctx.lineWidth = lw; ctx.lineCap = dash ? "butt" : "round";
+    ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
   };
+  // Krawędzie niewidoczne pod spodem: linia cienka kreskowa
+  const dash = [Math.max(3, cell * 0.2), Math.max(2, cell * 0.13)];
+  for (const k of (view.hid || [])) {
+    const [r, c] = k.slice(2).split(",").map(Number);
+    if (k[0] === "h") seg(c, r + 1, c + 1, r + 1, 1.1, dash);
+    else              seg(c + 1, r, c + 1, r + 1, 1.1, dash);
+  }
   const at = (r, c) => (r < 0 || c < 0 || r >= view.rows || c >= view.cols) ? null : (view.filled[r][c] ? view.depth[r][c] : null);
 
   for (let r = 0; r < view.rows; r++) for (let c = 0; c < view.cols; c++) {
@@ -618,10 +798,8 @@ function drawOrtho(canvas, view, opt) {
       [at(r, c - 1), c, r,     c,     r + 1],  // lewo
       [at(r, c + 1), c + 1, r, c + 1, r + 1],  // prawo
     ];
-    for (const s of sides) {
-      if (s[0] === null)      seg(s[1], s[2], s[3], s[4], 2.4);   // zarys — linia gruba
-      else if (s[0] !== d)    seg(s[1], s[2], s[3], s[4], 1.0);   // uskok — krawędź wewnętrzna
-    }
+    // Zarys i krawędzie widoczne wewnątrz zarysu — ta sama linia ciągła gruba
+    for (const s of sides) if (s[0] === null || s[0] !== d) seg(s[1], s[2], s[3], s[4], 2.2);
   }
   return ctx;
 }
@@ -672,20 +850,63 @@ function sectionView(solid, axis, index) {
     filled.push([]); depth.push([]);
     for (let c = 0; c < cols; c++) { const f = get(r, c); filled[r].push(f); depth[r].push(f ? 0 : null); }
   }
-  return { kind: "section", cols, rows, filled, depth,
-           id: filled.map(r => r.map(v => v ? "1" : "0").join("")).join("/") };
+  const v = { kind: "section", cols, rows, filled, depth };
+  v.id = viewSignature(v);
+  return v;
 }
 
 function isEmptyView(v) { return v.filled.every(r => r.every(x => !x)); }
 
-/** Kostki mające choć jedną ścianę zwróconą do obserwatora izometrycznego. */
-function facingCubes(solid) {
-  let n = 0;
-  for (const c of solid.cells) {
-    const x = c[0], y = c[1], z = c[2];
-    if (!solid.has(x, y, z + 1) || !solid.has(x, y - 1, z) || !solid.has(x + 1, y, z)) n++;
+/** Liczba kostek, z których na rysunku widać choćby skrawek.
+
+    Dwie analityczne reguły, które wydawały się oczywiste, okazały się
+    błędne przy konfrontacji z rzeczywistym rysunkiem: ani „kostka ma
+    odsłoniętą ścianę", ani „zasłania ją wyłącznie sąsiad na promieniu
+    widzenia" nie zgadzały się z tym, co widać. Dlatego zamiast wzoru
+    działa tu ta sama kolejność malowania co w drawIso, tyle że do bufora
+    indeksów zamiast na ekran. Kostka jest widoczna, jeśli po zamalowaniu
+    całości została przy niej choć jedna próbka.
+
+    Koszt jest pomijalny: bryły mają kilkanaście do trzydziestu kostek,
+    a funkcja liczona jest raz na zadanie. Zgodność z rasteryzacją
+    o wysokiej rozdzielczości sprawdza testy/logika.js. */
+function visibleCubes(solid, scale) {
+  const s = scale || 22, pad = 2;
+  const b = isoBounds(solid, s);
+  const W = Math.ceil(b.w) + pad * 2, H = Math.ceil(b.h) + pad * 2;
+  const buf = new Int32Array(W * H).fill(-1);
+  const P = (x, y, z) => { const p = isoPt(x, y, z, s); return [p.x - b.minX + pad, p.y - b.minY + pad]; };
+
+  const inside = (q, px, py) => {
+    let sign = 0;
+    for (let i = 0; i < 4; i++) {
+      const a = q[i], c = q[(i + 1) % 4];
+      const cr = (c[0] - a[0]) * (py - a[1]) - (c[1] - a[1]) * (px - a[0]);
+      if (cr !== 0) { const sg = cr > 0 ? 1 : -1; if (sign === 0) sign = sg; else if (sg !== sign) return false; }
+    }
+    return true;
+  };
+  const paint = (q, id) => {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const v of q) { if (v[0] < x0) x0 = v[0]; if (v[0] > x1) x1 = v[0]; if (v[1] < y0) y0 = v[1]; if (v[1] > y1) y1 = v[1]; }
+    for (let py = Math.floor(y0); py <= Math.ceil(y1); py++)
+      for (let px = Math.floor(x0); px <= Math.ceil(x1); px++) {
+        if (px < 0 || py < 0 || px >= W || py >= H) continue;
+        if (inside(q, px + 0.5, py + 0.5)) buf[py * W + px] = id;
+      }
+  };
+
+  const order = solid.cells.map((c, i) => ({ c: c, i: i }))
+    .sort((a, d) => (a.c[0] - a.c[1] + a.c[2]) - (d.c[0] - d.c[1] + d.c[2]));
+  for (const o of order) {
+    const x = o.c[0], y = o.c[1], z = o.c[2];
+    if (!solid.has(x, y, z + 1)) paint([P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], o.i);
+    if (!solid.has(x, y - 1, z)) paint([P(x, y, z), P(x + 1, y, z), P(x + 1, y, z + 1), P(x, y, z + 1)], o.i);
+    if (!solid.has(x + 1, y, z)) paint([P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], o.i);
   }
-  return n;
+  const seen = new Set();
+  for (let k = 0; k < buf.length; k++) if (buf[k] >= 0) seen.add(buf[k]);
+  return seen.size;
 }
 
 function footprintArea(solid) {
@@ -713,6 +934,9 @@ const SKILLS = {
   "przekroj":    { name: "Przekroje brył",         modul: "Przekroje",              w: 1.0 },
   "liczenie":    { name: "Liczenie kostek",        modul: "Wyobraźnia objętościowa", w: 0.7 },
   "uklad":       { name: "Układ rzutów (E / A)",   modul: "Norma PN-EN ISO 5456-2", w: 0.8 },
+  "szkic":       { name: "Szkic izometryczny",     modul: "Szkicowanie izometryczne", w: 0.9 },
+  "skos":        { name: "Linie pochyłe",          modul: "Powierzchnie pochyłe",   w: 0.9 },
+  "elipsa":      { name: "Okręgi w izometrii",     modul: "Powierzchnie krzywe",    w: 0.8 },
 };
 const SKILL_IDS = Object.keys(SKILLS);
 
@@ -744,17 +968,29 @@ const WHY = {
   otherView:"to inny rzut tej samej bryły",
   viewFlip: "rzut odbity — pomylony kierunek patrzenia",
   otherSec: "przekrój poprowadzony w innym miejscu",
-  onlySeen: "policzone tylko kostki z widoczną ścianą, bez zasłoniętych",
+  onlySeen: "policzone tylko kostki widoczne na rysunku, bez tych zasłoniętych przez inne",
+  symbolMisread: "to miejsce byłoby poprawne w drugiej metodzie — symbol został odczytany odwrotnie",
+  slotWrong: "w żadnej z metod ten rzut nie trafia w to miejsce",
+  stepLine: "ten rysunek ma poprawny zarys, ale inne linie wewnątrz — krawędzie widoczne albo niewidoczne leżą gdzie indziej",
   onlyCols: "policzona liczba słupków (pól planu), a nie kostek",
   offOne:   "pomyłka o jedną kostkę",
   identity: "to ta sama bryła, niezmieniona",
+  ellRot:   "elipsa obrócona o 90° — jej duża oś jest równoległa do osi otworu, a powinna być do niej prostopadła",
+  ellFace:  "to elipsa właściwa dla innej ściany — jej duża oś nie leży wzdłuż dłuższej przekątnej tej ściany",
+  ellCircle:"okrąg bez zniekształcenia — okrąg leżący na ścianie bryły jest na rysunku izometrycznym zawsze elipsą",
+  ellIsoScale: "to osie dla rzutu ścisłego, ze skrótem 0,816. Bez skrótu elipsa jest 1,22 raza większa",
+  ellMix:   "duża oś policzona bez skrótu, a mała ze skrótem — oba wymiary muszą mieć ten sam współczynnik",
+  skosSwap: "końce linii pochyłej zamienione — długość odcięta w poziomie trafiła na pion i odwrotnie",
+  skosCorner: "ścięty niewłaściwy narożnik — sprawdź na rzucie, po której stronie leży skos",
+  skosPlane:  "skos leży w innej płaszczyźnie — linią pochyłą widać go w tym rzucie, do którego jest prostopadły",
+  skosLen:  "jeden koniec linii pochyłej odmierzony o jednostkę za blisko albo za daleko",
 };
 
 /** Buduje listę opcji z unikatowymi identyfikatorami; odrzuca duplikaty. */
-function assembleOptions(correctOpt, candidates, want) {
+function assembleOptions(correctOpt, candidates, want, keepOrder) {
   const out = [correctOpt];
   const seen = new Set([correctOpt.id]);
-  for (const c of shuffle(candidates)) {
+  for (const c of (keepOrder ? candidates : shuffle(candidates))) {
     if (out.length >= want) break;
     if (!c || !c.id || seen.has(c.id)) continue;
     seen.add(c.id); out.push(c);
@@ -792,36 +1028,65 @@ function exBrylaRzut(cfg, opts) {
   const s = generateSolidWhere(cfg, q => q.nx === q.ny && q.ny === q.nz);
   const kind = pick((opts && opts.kinds) || ["front", "top", "left", "right"]);
   const correct = orthoView(s, kind);
+  const sameOutline = !!(opts && opts.sameOutline);
+
+  // Dystraktory o identycznym zarysie, różniące się wyłącznie liniami wewnątrz
+  // zarysu — krawędziami widocznymi albo niewidocznymi. To jedyny rodzaj
+  // zadania, który naprawdę sprawdza czytanie tych linii.
+  const hard = [];
+  if (sameOutline) {
+    const outline = JSON.stringify(correct.filled);
+    for (let t = 0; t < 120 && hard.length < 5; t++) {
+      const m = moveOneCube(s) || addOrRemoveCube(s, Math.random() < 0.5);
+      if (!m) continue;
+      const v = orthoView(m, kind);
+      if (v.cols === correct.cols && v.rows === correct.rows &&
+          JSON.stringify(v.filled) === outline && v.id !== correct.id) hard.push(orthoOpt(v, "stepLine"));
+    }
+  }
+
   const cand = [];
   for (const k of ["front", "top", "left", "right"]) if (k !== kind) cand.push(orthoOpt(orthoView(s, k), "otherView"));
   cand.push(orthoOpt(orthoView(xform(s, XF.mirX), kind), "viewFlip"));
   const mv = moveOneCube(s); if (mv) cand.push(orthoOpt(orthoView(mv, kind), "moved"));
+
   return {
     skill: "bryla-rzut",
     prompt: "Który rysunek jest poprawnym rzutem tej bryły — " + VIEW_LABEL[kind] + "?",
-    hint: "Rzut pokazuje zarys bryły; cienkie linie w środku to uskoki między różnymi głębokościami.",
+    hint: sameOutline
+      ? "Wszystkie rysunki mają ten sam zarys. Decydują linie wewnątrz: ciągłe to krawędzie widoczne, kreskowe — niewidoczne."
+      : "Linia ciągła gruba to krawędź widoczna, cienka kreskowa — niewidoczna.",
     stimulus: [{ type: "iso", solid: s, cap: "bryła" }],
-    options: assembleOptions(orthoOpt(correct, "ok"), cand, cfg.opts),
+    options: assembleOptions(orthoOpt(correct, "ok"), hard.concat(shuffle(cand)), cfg.opts, true),
     solution: s,
   };
+}
+
+/** To, co uczeń widzi na układzie trzech rzutów: rzut główny, z góry i boczny. */
+function threeViewKey(solid, side) {
+  return ["front", "top", side].map(k => orthoView(solid, k).id).join("/");
 }
 
 /* ── 3. Rzuty → bryła ── */
 function exRzutyBryla(cfg, method) {
   const s = generateSolid(cfg);
   const side = method === "E" ? "left" : "right";
+  const key = threeViewKey(s, side);
   const cand = [];
   cand.push(isoOpt(xform(s, XF.mirX), "mirror"));
   const mv = moveOneCube(s); if (mv) cand.push(isoOpt(mv, "moved"));
   const rm = addOrRemoveCube(s, false); if (rm) cand.push(isoOpt(rm, "removed"));
   const ad = addOrRemoveCube(s, true);  if (ad) cand.push(isoOpt(ad, "added"));
   cand.push(isoOpt(xform(s, XF.rotZ), "planRot"));
+  // Dystraktor o identycznych trzech rzutach byłby drugą poprawną odpowiedzią —
+  // w pierwszej wersji zdarzało się to w 0,5–3% zadań.
+  const distinct = cand.filter(o => threeViewKey(o.solid, side) !== key);
   return {
     skill: "rzuty-bryla",
     prompt: "Trzy rzuty prostokątne opisują jedną bryłę. Którą?",
     hint: "Rysunek w metodzie " + (method === "E" ? "pierwszego kąta (europejskiej)" : "trzeciego kąta (amerykańskiej)") + ".",
     stimulus: [{ type: "views", solid: s, method, side }],
-    options: assembleOptions(isoOpt(s, "ok"), cand, cfg.opts),
+    options: assembleOptions(isoOpt(s, "ok"), distinct, cfg.opts),
     solution: s,
   };
 }
@@ -908,10 +1173,18 @@ function exPrzekroj(cfg, opts) {
   }
   const mirrored = sectionView(xform(s, XF.mirX), ax.a, idx);
   if (!isEmptyView(mirrored)) cand.push(orthoOpt(mirrored, "viewFlip"));
+  // Przekroje bryły z jedną przestawioną kostką — uzupełniają pulę, gdy bryła
+  // ma mało warstw i samych innych przekrojów nie starcza na komplet opcji.
+  for (let t = 0; t < 40 && cand.length < 8; t++) {
+    const m = moveOneCube(s);
+    if (!m || idx >= ax.n(m)) continue;
+    const v = sectionView(m, ax.a, idx);
+    if (!isEmptyView(v) && v.cols === correct.cols && v.rows === correct.rows) cand.push(orthoOpt(v, "moved"));
+  }
   return {
     skill: "przekroj",
-    prompt: "Bryłę przecięto płaszczyzną " + ax.txt(idx, s) + ". Który rysunek pokazuje ten przekrój?",
-    hint: "Przekrój pokazuje tylko materiał leżący dokładnie w płaszczyźnie cięcia.",
+    prompt: "Bryłę przecięto płaszczyzną " + ax.txt(idx, s) + ". Który rysunek pokazuje figurę przekroju (kład)?",
+    hint: "Kład pokazuje tylko materiał leżący dokładnie w płaszczyźnie cięcia; pole przekroju jest kreskowane.",
     stimulus: [{ type: "iso", solid: s, cap: "bryła" }, { type: "plan", hm: heightsOf(s), cap: "plan kodowany" }],
     options: assembleOptions(orthoOpt(correct, "ok"), cand, cfg.opts),
     solution: s,
@@ -920,10 +1193,10 @@ function exPrzekroj(cfg, opts) {
 
 /* ── 7. Liczenie kostek ── */
 function exLiczenie(cfg) {
-  const s = generateSolidWhere(cfg, q => q.count >= 6 && facingCubes(q) < q.count);
+  const s = generateSolidWhere(cfg, q => q.count >= 6 && visibleCubes(q) < q.count);
   const total = s.count;
   const cand = [
-    numOpt(facingCubes(s), "onlySeen"),
+    numOpt(visibleCubes(s), "onlySeen"),
     numOpt(footprintArea(s), "onlyCols"),
     numOpt(total - 1, "offOne"),
     numOpt(total + 1, "offOne"),
@@ -954,8 +1227,39 @@ const SLOTS = {
 const SLOT_TXT = { right: "po prawej stronie rzutu głównego", left: "po lewej stronie rzutu głównego",
                    below: "pod rzutem głównym", above: "nad rzutem głównym" };
 
+const SYMBOL_PLACE = {
+  E: { top: "below", left: "right", right: "left" },
+  A: { top: "above", left: "left",  right: "right" },
+};
+const PLACE_TXT = { below: "pod rzutem głównym", above: "nad rzutem głównym",
+                    left: "po lewej stronie rzutu głównego", right: "po prawej stronie rzutu głównego" };
+const PLACE_VIEW_TXT = { top: "rzut z góry", left: "rzut z lewej strony", right: "rzut z prawej strony" };
+
+/** Wariant, w którym metody nie podano słownie — trzeba ją odczytać z symbolu.
+    Do tego właśnie służy symbol na prawdziwym rysunku. */
+function exUkladSymbol(method) {
+  const view = pick(["top", "left", "right"]);
+  const ok = SYMBOL_PLACE[method][view];
+  const other = SYMBOL_PLACE[method === "E" ? "A" : "E"][view];
+  const cand = Object.keys(PLACE_TXT).filter(k => k !== ok)
+    .map(k => textOpt(PLACE_TXT[k], k === other ? "symbolMisread" : "slotWrong"));
+  return {
+    skill: "uklad",
+    prompt: "Na rysunku jest ten symbol metody rzutowania. Gdzie względem rzutu głównego leży " +
+            PLACE_VIEW_TXT[view] + "?",
+    hint: "Trapez to stożek widziany z boku, okręgi to ten sam stożek od węższego końca. " +
+          "Sprawdź, czy węższy bok trapezu jest zwrócony do okręgów, czy od nich odwrócony.",
+    stimulus: [{ type: "symbol", method: method }],
+    options: assembleOptions(textOpt(PLACE_TXT[ok], "ok"), cand, 4),
+    note: method === "E"
+      ? "Węższy bok trapezu jest odwrócony od okręgów, więc to metoda pierwszego kąta: rzut trafia po stronie przeciwnej niż obserwator."
+      : "Węższy bok trapezu jest zwrócony do okręgów, więc to metoda trzeciego kąta: rzut trafia po tej samej stronie co obserwator.",
+  };
+}
+
 function exUklad(cfg, opts) {
   const method = (opts && opts.forceMethod) || (Math.random() < 0.5 ? "E" : "A");
+  if (!(opts && opts.noSymbol) && Math.random() < 0.5) return exUkladSymbol(method);
   const slot = pick(Object.keys(SLOTS[method]));
   const info = SLOTS[method][slot];
   const all = ["rzut z lewej strony", "rzut z prawej strony", "rzut z góry", "rzut z dołu", "rzut z tyłu"];
@@ -973,6 +1277,425 @@ function exUklad(cfg, opts) {
   };
 }
 
+/* ═══ SZKIC IZOMETRYCZNY JAKO ZBIÓR ODCINKÓW SIATKI ═══
+   Kurs Sorby (moduł 3) uczy szkicowania brył na papierze z siatką punktów
+   izometrycznych. Rysunek na takiej siatce składa się z odcinków między
+   sąsiednimi punktami, więc da się go sprawdzić ściśle, bez rozpoznawania
+   obrazu: porównuje się zbiory odcinków z dokładnością do przesunięcia.
+
+   Współrzędne siatki: u = x + y, v = x − y − 2z; punkt siatki ma u + v
+   parzyste. Na ekranie X = u·s·cos30, Y = v·s/2 — ten sam rzut co drawIso. */
+
+const segKey = (u1, v1, u2, v2) =>
+  (u1 < u2 || (u1 === u2 && v1 < v2)) ? u1 + "," + v1 + "," + u2 + "," + v2 : u2 + "," + v2 + "," + u1 + "," + v1;
+const segPts = k => k.split(",").map(Number);
+
+/** Każda widoczna ściana kostki to romb z dwóch trójkątów siatki. Trójkąt
+    R(k,a) ma bok pionowy na u = k (od v = a do a + 2) i wierzchołek w u = k + 1,
+    trójkąt L(k,a) — bok pionowy na u = k + 1 i wierzchołek w u = k.
+    Trójkątowi przypisujemy ścianę najbliższą obserwatorowi: głębokość
+    d = x − y + z w punkcie, w którym promień przez środek trójkąta trafia
+    w płaszczyznę ściany. Większe d — bliżej obserwatora. Etykieta trójkąta
+    to płaszczyzna ściany ("z3" — płaszczyzna z = 3 itd.). */
+function isoTriangles(solid) {
+  const tri = new Map();
+  const put = (k, a, side, lab, depth) => {
+    const d = depth(side === "R" ? k + 1 / 3 : k + 2 / 3, a + 1);
+    const key = k + "," + a + "," + side, cur = tri.get(key);
+    if (!cur || d > cur.d + 1e-9) tri.set(key, { d: d, lab: lab });
+  };
+  for (const [x, y, z] of solid.cells) {
+    const u = x + y, v = x - y - 2 * z;
+    if (!solid.has(x, y, z + 1)) {             // ściana górna, płaszczyzna z = Z
+      const Z = z + 1, f = (uc, vc) => vc + 3 * Z;
+      put(u, v - 3, "L", "z" + Z, f); put(u + 1, v - 3, "R", "z" + Z, f);
+    }
+    if (!solid.has(x, y - 1, z)) {             // ściana przednia, płaszczyzna y = Y
+      const Y = y, f = (uc, vc) => (3 * uc - 6 * Y - vc) / 2;
+      put(u, v - 2, "R", "y" + Y, f); put(u, v - 1, "L", "y" + Y, f);
+    }
+    if (!solid.has(x + 1, y, z)) {             // ściana prawa, płaszczyzna x = X
+      const X = x + 1, f = (uc, vc) => (6 * X - 3 * uc - vc) / 2;
+      put(u + 1, v - 1, "R", "x" + X, f); put(u + 1, v - 2, "L", "x" + X, f);
+    }
+  }
+  return tri;
+}
+
+/** Rysunek izometryczny bryły jako zbiór odcinków siatki. Odcinek leży tam,
+    gdzie sąsiednie trójkąty należą do różnych płaszczyzn albo jeden jest pusty.
+    Ściany leżące w jednej płaszczyźnie tworzą jedną powierzchnię, więc granic
+    między kostkami na płaskiej ścianie się nie rysuje — jak na rysunku bryły.
+    Krawędzi niewidocznych też nie, zgodnie z praktyką rysunku izometrycznego. */
+function isoLineSet(solid) {
+  const tri = isoTriangles(solid);
+  const lab = (k, a, side) => { const t = tri.get(k + "," + a + "," + side); return t ? t.lab : null; };
+  const out = new Set();
+  const test = (l1, l2, u1, v1, u2, v2) => { if (l1 !== l2) out.add(segKey(u1, v1, u2, v2)); };
+  for (const key of tri.keys()) {
+    const p = key.split(","), k = +p[0], a = +p[1];
+    if (p[2] === "R") {
+      const me = lab(k, a, "R");
+      test(me, lab(k - 1, a, "L"), k, a, k, a + 2);
+      test(me, lab(k, a - 1, "L"), k, a, k + 1, a + 1);
+      test(me, lab(k, a + 1, "L"), k, a + 2, k + 1, a + 1);
+    } else {
+      const me = lab(k, a, "L");
+      test(me, lab(k + 1, a, "R"), k + 1, a, k + 1, a + 2);
+      test(me, lab(k, a + 1, "R"), k, a + 1, k + 1, a + 2);
+      test(me, lab(k, a - 1, "R"), k, a + 1, k + 1, a);
+    }
+  }
+  return out;
+}
+
+function shiftSegs(set, du, dv) {
+  const out = new Set();
+  for (const k of set) { const p = segPts(k); out.add(segKey(p[0] + du, p[1] + dv, p[2] + du, p[3] + dv)); }
+  return out;
+}
+function segBounds(set) {
+  let u0 = Infinity, v0 = Infinity, u1 = -Infinity, v1 = -Infinity;
+  for (const k of set) {
+    const p = segPts(k);
+    u0 = Math.min(u0, p[0], p[2]); v0 = Math.min(v0, p[1], p[3]);
+    u1 = Math.max(u1, p[0], p[2]); v1 = Math.max(v1, p[1], p[3]);
+  }
+  return { u0, v0, u1, v1 };
+}
+
+/** Odcinki siatki między dwoma punktami, jeśli leżą na jednej linii siatki
+    (pionowej albo jednej z dwóch ukośnych); w przeciwnym razie null. */
+function latticePath(a, b) {
+  const du = b.u - a.u, dv = b.v - a.v;
+  let su, sv, n;
+  if (du === 0 && dv !== 0 && dv % 2 === 0) { su = 0; sv = Math.sign(dv) * 2; n = Math.abs(dv) / 2; }
+  else if (du !== 0 && Math.abs(du) === Math.abs(dv)) { su = Math.sign(du); sv = Math.sign(dv); n = Math.abs(du); }
+  else return null;
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(segKey(a.u + su * i, a.v + sv * i, a.u + su * (i + 1), a.v + sv * (i + 1)));
+  return out;
+}
+
+/** Porównanie szkicu z rozwiązaniem z dokładnością do przesunięcia o wektor
+    siatki. Przesunięcie wybiera głosowanie: każda para odcinków o tym samym
+    kierunku głosuje na wektor, który by je nałożył. Zwraca braki i nadmiary
+    względem rozwiązania ustawionego w najlepszym miejscu. */
+function compareSketch(user, target) {
+  const votes = new Map();
+  let best = null, bestN = 0;
+  const tl = [...target].map(segPts);
+  for (const k of user) {
+    const a = segPts(k);
+    for (const b of tl) {
+      if (a[2] - a[0] !== b[2] - b[0] || a[3] - a[1] !== b[3] - b[1]) continue;
+      const key = (a[0] - b[0]) + "," + (a[1] - b[1]);
+      const n = (votes.get(key) || 0) + 1;
+      votes.set(key, n);
+      if (n > bestN) { bestN = n; best = key; }
+    }
+  }
+  const sh = best ? best.split(",").map(Number) : null;
+  const placed = sh ? shiftSegs(target, sh[0], sh[1]) : null;
+  const missing = placed ? new Set([...placed].filter(k => !user.has(k))) : new Set(target);
+  const extra = placed ? new Set([...user].filter(k => !placed.has(k))) : new Set(user);
+  return { ok: !!placed && missing.size === 0 && extra.size === 0, missing, extra, placed, shift: sh };
+}
+
+/* ── 9. Szkic izometryczny ── */
+function exSzkic(cfg, opts) {
+  // Szkic jest wolniejszy niż wybór z listy, więc bryły są ograniczone
+  // do rozmiarów z ćwiczeń kursu Sorby: najwyżej 3 × 3 × 3 i 14 kostek.
+  const c = Object.assign({}, cfg, {
+    w: Math.min(cfg.w, 3), d: Math.min(cfg.d, 3), maxH: Math.min(cfg.maxH, 3),
+    minFoot: Math.min(cfg.minFoot, 5), maxFoot: Math.min(cfg.maxFoot, 7),
+    minCubes: Math.min(cfg.minCubes, 7), maxCubes: Math.min(cfg.maxCubes, 14), chiral: false,
+  });
+  const from = (opts && opts.from) || (Math.random() < 0.5 ? "plan" : "views");
+  const s = generateSolid(c);
+  const method = (opts && opts.forceMethod) || State.method;
+  const side = method === "E" ? "left" : "right";
+  return {
+    skill: "szkic", kind: "sketch",
+    prompt: from === "plan"
+      ? "Narysuj na siatce rysunek izometryczny bryły opisanej planem kodowanym."
+      : "Narysuj na siatce rysunek izometryczny bryły przedstawionej w trzech rzutach.",
+    hint: "Kierunek patrzenia jak w całej aplikacji: z przodu, z prawej i z góry. Rysuj tylko krawędzie bryły — " +
+          "bez linii między kostkami na płaskiej ścianie i bez krawędzi niewidocznych.",
+    stimulus: from === "plan"
+      ? [{ type: "plan", hm: heightsOf(s), cap: "plan kodowany" }]
+      : [{ type: "views", solid: s, method: method, side: side }],
+    options: [],
+    target: s,
+    lines: isoLineSet(s),
+    solution: s,
+  };
+}
+
+/* ═══ OKRĘGI W IZOMETRII ═══
+   Okrąg o średnicy d leżący na ścianie bryły jest elipsą wpisaną w romb
+   ściany, styczną do środków jego boków. Rysując bez skrótu (współczynnik 1
+   wzdłuż osi) dostajemy osie √1,5·d ≈ 1,22·d i √0,5·d ≈ 0,71·d; w rzucie
+   ścisłym ze skrótem 0,816 — d i 0,58·d. Duża oś jest prostopadła do osi
+   otworu, czyli leży wzdłuż dłuższej przekątnej rombu. Kąty poniżej to
+   kierunki dużej osi na ekranie (oś Y ekranu w dół), wyprowadzone z rozkładu
+   według wartości osobliwych rzutu ściany — sprawdza je testy/logika.js. */
+const ELLIPSE = { major: Math.sqrt(1.5), minor: Math.sqrt(0.5) };
+const FACE_ANGLE = { top: 0, front: Math.PI / 3, right: -Math.PI / 3 };
+const FACE_TXT = { top: "górnej", front: "przedniej", right: "prawej" };
+const FACE_AXIS = { top: "jest pionowa", front: "biegnie w głąb", right: "biegnie w prawo" };
+
+/** Środek ściany sześcianu jednostkowego i dwa wektory jej boków (w 3D). */
+const FACE_GEOM = {
+  top:   { c: [0.5, 0.5, 1], e1: [1, 0, 0], e2: [0, 1, 0] },
+  front: { c: [0.5, 0, 0.5], e1: [1, 0, 0], e2: [0, 0, 1] },
+  right: { c: [1, 0.5, 0.5], e1: [0, 1, 0], e2: [0, 0, 1] },
+};
+
+function exElipsa(cfg, opts) {
+  const mode = (opts && opts.mode) || (Math.random() < 0.65 ? "rys" : "osie");
+  if (mode === "osie") {
+    const d = pick([20, 30, 40, 50, 60, 80, 100]);
+    const f = pick(["top", "front", "right"]);
+    const r = x => Math.round(x);
+    const t = (a, b) => "duża oś ≈ " + a + " mm, mała ≈ " + b + " mm";
+    const cand = [
+      textOpt(t(d, r(0.5774 * d)), "ellIsoScale"),
+      textOpt(t(d, d), "ellCircle"),
+      textOpt(t(r(ELLIPSE.major * d), r(0.5774 * d)), "ellMix"),
+    ];
+    return {
+      skill: "elipsa",
+      prompt: "Rysujesz izometrię bez skrótu — wymiary wzdłuż osi odmierzasz w rzeczywistej wielkości. " +
+              "Na jednej ze ścian leży okrąg o średnicy " + d + " mm. Jakie osie ma elipsa, która go przedstawia?",
+      hint: "Wielkość elipsy nie zależy od tego, na której ścianie leży okrąg — zmienia się tylko jej obrót.",
+      stimulus: [{ type: "draw", cap: "okrąg ⌀ " + d + " mm na ścianie " + FACE_TXT[f],
+                   desc: "sześcian z elipsą na ścianie " + FACE_TXT[f] + ", z zaznaczonymi osiami elipsy",
+                   draw: c => drawHoleCube(c, f, { angle: FACE_ANGLE[f] }, { w: 200, h: 172, axes: true }) }],
+      options: assembleOptions(textOpt(t(r(ELLIPSE.major * d), r(ELLIPSE.minor * d)), "ok"), cand, 4),
+      note: "W rzucie ścisłym (skrót 0,816) osie mają d i 0,58·d. Bez skrótu cały rysunek jest √1,5 ≈ 1,22 raza " +
+            "większy, więc osie mają 1,22·d i 0,71·d.",
+    };
+  }
+  const face = (opts && opts.face) || pick(["top", "front", "right"]);
+  const a = FACE_ANGLE[face];
+  const others = Object.keys(FACE_ANGLE).filter(f => f !== face);
+  const variant = (tag, v) => ({
+    kind: "draw", tag: tag, id: "L" + (v.circle ? "o" : Math.round(((v.angle * 180 / Math.PI) % 180 + 180) % 180)),
+    draw: c => drawHoleCube(c, face, v, { w: 152, h: 132 }),
+    desc: v.circle ? "okrąg bez zniekształcenia" : "elipsa o dużej osi pod kątem " +
+          Math.round(((v.angle * 180 / Math.PI) % 180 + 180) % 180) + "° do poziomu",
+  });
+  const cand = [
+    variant("ellRot", { angle: a + Math.PI / 2 }),
+    variant("ellFace", { angle: FACE_ANGLE[others[0]] }),
+    variant("ellFace", { angle: FACE_ANGLE[others[1]] }),
+    variant("ellCircle", { circle: true }),
+  ];
+  return {
+    skill: "elipsa",
+    prompt: "Na ścianie " + FACE_TXT[face] + " sześcianu wywiercono okrągły otwór; jego oś " + FACE_AXIS[face] +
+            ". Który rysunek pokazuje otwór poprawnie?",
+    hint: "Elipsa jest wpisana w romb ściany i dotyka środków jego boków.",
+    stimulus: [{ type: "draw", cap: "ściana " + FACE_TXT[face], desc: "sześcian z zaznaczoną ścianą " + FACE_TXT[face],
+                 draw: c => drawHoleCube(c, face, null, { w: 200, h: 172, mark: true }) }],
+    options: assembleOptions(variant("ok", { angle: a }), cand, 4),
+    note: "Duża oś elipsy jest prostopadła do osi otworu i leży wzdłuż dłuższej przekątnej rombu ściany.",
+  };
+}
+
+/* ═══ POWIERZCHNIE POCHYŁE (LINIE NIEIZOMETRYCZNE) ═══
+   Prostopadłościan ze ściętą krawędzią: profil — prostokąt z odciętym
+   narożnikiem — wyciągnięty wzdłuż trzeciej osi. Bryła jest wypukła, więc
+   do rysowania wystarcza odrzucenie ścian odwróconych od obserwatora.
+   plane "front": profil w płaszczyźnie x–z (skos widać w rzucie z przodu);
+   plane "side":  profil w płaszczyźnie y–z (skos widać w rzucie z boku).
+   corner "far": narożnik po prawej (front) albo z tyłu (side); "near": po lewej / z przodu.
+   a — długość odcięta w poziomie, b — w pionie, w jednostkach siatki. */
+
+function wedgeId(sp) { return [sp.plane, sp.corner, sp.a, sp.b, sp.W, sp.D, sp.H].join(":"); }
+
+function makeWedge(sp) {
+  const Pw = sp.plane === "front" ? sp.W : sp.D, ext = sp.plane === "front" ? sp.D : sp.W, H = sp.H;
+  const prof = sp.corner === "far"
+    ? [[0, 0], [Pw, 0], [Pw, H - sp.b], [Pw - sp.a, H], [0, H]]
+    : [[0, 0], [Pw, 0], [Pw, H], [sp.a, H], [0, H - sp.b]];
+  const to3 = (p, e) => sp.plane === "front" ? [p[0], e, p[1]] : [e, p[0], p[1]];
+  const faces = [prof.map(p => to3(p, 0)), prof.map(p => to3(p, ext))];
+  for (let i = 0; i < prof.length; i++) {
+    const p = prof[i], q = prof[(i + 1) % prof.length];
+    faces.push([to3(p, 0), to3(q, 0), to3(q, ext), to3(p, ext)]);
+  }
+  const verts = faces[0].concat(faces[1]);
+  const cen = [0, 1, 2].map(i => verts.reduce((s, v) => s + v[i], 0) / verts.length);
+  const F = faces.map(pts => {
+    // Normalna metodą Newella, zwrócona na zewnątrz względem środka bryły
+    let n = [0, 0, 0];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      n[0] += (a[1] - b[1]) * (a[2] + b[2]); n[1] += (a[2] - b[2]) * (a[0] + b[0]); n[2] += (a[0] - b[0]) * (a[1] + b[1]);
+    }
+    const len = Math.hypot(n[0], n[1], n[2]); n = n.map(x => x / len);
+    const fc = [0, 1, 2].map(i => pts.reduce((s, v) => s + v[i], 0) / pts.length);
+    if ((fc[0] - cen[0]) * n[0] + (fc[1] - cen[1]) * n[1] + (fc[2] - cen[2]) * n[2] < 0) n = n.map(x => -x);
+    return { pts: pts, n: n };
+  });
+  // Krawędzie z parami sąsiednich ścian
+  const edges = new Map();
+  const vk = v => v.join(",");
+  F.forEach((f, fi) => f.pts.forEach((p, i) => {
+    const q = f.pts[(i + 1) % f.pts.length];
+    const k = vk(p) < vk(q) ? vk(p) + "|" + vk(q) : vk(q) + "|" + vk(p);
+    if (!edges.has(k)) edges.set(k, { a: p, b: q, f: [] });
+    edges.get(k).f.push(fi);
+  }));
+  return { isPoly: true, spec: sp, faces: F, edges: [...edges.values()], verts: verts, id: wedgeId(sp),
+           nx: sp.W, ny: sp.D, nz: sp.H };
+}
+
+function describeWedge(sp) {
+  return "prostopadłościan " + sp.W + " na " + sp.D + " na " + sp.H + " ze ściętą krawędzią; skos widoczny w rzucie " +
+    (sp.plane === "front" ? "z przodu, narożnik " + (sp.corner === "far" ? "prawy" : "lewy")
+                          : "z boku, narożnik " + (sp.corner === "far" ? "tylny" : "przedni")) +
+    ", odcięte " + sp.a + " jedn. poziomo i " + sp.b + " pionowo";
+}
+
+function wedgeSpecValid(sp) {
+  const Pw = sp.plane === "front" ? sp.W : sp.D;
+  return sp.a >= 1 && sp.b >= 1 && sp.a <= Pw - 1 && sp.b <= sp.H - 1;
+}
+
+function exSkos(cfg, opts) {
+  for (let t = 0; t < 100; t++) {
+    const sp = { W: pick([3, 4]), D: pick([2, 3, 4]), H: pick(cfg.w >= 3 ? [3, 4] : [3]),
+                 plane: (opts && opts.plane) || pick(["front", "side"]), corner: pick(["far", "near"]), a: 0, b: 0 };
+    const Pw = sp.plane === "front" ? sp.W : sp.D;
+    const m = Math.min(Pw, sp.H) - 1;
+    if (m < 2) continue;
+    sp.a = 1 + randInt(m); sp.b = 1 + randInt(m);
+    if (sp.a === sp.b) continue;
+    const cand = [];
+    const add = (s, tag) => { if (wedgeSpecValid(s)) cand.push({ sp: s, tag: tag }); };
+    add(Object.assign({}, sp, { a: sp.b, b: sp.a }), "skosSwap");
+    add(Object.assign({}, sp, { corner: sp.corner === "far" ? "near" : "far" }), "skosCorner");
+    add(Object.assign({}, sp, { plane: sp.plane === "front" ? "side" : "front" }), "skosPlane");
+    const lens = [Object.assign({}, sp, { a: sp.a + 1 }), Object.assign({}, sp, { b: sp.b + 1 }),
+                  Object.assign({}, sp, { a: sp.a - 1 }), Object.assign({}, sp, { b: sp.b - 1 })]
+      .filter(s => wedgeSpecValid(s) && s.a !== s.b);
+    if (lens.length) add(pick(lens), "skosLen");
+    if (cand.length < 3) continue;
+    const poly = makeWedge(sp);
+    const method = (opts && opts.forceMethod) || State.method;
+    const side = method === "E" ? "left" : "right";
+    const opt = (s, tag) => { const p = makeWedge(s); return { kind: "poly", poly: p, id: "K" + p.id, tag: tag, desc: describeWedge(s) }; };
+    return {
+      skill: "skos",
+      prompt: "Rzuty przedstawiają prostopadłościan ze ściętą krawędzią. Który rysunek izometryczny mu odpowiada?",
+      hint: "Linii pochyłej nie da się odmierzyć wprost. Odmierz jej końce wzdłuż osi i połącz je.",
+      stimulus: [{ type: "views", solid: poly, method: method, side: side }],
+      options: assembleOptions(opt(sp, "ok"), cand.map(c => opt(c.sp, c.tag)), Math.min(cfg.opts, 4)),
+      note: "Końce skosu leżą na krawędziach izometrycznych — odmierza się je w jednostkach wzdłuż osi, " +
+            "a dopiero potem łączy linią pochyłą.",
+      solution: poly,
+    };
+  }
+  throw new Error("Nie udało się zbudować zadania ze skosem");
+}
+
+/* ═══ ZADANIE W FORMACIE PSVT:R ═══
+   Format testu Guaya (1977): pokazany jest obrót na jednej bryle, a trzeba
+   zastosować ten sam obrót do drugiej. Obrotu nie podaje się słownie —
+   trzeba go odczytać z przykładu. Na wyższych poziomach obrót jest złożony
+   z dwóch obrotów wokół różnych osi, jak w tygodniu 7 kursu Sorby.
+   Służy wyłącznie jako test wstępny i końcowy: to samo narzędzie przed
+   kursem i po nim, inaczej różnica wyników nie mierzyłaby przyrostu. */
+
+const XF_INV = new Map([
+  [XF.rotZ, XF.rotZi], [XF.rotZi, XF.rotZ], [XF.rotX, XF.rotXi],
+  [XF.rotXi, XF.rotX], [XF.rotY, XF.rotYi], [XF.rotYi, XF.rotY],
+]);
+const applySeq = (solid, seq) => { let t = solid; for (const f of seq) t = xform(t, f); return t; };
+
+/** Wszystkie 24 obroty sześcianu jako sekwencje obrotów elementarnych.
+    Wyznaczone przeszukiwaniem: każda nowa sekwencja, która daje inny obraz
+    bryły wzorcowej, to nowy obrót. Bryła wzorcowa nie ma żadnej symetrii,
+    więc różne obroty zawsze dają różne obrazy. */
+let CUBE_ROTATIONS = null;
+function cubeRotations() {
+  if (CUBE_ROTATIONS) return CUBE_ROTATIONS;
+  const ref = solidFromHeights([[3, 1, 0], [1, 0, 2], [0, 2, 1]]);
+  const out = [], seen = new Set(), queue = [[]];
+  while (queue.length) {
+    const seq = queue.shift();
+    const key = applySeq(ref, seq).id;
+    if (seen.has(key)) continue;
+    seen.add(key); out.push(seq);
+    for (const g of [XF.rotX, XF.rotY, XF.rotZ]) queue.push(seq.concat([g]));
+  }
+  CUBE_ROTATIONS = out;
+  return out;
+}
+const inverseSeq = seq => seq.slice().reverse().map(f => XF_INV.get(f));
+
+function exPsvt(cfg, opts) {
+  const level = (opts && opts.level) || 4;
+  const singles = [XF.rotZ, XF.rotZi, XF.rotX, XF.rotXi, XF.rotY, XF.rotYi];
+  const axisOf = f => (f === XF.rotZ || f === XF.rotZi) ? "z" : (f === XF.rotX || f === XF.rotXi) ? "x" : "y";
+
+  for (let attempt = 0; attempt < 80; attempt++) {
+    // obrót: pojedynczy na poziomach 1–4, złożony z dwóch osi na 5–8
+    const first = pick(singles);
+    let seq = [first];
+    if (level >= 5) seq.push(pick(singles.filter(f => axisOf(f) !== axisOf(first))));
+    const inv = inverseSeq(seq);
+    const other = [pick(singles.filter(f => axisOf(f) !== axisOf(seq[0])))];
+
+    const ex = generateSolidWhere(cfg, isChiralEnough);
+    const target = generateSolidWhere(cfg, q => isChiralEnough(q) && q.id !== ex.id);
+    const exAfter = applySeq(ex, seq);
+
+    // Przykład musi jednoznacznie wyznaczać obrót spośród tych, które pojawią
+    // się w odpowiedziach — inaczej zadanie ma dwie poprawne interpretacje.
+    if (exAfter.id === ex.id) continue;
+    if (applySeq(ex, inv).id === exAfter.id || applySeq(ex, other).id === exAfter.id) continue;
+
+    const correct = applySeq(target, seq);
+    if (correct.id === target.id) continue;
+
+    // Najmocniejszy warunek: KAŻDY z 24 obrotów, który przekształca przykład
+    // w jego obraz, musi dawać ten sam wynik na bryle docelowej. Bez tego
+    // przykład z symetrią pasuje do kilku obrotów, a uczeń, który poprawnie
+    // odczyta inny z nich, zostałby oceniony jako błędny. Pierwsza wersja
+    // sprawdzała tylko obroty obecne w opcjach i przepuszczała 7% takich zadań.
+    const outcomes = new Set();
+    for (const g of cubeRotations()) if (applySeq(ex, g).id === exAfter.id) outcomes.add(applySeq(target, g).id);
+    if (outcomes.size !== 1) continue;
+
+    const cand = [
+      isoOpt(applySeq(target, inv), "rotWrong"),
+      isoOpt(applySeq(target, other), "axWrong"),
+      isoOpt(xform(correct, XF.mirX), "mirror"),
+      isoOpt(target, "identity"),
+    ];
+    return {
+      skill: "obrot",
+      prompt: "Pierwsza bryła została obrócona tak, jak pokazano. Obróć drugą bryłę dokładnie w ten sam sposób. " +
+              "Który wynik jest poprawny?",
+      hint: "",
+      stimulus: [{ type: "psvt", a: ex, b: exAfter, target: target }],
+      options: assembleOptions(isoOpt(correct, "ok"), cand, 4),
+      solution: correct,
+    };
+  }
+  // Wyczerpanie prób jest praktycznie nieosiągalne: w pomiarze najwięcej
+  // potrzebnych prób to 4 na 80. Gdyby jednak nastąpiło, ponawiamy na
+  // najprostszych bryłach, ale zawsze w formacie PSVT. Wcześniej w tym
+  // miejscu zwracane było zadanie ze słownym opisem obrotu, czyli inne
+  // narzędzie pomiarowe podmienione w środku testu.
+  if (!(opts && opts._retry)) return exPsvt(cfgFor(1), Object.assign({}, opts, { _retry: true }));
+  throw new Error("Nie udało się zbudować zadania w formacie PSVT");
+}
+
 const BUILDERS = {
   "plan-bryla":  exPlanBryla,
   "bryla-rzut":  exBrylaRzut,
@@ -982,6 +1705,10 @@ const BUILDERS = {
   "przekroj":    exPrzekroj,
   "liczenie":    exLiczenie,
   "uklad":       exUklad,
+  "szkic":       exSzkic,
+  "skos":        exSkos,
+  "elipsa":      exElipsa,
+  "psvt":        exPsvt,
 };
 
 function buildExercise(skill, level, opts) {
@@ -1005,7 +1732,7 @@ const SESSION_LEN = 10;
 const State = {
   level: 2, method: "E",
   skills: {}, seen: 0, ok: 0, streak: 0, best: 0,
-  recent: [], lastSkills: [], diag: null, sessions: 0,
+  recent: [], lastSkills: [], diag: null, diagPost: null, diagPostAttempts: 0, sessions: 0,
   course: { mods: {}, exam: null },
 };
 
@@ -1050,13 +1777,17 @@ function recordAnswer(skill, correct) {
   save();
 }
 
-/** Trudność dobierana tak, by skuteczność trzymała się w okolicy 75–85%. */
+/** Regulator trudności: poziom rośnie po 8 poprawnych odpowiedziach z rzędu,
+    spada, gdy wśród ostatnich 8 są co najmniej 2 błędy. W symulacji z modelowym
+    uczniem (testy/logika.js) utrzymuje skuteczność w przedziale 75–85%.
+    Poprzednie progi (w górę przy 7 z 8, w dół przy 4 z 8) dawały 62–67%,
+    choć opis obiecywał 75–85%. */
+const ADAPT = { win: 8, up: 8, down: 6 };
 function adaptLevel() {
-  if (State.recent.length < 8) return;
-  const last = State.recent.slice(-8);
-  const acc  = last.reduce((a, b) => a + b, 0) / last.length;
-  if (acc >= 0.85 && State.level < 8) { State.level++; State.recent = []; }
-  else if (acc <= 0.60 && State.level > 1) { State.level--; State.recent = []; }
+  if (State.recent.length < ADAPT.win) return;
+  const good = State.recent.slice(-ADAPT.win).reduce((a, b) => a + b, 0);
+  if (good >= ADAPT.up && State.level < 8) { State.level++; State.recent = []; }
+  else if (good <= ADAPT.down && State.level > 1) { State.level--; State.recent = []; }
 }
 
 /** Przeplatanie: nigdy dwa razy z rzędu ta sama umiejętność; priorytet dla zaległych i słabych. */
@@ -1079,15 +1810,55 @@ function chooseSkill() {
 
 function nextQuestion(skill, level, opts) {
   for (let i = 0; i < 12; i++) {
-    const q = buildExercise(skill || chooseSkill(), level || State.level, opts);
-    if (q.options.length >= 3 && q.correct >= 0) return q;
+    let q;
+    try { q = buildExercise(skill || chooseSkill(), level || State.level, opts); }
+    catch (e) { continue; }   // nieudana próba generatora nie może przerwać sesji
+    if (q.kind === "sketch" || (q.options.length >= 3 && q.correct >= 0)) return q;
   }
-  return buildExercise("liczenie", 2);
+  // Ostatnia próba: ten sam typ zadania, bez wymogu liczby opcji. Podmiana
+  // na inny typ zmieniałaby treść sprawdzianu albo testu pomiarowego, więc
+  // zastępczy typ wolno wybrać tylko w treningu, gdzie typu nie narzucono.
+  return skill ? buildExercise(skill, level || State.level, opts) : buildExercise("liczenie", 2);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    CZĘŚĆ 10 — RYSOWANIE ELEMENTÓW ZADANIA
    ═══════════════════════════════════════════════════════════════ */
+
+/* ═══ OPISY DLA CZYTNIKÓW EKRANU ═══
+   Rysunek na canvas jest dla czytnika ekranu pusty. Poniższe funkcje dają
+   mu opis słowny. Nie zastępuje on obrazu — zadania przestrzenne wymagają
+   widzenia rysunku — ale pozwala zorientować się w strukturze strony
+   i obsłużyć aplikację bez myszy. Ograniczenie opisano w README. */
+
+function describeSolid(solid) {
+  return "bryła z " + solid.count + " kostek, podstawa " + solid.nx + " na " + solid.ny +
+         " pól, wysokość " + solid.nz;
+}
+function describeView(view) {
+  let filled = 0;
+  for (const r of view.filled) for (const f of r) if (f) filled++;
+  const h = view.hid ? view.hid.size : 0;
+  return (view.kind === "section" ? "kład " : "rysunek ") + view.cols + " na " + view.rows + " pól, wypełnionych " + filled +
+         (h ? ", odcinków linii niewidocznych " + h : "");
+}
+function describePlan(hm) {
+  let sum = 0;
+  for (const col of hm) for (const h of col) sum += h;
+  return "plan kodowany " + hm.length + " na " + hm[0].length + " pól, razem " + sum + " kostek";
+}
+function describeOption(opt) {
+  if (opt.kind === "iso")   return describeSolid(opt.solid);
+  if (opt.kind === "ortho") return describeView(opt.view);
+  if (opt.kind === "num")   return "liczba " + opt.value;
+  if (opt.kind === "draw" || opt.kind === "poly") return opt.desc;
+  return opt.text;
+}
+function labelCanvas(canvas, text) {
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", text);
+  return canvas;
+}
 
 function figure(capText, canvasNode) {
   const f = el("div", "fig");
@@ -1101,19 +1872,224 @@ function figure(capText, canvasNode) {
 function isoFigure(solid, cap, size, scale) {
   const c = el("canvas");
   drawIso(c, solid, { w: (size && size.w) || 200, h: (size && size.h) || 172, scale: scale });
+  labelCanvas(c, (cap ? cap + ": " : "") + describeSolid(solid));
   return figure(cap, c);
 }
 
 function orthoFigure(view, cap, cell) {
   const c = el("canvas");
   drawOrtho(c, view, { cell: cell || 22 });
+  labelCanvas(c, (cap ? cap + ": " : "") + describeView(view));
   return figure(cap, c);
 }
 
 function planFigure(hm, cap) {
   const c = el("canvas");
   drawPlan(c, hm, { cell: 32 });
+  labelCanvas(c, (cap ? cap + ": " : "") + describePlan(hm));
   return figure(cap, c);
+}
+
+/* ═══ RYSUNKI: OKRĘGI NA ŚCIANACH I BRYŁY ZE SKOSEM ═══ */
+
+/** Sześcian jednostkowy dopasowany do płótna; zwraca kontekst i funkcję rzutu. */
+function cubeCanvas(canvas, W, H, pad) {
+  const cube = makeSolid([[0, 0, 0]]);
+  const s = isoFitScale(cube, W, H, pad);
+  const ctx = drawIso(canvas, cube, { w: W, h: H, scale: s, pad: pad });
+  const b = isoBounds(cube, s), ox = (W - b.w) / 2 - b.minX, oy = (H - b.h) / 2 - b.minY;
+  return { ctx: ctx, s: s, P: (x, y, z) => { const p = isoPt(x, y, z, s); return [p.x + ox, p.y + oy]; } };
+}
+
+/** Okrąg o średnicy równej krawędzi, leżący na ścianie: elipsa (angle) albo — dla
+    dystraktora — okrąg bez zniekształcenia (circle). */
+function holeOnFace(g, face, v, axes) {
+  const ctx = g.ctx, c = g.P.apply(null, FACE_GEOM[face].c);
+  ctx.beginPath();
+  if (v.circle) ctx.arc(c[0], c[1], 0.5 * g.s, 0, Math.PI * 2);
+  else ctx.ellipse(c[0], c[1], 0.5 * ELLIPSE.major * g.s, 0.5 * ELLIPSE.minor * g.s, v.angle, 0, Math.PI * 2);
+  ctx.fillStyle = "#0a0a12"; ctx.fill();
+  ctx.strokeStyle = "#EAEAEA"; ctx.lineWidth = 2; ctx.stroke();
+  if (axes && !v.circle) {
+    // osie elipsy linią cienką kreska-kropka, jak osie symetrii na rysunku
+    ctx.save(); ctx.setLineDash([5, 2, 1, 2]); ctx.lineWidth = 0.8; ctx.strokeStyle = "#9fb4c4";
+    for (const [ang, len] of [[v.angle, ELLIPSE.major], [v.angle + Math.PI / 2, ELLIPSE.minor]]) {
+      const dx = Math.cos(ang) * 0.6 * len * g.s, dy = Math.sin(ang) * 0.6 * len * g.s;
+      ctx.beginPath(); ctx.moveTo(c[0] - dx, c[1] - dy); ctx.lineTo(c[0] + dx, c[1] + dy); ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+function drawHoleCube(canvas, face, variant, opt) {
+  opt = opt || {};
+  const g = cubeCanvas(canvas, opt.w || 152, opt.h || 132, 16);
+  if (opt.mark) {
+    const f = FACE_GEOM[face];
+    const pt = (s1, s2) => g.P(f.c[0] + (s1 * f.e1[0] + s2 * f.e2[0]) / 2, f.c[1] + (s1 * f.e1[1] + s2 * f.e2[1]) / 2,
+                               f.c[2] + (s1 * f.e1[2] + s2 * f.e2[2]) / 2);
+    poly(g.ctx, [pt(-1, -1), pt(1, -1), pt(1, 1), pt(-1, 1)], null, "#00C2FF", 3);
+  }
+  if (variant) holeOnFace(g, face, variant, opt.axes);
+  return g.ctx;
+}
+
+/* ── Bryły wielościenne (prostopadłościan ze skosem) ── */
+const POLY_VIEW = {
+  front: { V: [0, -1, 0], p: (v, sp) => [v[0], sp.H - v[2]],      w: sp => sp.W, h: sp => sp.H },
+  top:   { V: [0, 0, 1],  p: (v, sp) => [v[0], sp.D - v[1]],      w: sp => sp.W, h: sp => sp.D },
+  left:  { V: [-1, 0, 0], p: (v, sp) => [sp.D - v[1], sp.H - v[2]], w: sp => sp.D, h: sp => sp.H },
+  right: { V: [1, 0, 0],  p: (v, sp) => [v[1], sp.H - v[2]],      w: sp => sp.D, h: sp => sp.H },
+};
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+function polyIsoBounds(p, s) {
+  let a = Infinity, b = -Infinity, c = Infinity, d = -Infinity;
+  for (const v of p.verts) {
+    const q = isoPt(v[0], v[1], v[2], s);
+    a = Math.min(a, q.x); b = Math.max(b, q.x); c = Math.min(c, q.y); d = Math.max(d, q.y);
+  }
+  return { minX: a, minY: c, w: b - a, h: d - c };
+}
+function polyIsoFitScale(p, W, H, pad) {
+  const u = polyIsoBounds(p, 1);
+  return Math.min((W - 2 * pad) / u.w, (H - 2 * pad) / u.h);
+}
+
+/** Rysunek izometryczny bryły wypukłej: widać dokładnie te ściany, których
+    normalna ma dodatni iloczyn z kierunkiem do obserwatora (1, −1, 1). */
+function drawPolyIso(canvas, p, opt) {
+  opt = opt || {};
+  const W = opt.w || 190, H = opt.h || 165;
+  const ctx = setupCanvas(canvas, W, H);
+  const s = opt.scale || polyIsoFitScale(p, W, H, 12);
+  const b = polyIsoBounds(p, s), ox = (W - b.w) / 2 - b.minX, oy = (H - b.h) / 2 - b.minY;
+  const P = v => { const q = isoPt(v[0], v[1], v[2], s); return [q.x + ox, q.y + oy]; };
+  for (const f of p.faces) {
+    if (dot3(f.n, [1, -1, 1]) <= 1e-9) continue;
+    // jasność jak w drawIso: góra 64%, przód 45%, prawa 31%, ściany pochyłe pośrednio
+    const L = 64 * f.n[2] * f.n[2] + 45 * f.n[1] * f.n[1] + 31 * f.n[0] * f.n[0];
+    poly(ctx, f.pts.map(P), "hsl(199,55%," + L.toFixed(0) + "%)", "hsl(199,45%,14%)", 1.4);
+  }
+  for (const m of (opt.marks || [])) {
+    const q = P(m);
+    ctx.beginPath(); ctx.arc(q[0], q[1], 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFD60A"; ctx.fill(); ctx.strokeStyle = "#0a0a12"; ctx.lineWidth = 1.2; ctx.stroke();
+  }
+  return ctx;
+}
+
+/** Rzut prostokątny bryły wypukłej: krawędź jest widoczna, gdy choć jedna z jej
+    ścian jest zwrócona do obserwatora; inaczej rysowana kreskowo. Krawędzie
+    niewidoczne idą pod spód, więc tam, gdzie pokrywają się z widocznymi,
+    zostają przez nie zakryte — jak w normie. */
+function drawPolyOrtho(canvas, p, kind, opt) {
+  opt = opt || {};
+  const pv = POLY_VIEW[kind], sp = p.spec;
+  const cell = opt.cell || 20, pad = 11;
+  const cols = pv.w(sp), rows = pv.h(sp);
+  const W = cols * cell + pad * 2, H = rows * cell + pad * 2;
+  const ctx = setupCanvas(canvas, W, H);
+  const P = v => { const q = pv.p(v, sp); return [pad + q[0] * cell, pad + q[1] * cell]; };
+  for (const f of p.faces) if (dot3(f.n, pv.V) > 1e-9) poly(ctx, f.pts.map(P), "#2c3a4a", null);
+  const draw = (e, lw, dash) => {
+    const a = P(e.a), b = P(e.b);
+    if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.5) return;
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
+    ctx.strokeStyle = "#d8e6f0"; ctx.lineWidth = lw; ctx.lineCap = dash ? "butt" : "round";
+    ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
+  };
+  const ed = polyViewEdges(p, kind);
+  const dash = [Math.max(3, cell * 0.2), Math.max(2, cell * 0.13)];
+  for (const e of ed.hidden) draw(e, 1.1, dash);
+  for (const e of ed.visible) draw(e, 2.2);
+  return ctx;
+}
+
+/** Podział krawędzi bryły wypukłej na widoczne i niewidoczne w danym rzucie.
+    Krawędzie widziane czołowo (rzutujące się w punkt) są pomijane, a krawędź
+    niewidoczna leżąca w całości na widocznej — odrzucana, bo na rysunku
+    pierwszeństwo ma linia widoczna. */
+function polyViewEdges(p, kind) {
+  const pv = POLY_VIEW[kind], vis = [], hid = [];
+  for (const e of p.edges) {
+    const a = pv.p(e.a, p.spec), b = pv.p(e.b, p.spec);
+    if (Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-9) continue;
+    (e.f.some(fi => dot3(p.faces[fi].n, pv.V) > 1e-9) ? vis : hid).push({ e: e, a: a, b: b });
+  }
+  // Czy odcinek niewidoczny jest w całości pokryty przez współliniowe odcinki widoczne
+  // (także przez kilka, które razem go zakrywają).
+  const covered = h => {
+    const dx = h.b[0] - h.a[0], dy = h.b[1] - h.a[1], L2 = dx * dx + dy * dy;
+    const par = q => ((q[0] - h.a[0]) * dx + (q[1] - h.a[1]) * dy) / L2;
+    const onLine = q => Math.abs(dx * (q[1] - h.a[1]) - dy * (q[0] - h.a[0])) < 1e-9;
+    const iv = vis.filter(v => onLine(v.a) && onLine(v.b))
+      .map(v => [Math.min(par(v.a), par(v.b)), Math.max(par(v.a), par(v.b))]).sort((x, y) => x[0] - y[0]);
+    let reach = 0;
+    for (const [lo, hi] of iv) { if (lo > reach + 1e-9) break; reach = Math.max(reach, hi); }
+    return reach >= 1 - 1e-9;
+  };
+  return { visible: vis.map(v => v.e), hidden: hid.filter(h => !covered(h)).map(h => h.e) };
+}
+
+/* ═══ SYMBOL METODY RZUTOWANIA (PN-EN ISO 5456-2) ═══
+   Ścięty stożek w dwóch rzutach. Widziany od węższego końca daje dwa
+   współśrodkowe okręgi, widziany z prawej — trapez z krótszym bokiem po
+   lewej, bo obserwator z prawej widzi węższy koniec po swojej lewej.
+   Symbol to po prostu zasada rozmieszczenia zastosowana do stożka:
+     pierwszy kąt (E): [trapez][okręgi] — krótszy bok odwrócony od okręgów
+     trzeci kąt  (A):  [okręgi][trapez] — krótszy bok zwrócony do okręgów
+   Orientację potwierdzają Wikipedia („Multiview orthographic projection")
+   i SizeMarker; treści samej normy nie przeczytano, bo dostępna próbka to
+   skan. Proporcje są więc przybliżone, a znaczenie niesie kierunek trapezu. */
+
+function methodSymbolGeometry(method, W, H) {
+  const R = H * 0.36, r = R * 0.5;            // promień okręgu dużego i małego
+  const trapLen = R * 2.2, gap = R * 0.8;
+  const total = trapLen + gap + 2 * R;
+  const x0 = (W - total) / 2, cy = H / 2;
+  const trapX = method === "E" ? x0 : x0 + 2 * R + gap;
+  const circX = method === "E" ? x0 + trapLen + gap + R : x0 + R;
+  return { cy: cy, R: R, r: r, x0: x0, total: total, circX: circX,
+           narrowX: trapX, wideX: trapX + trapLen };
+}
+
+function describeMethodSymbol(method) {
+  return method === "E"
+    ? "symbol metody rzutowania: trapez po lewej, dwa współśrodkowe okręgi po prawej, węższy bok trapezu odwrócony od okręgów"
+    : "symbol metody rzutowania: dwa współśrodkowe okręgi po lewej, trapez po prawej, węższy bok trapezu zwrócony do okręgów";
+}
+
+function drawMethodSymbol(canvas, method, opt) {
+  opt = opt || {};
+  const W = opt.w || 90, H = opt.h || 38;
+  const ctx = setupCanvas(canvas, W, H);
+  const g = methodSymbolGeometry(method, W, H);
+  ctx.strokeStyle = opt.color || "#d8e6f0";
+  ctx.lineWidth = opt.lw || 1.5; ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(g.narrowX, g.cy - g.r); ctx.lineTo(g.wideX, g.cy - g.R);
+  ctx.lineTo(g.wideX, g.cy + g.R);   ctx.lineTo(g.narrowX, g.cy + g.r);
+  ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(g.circX, g.cy, g.R, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(g.circX, g.cy, g.r, 0, Math.PI * 2); ctx.stroke();
+  // linie osiowe kreska-kropka, jak na rysunku technicznym
+  ctx.setLineDash([4, 2, 1, 2]); ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(g.x0 - 4, g.cy); ctx.lineTo(g.x0 + g.total + 4, g.cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(g.circX, g.cy - g.R - 4); ctx.lineTo(g.circX, g.cy + g.R + 4); ctx.stroke();
+  ctx.setLineDash([]);
+  labelCanvas(canvas, describeMethodSymbol(method));
+  return g;
+}
+
+/** Podpis układu rzutów: symbol metody i jej nazwa, tak jak w tabliczce rysunku. */
+function methodCaption(method) {
+  const row = el("div", "method-cap");
+  const c = el("canvas");
+  drawMethodSymbol(c, method, { w: 70, h: 30 });
+  row.appendChild(c);
+  row.appendChild(el("span", null, "metoda " + (method === "E" ? "pierwszego kąta (E)" : "trzeciego kąta (A)")));
+  return row;
 }
 
 /** Układ trzech rzutów zgodny z wybraną metodą rzutowania. */
@@ -1124,7 +2100,14 @@ function viewsLayout(solid, method, side) {
   const slot = (kind, cap) => {
     const s = el("div", "view-slot");
     const c = el("canvas");
-    drawOrtho(c, orthoView(solid, kind), { cell: 24 });
+    if (solid.isPoly) {
+      drawPolyOrtho(c, solid, kind, { cell: 24 });
+      labelCanvas(c, cap + ": " + describeWedge(solid.spec));
+    } else {
+      const vw = orthoView(solid, kind);
+      drawOrtho(c, vw, { cell: 24 });
+      labelCanvas(c, cap + ": " + describeView(vw));
+    }
     const fr = el("div", "canvas-frame"); fr.appendChild(c);
     s.appendChild(fr); s.appendChild(el("div", "fig-cap", cap));
     return s;
@@ -1140,10 +2123,7 @@ function viewsLayout(solid, method, side) {
   }
   const box = el("div", "views-card");
   box.appendChild(wrap);
-  const cap = el("div", "fig-cap");
-  cap.style.marginTop = "12px";
-  cap.textContent = "metoda " + (method === "E" ? "pierwszego kąta (E)" : "trzeciego kąta (A)");
-  box.appendChild(cap);
+  box.appendChild(methodCaption(method));
   return box;
 }
 
@@ -1167,8 +2147,7 @@ function layoutDiagram(method, slot) {
   put(cellBox(slot === "below" ? "?" : "", slot === "below"), 3, 2);
   const box = el("div", "views-card");
   box.appendChild(wrap);
-  box.appendChild(el("div", "fig-cap", "metoda " + (method === "E" ? "pierwszego kąta (E)" : "trzeciego kąta (A)")));
-  box.lastChild.style.marginTop = "12px";
+  box.appendChild(methodCaption(method));
   return box;
 }
 
@@ -1179,13 +2158,46 @@ function renderStimulus(list, scale) {
     else if (s.type === "plan")      row.appendChild(planFigure(s.hm, s.cap));
     else if (s.type === "views")     row.appendChild(viewsLayout(s.solid, s.method, s.side));
     else if (s.type === "layoutDiagram") row.appendChild(layoutDiagram(s.method, s.slot));
+    else if (s.type === "psvt") {
+      const box = el("div", "psvt");
+      const sz = { w: 152, h: 132 };
+      box.appendChild(isoFigure(s.a, "przed obrotem", sz, scale));
+      box.appendChild(el("div", "psvt-arrow", "→"));
+      box.appendChild(isoFigure(s.b, "po obrocie", sz, scale));
+      box.appendChild(el("div", "psvt-sep"));
+      box.appendChild(isoFigure(s.target, "obróć tę bryłę", sz, scale));
+      box.appendChild(el("div", "psvt-arrow", "→"));
+      const qbox = el("div", "fig");
+      const qm = el("div", "psvt-q", "?");
+      qm.setAttribute("aria-hidden", "true");
+      qbox.appendChild(qm);
+      qbox.appendChild(el("div", "fig-cap", "wynik"));
+      box.appendChild(qbox);
+      row.appendChild(box);
+    }
+    else if (s.type === "draw") {
+      const c = el("canvas");
+      s.draw(c);
+      labelCanvas(c, s.desc);
+      row.appendChild(figure(s.cap, c));
+    }
+    else if (s.type === "symbol") {
+      const c = el("canvas");
+      drawMethodSymbol(c, s.method, { w: 200, h: 88, lw: 2.2 });
+      row.appendChild(figure("symbol metody rzutowania", c));
+    }
   }
   return row;
 }
 
 function renderOptionBody(opt, scale) {
-  if (opt.kind === "iso")   { const c = el("canvas"); drawIso(c, opt.solid, { w: 152, h: 132, scale: scale }); return c; }
-  if (opt.kind === "ortho") { const c = el("canvas"); drawOrtho(c, opt.view, { cell: 19 }); return c; }
+  // Etykietę dla czytnika niesie przycisk opcji, więc samo płótno pomijamy,
+  // żeby treść nie była zapowiadana dwa razy.
+  const hide = c => { c.setAttribute("aria-hidden", "true"); return c; };
+  if (opt.kind === "iso")   { const c = el("canvas"); drawIso(c, opt.solid, { w: 152, h: 132, scale: scale }); return hide(c); }
+  if (opt.kind === "ortho") { const c = el("canvas"); drawOrtho(c, opt.view, { cell: 19 }); return hide(c); }
+  if (opt.kind === "draw")  { const c = el("canvas"); opt.draw(c); return hide(c); }
+  if (opt.kind === "poly")  { const c = el("canvas"); drawPolyIso(c, opt.poly, { w: 152, h: 132, scale: opt.scale }); return hide(c); }
   if (opt.kind === "num")   { const d = el("div", null, String(opt.value)); d.style.cssText = "font-size:32px;font-weight:800;color:#EAEAEA;padding:14px 0;"; return d; }
   const d = el("div", null, opt.text);
   d.style.cssText = "font-size:14px;color:#EAEAEA;padding:12px 4px;line-height:1.35;";
@@ -1196,8 +2208,27 @@ function renderOptionBody(opt, scale) {
    CZĘŚĆ 11 — SESJA TRENINGOWA
    ═══════════════════════════════════════════════════════════════ */
 
-const UI = { screen: "kurs", module: null };
+const UI = { screen: "kurs", module: null, error: null };
 const DIAG_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8];
+// Wersja narzędzia pomiarowego. Wynik z innej wersji nie jest porównywalny,
+// dlatego przyrost liczy się tylko, gdy oba testy mają tę samą wartość.
+const PSVT_INSTRUMENT = "psvt-v1";
+
+/** Dopisek o numerze podejścia — pierwsze podejście jest pomiarem, kolejne to już ćwiczenie. */
+function attemptNote(g) {
+  return g.attempt > 1 ? ", podejście " + g.attempt + " do testu końcowego" : "";
+}
+
+/** Przyrost między testem wstępnym a końcowym, albo powód, dla którego go brak. */
+function measuredGain() {
+  const pre = State.diag, post = State.diagPost;
+  if (!pre) return { ok: false, why: "brak testu wstępnego" };
+  if (pre.instrument !== PSVT_INSTRUMENT)
+    return { ok: false, why: "test wstępny wykonano w starszej wersji narzędzia, której wyniku nie da się porównać" };
+  if (!post) return { ok: false, why: "test końcowy niewykonany" };
+  const a = Math.round(pre.score / pre.total * 100), b = Math.round(post.score / post.total * 100);
+  return { ok: true, pre: a, post: b, delta: b - a, attempt: post.attempt || 1 };
+}
 
 const Session = { active: false, mode: "trening", diag: false, queue: null, moduleId: null,
                   i: 0, len: SESSION_LEN, ok: 0, q: null, answered: false, chosen: -1, summary: null };
@@ -1207,30 +2238,72 @@ function startSession(opts) {
   opts = opts || {};
   Session.active   = true;
   Session.mode     = opts.mode || "trening";
-  Session.diag     = Session.mode === "diag";
+  Session.diag     = Session.mode === "diag" || Session.mode === "post";
   Session.queue    = opts.queue || null;
   Session.moduleId = opts.moduleId || null;
   Session.i = 0; Session.ok = 0; Session.summary = null;
+  // Testy i trening wyświetla zakładka Trening; bez tego test uruchomiony
+  // ze spisu kursu startowałby na ekranie, który go nie pokazuje.
+  if (Session.mode === "trening" || Session.diag) UI.screen = "trening";
   Session.len = Session.queue ? Session.queue.length : (Session.diag ? DIAG_LEVELS.length : SESSION_LEN);
+  // Podejście liczy się od chwili rozpoczęcia, także gdy zostanie przerwane.
+  // Inaczej zapis pokazywałby wyłącznie udane próby.
+  if (Session.mode === "kurs-test" && Session.moduleId) { courseProgress(Session.moduleId).attempts++; save(); }
   loadQuestion();
 }
 
 function loadQuestion() {
-  if (Session.queue) {
-    const spec = Session.queue[Session.i];
-    Session.q = nextQuestion(spec.skill, spec.level, spec.opts);
-  } else if (Session.diag) {
-    Session.q = nextQuestion("obrot", DIAG_LEVELS[Session.i]);
-  } else {
-    Session.q = nextQuestion();
+  try {
+    if (Session.queue) {
+      const spec = Session.queue[Session.i];
+      Session.q = nextQuestion(spec.skill, spec.level, spec.opts);
+    } else if (Session.diag) {
+      const lvl = DIAG_LEVELS[Session.i];
+      Session.q = nextQuestion("psvt", lvl, { level: lvl });
+    } else {
+      Session.q = nextQuestion();
+    }
+  } catch (e) {
+    // Generator może zgłosić błąd zamiast podmienić typ zadania. Wtedy sesję
+    // kończymy bez zapisu wyniku i mówimy o tym wprost, zamiast zostawić
+    // zamrożony ekran. Niepełne podejście nie jest liczone jako wynik.
+    Session.active = false; Session.summary = null; Session.q = null;
+    UI.error = "Nie udało się przygotować zadania, więc ta sesja została przerwana bez zapisu wyniku. Spróbuj ponownie.";
+    render();
+    return;
   }
   Session.answered = false; Session.chosen = -1;
+  Session.sk = Session.q.kind === "sketch" ? newSketchState(Session.q) : null;
   render();
+}
+
+/** Rozstrzygnięty szkic liczy się jak odpowiedź: zaliczony, jeśli poprawny w dwóch próbach. */
+function answerSketch(ok) {
+  if (Session.answered) return;
+  Session.answered = true; Session.chosen = ok ? 0 : -1; justAnswered = true;
+  if (ok) Session.ok++;
+  if (!Session.diag) recordAnswer(Session.q.skill, ok);
+}
+
+let justAnswered = false;   // przenosi fokus na „Dalej" zaraz po odpowiedzi
+
+/** Sesję da się przejść bez myszy: cyfry wybierają odpowiedź, Enter idzie dalej. */
+function sessionKeys(e) {
+  if (!Session.active || !Session.q) return;
+  const tag = e.target && e.target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (!Session.answered) {
+    let idx = "123456789".indexOf(e.key);
+    if (idx < 0) idx = "abcdefghi".indexOf(String(e.key).toLowerCase());
+    if (idx >= 0 && idx < Session.q.options.length) { e.preventDefault(); answer(idx); }
+  } else if (e.key === "Enter" && document.activeElement === document.body) {
+    e.preventDefault(); nextStep();
+  }
 }
 
 function answer(idx) {
   if (Session.answered) return;
-  Session.answered = true; Session.chosen = idx;
+  Session.answered = true; Session.chosen = idx; justAnswered = true;
   const correct = idx === Session.q.correct;
   if (correct) Session.ok++;
   if (!Session.diag) recordAnswer(Session.q.skill, correct);
@@ -1247,8 +2320,17 @@ function finishSession() {
   const m = Session.mode;
   if (m === "diag") {
     const lvl = clamp(1 + Session.ok, 1, 8);
-    State.diag = { score: Session.ok, total: Session.len, level: lvl, date: Date.now() };
+    State.diag = { score: Session.ok, total: Session.len, level: lvl, date: Date.now(), instrument: PSVT_INSTRUMENT };
     State.level = lvl;
+    State.diagPost = null;   // nowy punkt wyjścia unieważnia stary test końcowy
+    State.diagPostAttempts = 0;
+  } else if (m === "post") {
+    // Test końcowy nie zmienia poziomu: mierzy, a nie steruje nauką.
+    // Liczba podejść jest zapisywana, bo zachowujemy ostatni wynik, a test
+    // powtarzany do skutku zawyża przyrost — zapis ma to pokazywać.
+    State.diagPostAttempts = (State.diagPostAttempts || 0) + 1;
+    State.diagPost = { score: Session.ok, total: Session.len, date: Date.now(),
+                       instrument: PSVT_INSTRUMENT, attempt: State.diagPostAttempts };
   } else if (m === "trening") {
     State.sessions++;
   } else if (m === "kurs-drill") {
@@ -1281,14 +2363,26 @@ function screenTrening(root) {
     const s = Session.summary;
     const pct = Math.round(s.ok / s.len * 100);
     const card = el("div", "card center");
-    card.appendChild(el("h2", null, s.mode === "diag" ? "Test wstępny zakończony" : "Sesja zakończona"));
+    card.appendChild(el("h2", null, s.mode === "diag" ? "Test wstępny zakończony"
+                                   : s.mode === "post" ? "Test końcowy zakończony" : "Sesja zakończona"));
     const big = el("div", "stat-n", s.ok + " / " + s.len);
     big.style.fontSize = "42px";
     card.appendChild(big);
     card.appendChild(el("p", null, "Skuteczność " + pct + "%."));
-    card.appendChild(el("p", null, s.mode === "diag"
-      ? "Poziom startowy ustawiony na " + State.level + ". Możesz zacząć trening."
-      : "Aktualny poziom trudności: " + State.level + " z 8. Kolejne powtórki materiału zaplanowane są w czasie."));
+    if (s.mode === "post") {
+      const g = measuredGain();
+      card.appendChild(el("p", null, g.ok
+        ? "Test wstępny " + g.pre + "% → test końcowy " + g.post + "%" + attemptNote(g) + ". " +
+          (g.delta > 0 ? "Przyrost: " + g.delta + " pkt proc." : g.delta < 0 ? "Spadek: " + (-g.delta) + " pkt proc." : "Bez zmiany.") +
+          " Oba wyniki pochodzą z tego samego narzędzia, więc da się je porównać."
+        : "Przyrostu nie da się policzyć: " + g.why + "."));
+      card.appendChild(el("p", "muted", "Przy ośmiu zadaniach różnica jednego zadania to 12,5 punktu procentowego. " +
+        "Pojedynczy wynik pokazuje kierunek zmiany, nie jej dokładną wielkość."));
+    } else {
+      card.appendChild(el("p", null, s.mode === "diag"
+        ? "Poziom startowy ustawiony na " + State.level + ". Ten wynik jest punktem odniesienia: po nauce zrób test końcowy, żeby zmierzyć przyrost."
+        : "Aktualny poziom trudności: " + State.level + " z 8. Kolejne powtórki materiału zaplanowane są w czasie."));
+    }
     const row = el("div", "row center mt");
     row.style.justifyContent = "center";
     const b1 = el("button", "btn", "Następna sesja");
@@ -1310,8 +2404,9 @@ function screenTrening(root) {
 
   if (!State.diag) {
     const note = el("div", "note");
-    note.textContent = "Nie masz jeszcze wyniku testu wstępnego. Osiem zadań na obroty przestrzenne ustawi poziom startowy, " +
-      "żeby nie zaczynać od zadań zbyt łatwych albo zbyt trudnych. Test można pominąć.";
+    note.textContent = "Nie masz jeszcze wyniku testu wstępnego. Osiem zadań w formacie testu PSVT:R ustawi poziom " +
+      "startowy i stanie się punktem odniesienia, do którego porówna się test końcowy. Test można pominąć, " +
+      "ale wtedy przyrostu nie da się zmierzyć.";
     card.appendChild(note);
   }
 
@@ -1319,10 +2414,26 @@ function screenTrening(root) {
   const b1 = el("button", "btn", "Zacznij sesję");
   b1.onclick = () => startSession({ mode: "trening" });
   row.appendChild(b1);
-  const b2 = el("button", "btn ghost", State.diag ? "Powtórz test wstępny" : "Test wstępny (8 zadań)");
-  b2.onclick = () => startSession({ mode: "diag" });
-  row.appendChild(b2);
+  if (!State.diag) {
+    const b2 = el("button", "btn ghost", "Test wstępny (8 zadań)");
+    b2.onclick = () => startSession({ mode: "diag" });
+    row.appendChild(b2);
+  } else {
+    const b2 = el("button", "btn ghost", State.diagPost ? "Powtórz test końcowy" : "Test końcowy (8 zadań)");
+    b2.onclick = () => startSession({ mode: "post" });
+    row.appendChild(b2);
+    const b3 = el("button", "btn ghost sm", "Powtórz test wstępny");
+    b3.onclick = () => askConfirm("Powtórzenie testu wstępnego zastąpi punkt odniesienia i skasuje wynik testu końcowego. " +
+      "Robi się to tylko na początku nauki.", "Powtórz test wstępny", () => startSession({ mode: "diag" }));
+    row.appendChild(b3);
+  }
   card.appendChild(row);
+  const g = measuredGain();
+  if (g.ok) {
+    const m = el("div", "muted", "Test wstępny " + g.pre + "% → test końcowy " + g.post + "%.");
+    m.style.marginTop = "10px";
+    card.appendChild(m);
+  }
   root.appendChild(card);
 
   // Co jest zaplanowane do powtórki
@@ -1338,6 +2449,7 @@ function screenTrening(root) {
 
 function renderQuestion(root) {
   const q = Session.q;
+  if (q.kind === "sketch") { renderSketchQuestion(root); return; }
   const card = el("div", "card");
 
   const head = el("div", "q-head");
@@ -1351,24 +2463,35 @@ function renderQuestion(root) {
   // Jedna skala dla bodźca i wszystkich opcji — porównywalność rysunków
   const isoSolids = q.options.filter(o => o.kind === "iso").map(o => o.solid)
     .concat(q.stimulus.filter(s => s.type === "iso").map(s => s.solid));
+  for (const st of q.stimulus) if (st.type === "psvt") isoSolids.push(st.a, st.b, st.target);
   const isoScale = isoSolids.length ? sharedIsoScale(isoSolids, 152, 132, 12) : null;
+  const polys = q.options.filter(o => o.kind === "poly");
+  if (polys.length) {
+    const ps = Math.min.apply(null, polys.map(o => polyIsoFitScale(o.poly, 152, 132, 12)));
+    for (const o of polys) o.scale = ps;
+  }
 
   card.appendChild(renderStimulus(q.stimulus, isoScale));
 
   const opts = el("div", "opts");
   const letters = "ABCDE";
   q.options.forEach((o, i) => {
-    const d = el("div", "opt");
-    d.appendChild(el("div", "lbl", letters[i] || String(i + 1)));
+    const d = el("button", "opt");
+    d.type = "button";
+    const letter = letters[i] || String(i + 1);
+    d.appendChild(el("div", "lbl", letter));
     d.appendChild(renderOptionBody(o, isoScale));
+    let label = "Odpowiedź " + letter + ": " + describeOption(o);
     if (Session.answered) {
       d.classList.add("locked");
-      if (i === q.correct) d.classList.add("correct");
-      else if (i === Session.chosen) d.classList.add("wrong");
+      d.setAttribute("aria-disabled", "true");
+      if (i === q.correct) { d.classList.add("correct"); label += ". Odpowiedź poprawna"; }
+      else if (i === Session.chosen) { d.classList.add("wrong"); label += ". Twój wybór, niepoprawny"; }
       else d.classList.add("dim");
     } else {
       d.onclick = () => answer(i);
     }
+    d.setAttribute("aria-label", label);
     opts.appendChild(d);
   });
   card.appendChild(opts);
@@ -1376,6 +2499,8 @@ function renderQuestion(root) {
   if (Session.answered) {
     const good = Session.chosen === q.correct;
     const fb = el("div", "fb " + (good ? "ok" : "err"));
+    fb.setAttribute("role", "status");
+    fb.setAttribute("aria-live", "polite");
     fb.appendChild(el("div", "fb-title", good ? "✓ Dobrze" : "✗ Niepoprawnie"));
     const body = el("div", "fb-body");
     if (Session.diag) {
@@ -1394,6 +2519,7 @@ function renderQuestion(root) {
     const b = el("button", "btn", Session.i + 1 >= Session.len ? "Zakończ sesję" : "Dalej");
     b.onclick = nextStep;
     row.appendChild(b);
+    if (justAnswered) { justAnswered = false; setTimeout(() => b.focus(), 0); }
     const prog = el("div", "muted", "Zadanie " + (Session.i + 1) + " z " + Session.len + " · poprawnych " + Session.ok);
     row.appendChild(prog);
     card.appendChild(row);
@@ -1407,7 +2533,25 @@ function renderQuestion(root) {
                 (Session.diag ? "" : " · poziom " + q.level));
     m.style.marginTop = "8px";
     card.appendChild(m);
+    const kb = el("div", "kbd-hint");
+    kb.innerHTML = "Z klawiatury: <kbd>1</kbd>–<kbd>" + q.options.length +
+      "</kbd> wybierają odpowiedź, <kbd>Enter</kbd> przechodzi dalej.";
+    card.appendChild(kb);
   }
+  root.appendChild(card);
+}
+
+function renderSketchQuestion(root) {
+  const card = sketchCard(Session.q, Session.sk, { onFinal: answerSketch });
+  const row = el("div", "row mt");
+  if (Session.answered) {
+    const b = el("button", "btn", Session.i + 1 >= Session.len ? "Zakończ sesję" : "Dalej");
+    b.onclick = nextStep;
+    row.appendChild(b);
+    if (justAnswered) { justAnswered = false; setTimeout(() => b.focus(), 0); }
+  }
+  row.appendChild(el("div", "muted", "Zadanie " + (Session.i + 1) + " z " + Session.len + " · poprawnych " + Session.ok));
+  card.appendChild(row);
   root.appendChild(card);
 }
 
@@ -1416,14 +2560,14 @@ function renderQuestion(root) {
    Konstruowanie zamiast rozpoznawania — METODYKA.md, sekcja 3.
    ═══════════════════════════════════════════════════════════════ */
 
-const Builder = { target: null, hm: null, w: 3, d: 3, maxH: 3, checked: false, ok: false, revealed: false };
+const Builder = { target: null, hm: null, w: 3, d: 3, maxH: 3, checked: false, ok: false, alt: false, revealed: false, focusCell: null, courseModule: null };
 
 function newBuild() {
   const cfg = cfgFor(State.level);
   Builder.w = cfg.w; Builder.d = cfg.d; Builder.maxH = cfg.maxH;
   Builder.target = generateSolid(cfg);
   Builder.hm = Array.from({ length: cfg.w }, () => new Array(cfg.d).fill(0));
-  Builder.checked = false; Builder.ok = false; Builder.revealed = false;
+  Builder.checked = false; Builder.ok = false; Builder.alt = false; Builder.revealed = false;
 }
 
 function builderSolid() {
@@ -1457,14 +2601,23 @@ function screenBuduj(root) {
   for (let r = 0; r < Builder.d; r++) for (let c = 0; c < Builder.w; c++) {
     const x = c, y = Builder.d - 1 - r;              // górny wiersz = tył
     const h = Builder.hm[x][y];
-    const cell = el("div", "plan-cell" + (h > 0 ? " set" : ""), h > 0 ? String(h) : "");
-    cell.onclick = (ev) => {
-      if (ev.shiftKey) Builder.hm[x][y] = Math.max(0, Builder.hm[x][y] - 1);
-      else Builder.hm[x][y] = (Builder.hm[x][y] + 1) % (Builder.maxH + 1);
-      Builder.checked = false;
+    const cell = el("button", "plan-cell" + (h > 0 ? " set" : ""), h > 0 ? String(h) : "");
+    cell.type = "button";
+    cell.setAttribute("aria-label", "Kolumna " + (x + 1) + ", rząd " + (Builder.d - y) +
+      " od przodu, wysokość " + h + ". Strzałki w górę i w dół zmieniają wysokość.");
+    const bump = (d) => {
+      Builder.hm[x][y] = d > 0 ? (Builder.hm[x][y] + 1) % (Builder.maxH + 1) : Math.max(0, Builder.hm[x][y] - 1);
+      Builder.checked = false; Builder.alt = false;
+      Builder.focusCell = x + "," + y;
       render();
     };
-    cell.oncontextmenu = (ev) => { ev.preventDefault(); Builder.hm[x][y] = Math.max(0, Builder.hm[x][y] - 1); Builder.checked = false; render(); };
+    cell.onclick = (ev) => bump(ev.shiftKey ? -1 : 1);
+    cell.oncontextmenu = (ev) => { ev.preventDefault(); bump(-1); };
+    cell.onkeydown = (ev) => {
+      if (ev.key === "ArrowUp")   { ev.preventDefault(); bump(1); }
+      if (ev.key === "ArrowDown") { ev.preventDefault(); bump(-1); }
+    };
+    if (Builder.focusCell === x + "," + y) setTimeout(() => cell.focus(), 0);
     grid.appendChild(cell);
   }
   left.appendChild(grid);
@@ -1483,7 +2636,7 @@ function screenBuduj(root) {
     wrap.appendChild(ph);
   }
 
-  if (Builder.revealed) wrap.appendChild(isoFigure(Builder.target, "rozwiązanie", { w: 214, h: 182 }));
+  if (Builder.revealed || Builder.alt) wrap.appendChild(isoFigure(Builder.target, Builder.alt ? "bryła, z której narysowano rzuty" : "rozwiązanie", { w: 214, h: 182 }));
   work.appendChild(wrap);
 
   const row = el("div", "row mt");
@@ -1493,14 +2646,19 @@ function screenBuduj(root) {
     const s = builderSolid();
     if (!s) return;
     Builder.checked = true;
-    Builder.ok = s.id === Builder.target.id;
+    // Rzuty nie zawsze wyznaczają bryłę jednoznacznie. Bryła o identycznych
+    // trzech rzutach jest więc równie poprawną odpowiedzią — pierwsza wersja
+    // ją odrzucała, a dotyczyło to 3–30% brył zależnie od poziomu.
+    Builder.alt = s.id !== Builder.target.id && threeViewKey(s, side) === threeViewKey(Builder.target, side);
+    Builder.ok = s.id === Builder.target.id || Builder.alt;
     recordAnswer("rzuty-bryla", Builder.ok);
+    if (Builder.ok && Builder.courseModule) { courseProgress(Builder.courseModule).built = true; save(); }
     render();
   };
   row.appendChild(bCheck);
 
   const bClear = el("button", "btn ghost sm", "Wyczyść");
-  bClear.onclick = () => { Builder.hm = Array.from({ length: Builder.w }, () => new Array(Builder.d).fill(0)); Builder.checked = false; render(); };
+  bClear.onclick = () => { Builder.hm = Array.from({ length: Builder.w }, () => new Array(Builder.d).fill(0)); Builder.checked = false; Builder.alt = false; render(); };
   row.appendChild(bClear);
 
   const bNew = el("button", "btn ghost sm", "Nowa bryła");
@@ -1514,9 +2672,14 @@ function screenBuduj(root) {
 
   if (Builder.checked) {
     const fb = el("div", "fb " + (Builder.ok ? "ok" : "err"));
-    fb.appendChild(el("div", "fb-title", Builder.ok ? "✓ Bryła zgadza się co do kostki" : "✗ To jeszcze nie ta bryła"));
+    fb.appendChild(el("div", "fb-title", !Builder.ok ? "✗ To jeszcze nie ta bryła"
+      : Builder.alt ? "✓ Rzuty Twojej bryły są identyczne z podanymi" : "✓ Bryła zgadza się co do kostki"));
     const b = el("div", "fb-body");
-    if (Builder.ok) {
+    if (Builder.alt) {
+      b.textContent = "Twoja bryła różni się od tej, z której narysowano rzuty, ale ma dokładnie te same trzy rzuty, " +
+        "więc jest poprawną odpowiedzią. Te rzuty nie wyznaczają bryły jednoznacznie — różnice kryją się tam, " +
+        "gdzie żaden z trzech kierunków patrzenia nie sięga. Na rysunku technicznym rozstrzyga to dodatkowy rzut.";
+    } else if (Builder.ok) {
       b.textContent = "Zgodność dokładna: " + Builder.target.count + " kostek w tych samych miejscach.";
     } else {
       const s = builderSolid();
@@ -1533,10 +2696,275 @@ function screenBuduj(root) {
       const nb = el("button", "btn", "Następna bryła");
       nb.onclick = () => { newBuild(); render(); };
       r2.appendChild(nb);
+      if (Builder.courseModule) {
+        const back = el("button", "btn ghost", "Wróć do modułu kursu");
+        back.onclick = () => { UI.module = Builder.courseModule; Builder.courseModule = null; UI.screen = "kurs"; render(); };
+        r2.appendChild(back);
+      }
       work.appendChild(r2);
     }
   }
   root.appendChild(work);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CZĘŚĆ 13a — SZKICOWANIE NA SIATCE IZOMETRYCZNEJ
+   Edytor siatki punktowej. Kliknięcie w punkt zaczyna odcinek, kliknięcie
+   w drugi punkt na tej samej linii siatki go rysuje (albo zmazuje, jeśli
+   już był) i od razu zaczyna następny. Kliknięcie w punkt początkowy
+   przerywa rysowanie. Z klawiatury: strzałki przesuwają kursor, Enter
+   działa jak kliknięcie. Szkic sprawdza compareSketch() — dwie próby.
+   ═══════════════════════════════════════════════════════════════ */
+
+const SKETCH_MAX_CHECKS = 2;
+
+function newSketchState(task) {
+  const t = task.target;
+  const U = t.nx + t.ny + 4, V = t.nx + t.ny + 2 * t.nz + 6;
+  const s = Math.min(30, 320 / (U * ISO_C));
+  let cu = Math.floor(U / 2), cv = Math.floor(V / 2);
+  if ((cu + cv) % 2) cv++;
+  return { segs: new Set(), hist: [], anchor: null, cursor: { u: cu, v: cv }, U: U, V: V, s: s, pad: 12,
+           checks: 0, cmp: null, final: null, msg: "", focus: false };
+}
+
+/** Przesunięcie, które stawia rozwiązanie na środku siatki — gdy uczeń nic nie narysował. */
+function centerSegs(st, lines) {
+  const b = segBounds(lines);
+  const du = Math.round((st.U - (b.u1 - b.u0)) / 2) - b.u0;
+  let dv = Math.round((st.V - (b.v1 - b.v0)) / 2) - b.v0;
+  if ((du + dv) % 2) dv++;
+  return shiftSegs(lines, du, dv);
+}
+
+function compareOnPad(st, lines) {
+  const cmp = compareSketch(st.segs, lines);
+  if (!cmp.placed) { cmp.placed = centerSegs(st, lines); cmp.missing = new Set(cmp.placed); }
+  return cmp;
+}
+
+function drawSketch(canvas, st) {
+  const s = st.s, pad = st.pad;
+  const X = u => pad + u * s * ISO_C, Y = v => pad + v * s / 2;
+  const W = Math.ceil(X(st.U) + pad), H = Math.ceil(Y(st.V) + pad);
+  const ctx = setupCanvas(canvas, W, H);
+  ctx.fillStyle = "#46596a";
+  for (let u = 0; u <= st.U; u++) for (let v = 0; v <= st.V; v++)
+    if ((u + v) % 2 === 0) { ctx.beginPath(); ctx.arc(X(u), Y(v), 1.7, 0, Math.PI * 2); ctx.fill(); }
+  const line = (k, color, lw, dash) => {
+    const p = segPts(k);
+    ctx.beginPath(); ctx.moveTo(X(p[0]), Y(p[1])); ctx.lineTo(X(p[2]), Y(p[3]));
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.lineCap = dash ? "butt" : "round";
+    ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
+  };
+  const cmp = st.cmp;
+  const good = st.final === "ok";
+  for (const k of st.segs) line(k, good ? "#30D158" : "#EAEAEA", 2.6);
+  if (cmp && !good) {
+    for (const k of cmp.extra) if (st.segs.has(k)) line(k, "#FF3B30", 3);
+    if (st.final) for (const k of cmp.missing) line(k, "#FFD60A", 2.2, [5, 4]);
+  }
+  if (st.anchor) {
+    ctx.beginPath(); ctx.arc(X(st.anchor.u), Y(st.anchor.v), 6, 0, Math.PI * 2);
+    ctx.strokeStyle = "#00C2FF"; ctx.lineWidth = 2.5; ctx.stroke();
+  }
+  if (st.focus) {
+    ctx.beginPath(); ctx.arc(X(st.cursor.u), Y(st.cursor.v), 9, 0, Math.PI * 2);
+    ctx.strokeStyle = "#FFD60A"; ctx.lineWidth = 1.6; ctx.stroke();
+  }
+  return { X, Y, W, H };
+}
+
+/** Najbliższy punkt siatki w promieniu 0,6 kroku, albo null. */
+function sketchPick(st, x, y) {
+  const s = st.s, pad = st.pad;
+  const fu = (x - pad) / (s * ISO_C), fv = (y - pad) / (s / 2);
+  let best = null, bd = Infinity;
+  for (let u = Math.round(fu) - 1; u <= Math.round(fu) + 1; u++) {
+    if (u < 0 || u > st.U) continue;
+    for (let v = Math.floor(fv) - 1; v <= Math.ceil(fv) + 1; v++) {
+      if (v < 0 || v > st.V || (u + v) % 2) continue;
+      const d = Math.hypot((u - fu) * s * ISO_C, (v - fv) * s / 2);
+      if (d < bd) { bd = d; best = { u, v }; }
+    }
+  }
+  return bd <= 0.6 * s ? best : null;
+}
+
+/** Kliknięcie w punkt siatki (myszą, dotykiem albo Enterem). */
+function sketchAct(st, p) {
+  if (st.final) return;
+  if (!st.anchor) { st.anchor = p; st.msg = "Początek odcinka w punkcie " + p.u + ", " + p.v + "."; return; }
+  if (st.anchor.u === p.u && st.anchor.v === p.v) { st.anchor = null; st.msg = "Rysowanie przerwane."; return; }
+  const path = latticePath(st.anchor, p);
+  if (!path) { st.anchor = p; st.msg = "Te punkty nie leżą na jednej linii siatki. Nowy początek w punkcie " + p.u + ", " + p.v + "."; return; }
+  st.hist.push(new Set(st.segs)); if (st.hist.length > 60) st.hist.shift();
+  const all = path.every(k => st.segs.has(k));
+  for (const k of path) { if (all) st.segs.delete(k); else st.segs.add(k); }
+  st.cmp = null;
+  const n = path.length, form = n === 1 ? " odcinek" : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)) ? " odcinki" : " odcinków";
+  st.msg = (all ? "Zmazano " : "Narysowano ") + n + form +
+           ". Na rysunku: " + st.segs.size + ". Kolejny odcinek zaczyna się w tym punkcie.";
+  st.anchor = p;
+}
+
+const SKETCH_KEYS = {
+  ArrowUp:    [[0, -2], [0, -2]],
+  ArrowDown:  [[0, 2],  [0, 2]],
+  ArrowRight: [[1, -1], [1, 1]],
+  ArrowLeft:  [[-1, 1], [-1, -1]],
+};
+
+/** Edytor szkicu z przyciskami i informacją zwrotną.
+    cfg: { onFinal(ok) } — wywoływane raz, gdy szkic zostanie rozstrzygnięty. */
+function sketchPad(task, st, cfg) {
+  const box = el("div", "sketch-box");
+  const c = el("canvas", "sketch-canvas");
+  c.tabIndex = 0;
+  c.setAttribute("role", "application");
+  const frame = el("div", "canvas-frame"); frame.appendChild(c);
+  box.appendChild(frame);
+  const live = el("div", "muted sketch-status");
+  live.setAttribute("role", "status"); live.setAttribute("aria-live", "polite");
+  box.appendChild(live);
+
+  const row = el("div", "row mt");
+  const bCheck = el("button", "btn", "Sprawdź" + (st.checks && !st.final ? " ponownie" : ""));
+  const bUndo = el("button", "btn ghost sm", "Cofnij");
+  const bClear = el("button", "btn ghost sm", "Wyczyść");
+  row.appendChild(bCheck); row.appendChild(bUndo); row.appendChild(bClear);
+  if (!st.final) {
+    const bGive = el("button", "btn ghost sm", "Pokaż rozwiązanie");
+    bGive.onclick = () => { st.cmp = compareOnPad(st, task.lines); st.final = "fail"; st.anchor = null; cfg.onFinal(false); render(); };
+    row.appendChild(bGive);
+  }
+  box.appendChild(row);
+
+  // Rysowanie odświeża tylko płótno, komunikat i przyciski. Przebudowa całego
+  // ekranu po każdym ruchu odbierała płótnu fokus i gubiła kolejne klawisze.
+  let fbNode = null;
+  const refresh = () => {
+    drawSketch(c, st);
+    c.setAttribute("aria-label", "Siatka izometryczna do szkicowania. Strzałki w górę i w dół przesuwają kursor pionowo, " +
+      "w prawo i w lewo ukośnie, z klawiszem Shift po drugiej przekątnej. Enter zaczyna odcinek i rysuje go do kolejnego punktu. " +
+      "Escape przerywa, Backspace cofa. Narysowanych odcinków: " + st.segs.size + ".");
+    live.textContent = st.msg || "Kliknij punkt, potem drugi na tej samej linii siatki.";
+    bCheck.disabled = !!st.final || st.segs.size === 0;
+    bUndo.disabled = !!st.final || !st.hist.length;
+    bClear.disabled = !!st.final || !st.segs.size;
+    if (fbNode && !st.cmp) { fbNode.remove(); fbNode = null; }
+  };
+  const undo = () => {
+    if (st.final || !st.hist.length) return;
+    st.segs = st.hist.pop(); st.anchor = null; st.cmp = null;
+    st.msg = "Cofnięto. Na rysunku: " + st.segs.size + " odcinków.";
+  };
+
+  c.onclick = ev => {
+    const r = c.getBoundingClientRect();
+    const p = sketchPick(st, ev.clientX - r.left, ev.clientY - r.top);
+    if (!p) return;
+    st.cursor = p; sketchAct(st, p); refresh();
+  };
+  c.onkeydown = ev => {
+    if (SKETCH_KEYS[ev.key]) {
+      ev.preventDefault();
+      const d = SKETCH_KEYS[ev.key][ev.shiftKey ? 1 : 0];
+      const nu = st.cursor.u + d[0], nv = st.cursor.v + d[1];
+      if (nu >= 0 && nu <= st.U && nv >= 0 && nv <= st.V) st.cursor = { u: nu, v: nv };
+      st.msg = "Kursor: punkt " + st.cursor.u + ", " + st.cursor.v + (st.anchor ? ". Początek odcinka: " + st.anchor.u + ", " + st.anchor.v : "") + ".";
+    } else if (ev.key === "Enter" || ev.key === " ") {
+      ev.preventDefault(); ev.stopPropagation(); sketchAct(st, st.cursor);
+    } else if (ev.key === "Escape") {
+      st.anchor = null; st.msg = "Rysowanie przerwane.";
+    } else if (ev.key === "Backspace") {
+      ev.preventDefault(); undo();
+    } else return;
+    refresh();
+  };
+  c.onfocus = () => { st.focus = true; drawSketch(c, st); };
+  c.onblur = () => { st.focus = false; drawSketch(c, st); };
+
+  bCheck.onclick = () => {
+    st.checks++;
+    st.cmp = compareOnPad(st, task.lines);
+    st.anchor = null;
+    if (st.cmp.ok) { st.final = "ok"; cfg.onFinal(true); }
+    else if (st.checks >= SKETCH_MAX_CHECKS) { st.final = "fail"; cfg.onFinal(false); }
+    render();
+  };
+  bUndo.onclick = () => { undo(); refresh(); };
+  bClear.onclick = () => { st.hist.push(new Set(st.segs)); st.segs = new Set(); st.anchor = null; st.cmp = null; st.msg = "Wyczyszczono."; refresh(); };
+
+  if (st.cmp) {
+    const ok = st.final === "ok";
+    const fb = el("div", "fb " + (ok ? "ok" : "err"));
+    fb.setAttribute("role", "status");
+    fb.appendChild(el("div", "fb-title", ok ? "✓ Szkic poprawny" : st.final ? "✗ Szkic niepoprawny" : "✗ Jeszcze nie"));
+    const b = el("div", "fb-body");
+    const nm = st.cmp.missing.size, ne = st.cmp.extra.size;
+    if (ok) b.textContent = "Wszystkie odcinki (" + task.lines.size + ") na swoim miejscu" + (st.checks > 1 ? ", za drugim podejściem." : ".");
+    else if (!st.final) b.textContent = "Brakuje " + nm + " odc., zbędnych jest " + ne + " — zaznaczono je na czerwono. " +
+      "Popraw rysunek; została jedna próba.";
+    else b.textContent = "Brakujące odcinki zaznaczono żółtą linią przerywaną, zbędne — czerwoną. Obok bryła narysowana przez program. " +
+      "Najczęstsze błędy: linie między kostkami na płaskiej ścianie i pominięta krawędź tam, gdzie słupek styka się z wyższym.";
+    fb.appendChild(b);
+    box.appendChild(fb);
+    fbNode = fb;
+  }
+  refresh();
+  return box;
+}
+
+/** Karta zadania szkicu — wspólna dla sesji (trening, kurs) i zakładki Szkicuj. */
+function sketchCard(q, st, cfg) {
+  const card = el("div", "card");
+  const head = el("div", "q-head");
+  head.appendChild(el("div", "q-tag", cfg.tag || SKILLS[q.skill].name));
+  const txt = el("div", "q-text");
+  txt.appendChild(document.createTextNode(q.prompt));
+  if (q.hint) txt.appendChild(el("div", "q-hint", q.hint));
+  head.appendChild(txt);
+  card.appendChild(head);
+  const stim = renderStimulus(q.stimulus, null);
+  if (st.final) stim.appendChild(isoFigure(q.target, "rysunek wzorcowy", { w: 200, h: 172 }));
+  card.appendChild(stim);
+  card.appendChild(sketchPad(q, st, cfg));
+  return card;
+}
+
+/* ── Zakładka Szkicuj: swobodna praktyka bez sesji ── */
+const SketchFree = { q: null, st: null, from: "plan" };
+
+function newFreeSketch() {
+  SketchFree.q = nextQuestion("szkic", Math.min(State.level, 5), { from: SketchFree.from });
+  SketchFree.st = newSketchState(SketchFree.q);
+}
+
+function screenSzkicuj(root) {
+  if (!SketchFree.q) newFreeSketch();
+  const intro = el("div", "card");
+  intro.appendChild(el("h2", null, "Szkicowanie izometryczne"));
+  intro.appendChild(el("p", null, "Rysujesz na siatce punktów izometrycznych, jak na papierze z kursu Sorby. " +
+    "Program porównuje szkic z rysunkiem bryły odcinek po odcinku, więc miejsce na siatce nie ma znaczenia. " +
+    "Na każdy szkic masz dwie próby sprawdzenia."));
+  const tg = el("div", "toggle");
+  for (const [val, txt] of [["plan", "Z planu kodowanego"], ["views", "Z trzech rzutów"]]) {
+    const b = el("button", SketchFree.from === val ? "on" : "", txt);
+    b.onclick = () => { SketchFree.from = val; newFreeSketch(); render(); };
+    tg.appendChild(b);
+  }
+  intro.appendChild(tg);
+  root.appendChild(intro);
+  const card = sketchCard(SketchFree.q, SketchFree.st, { tag: "Szkic", onFinal: ok => recordAnswer("szkic", ok) });
+  if (SketchFree.st.final) {
+    const row = el("div", "row mt");
+    const nb = el("button", "btn", "Następny szkic");
+    nb.onclick = () => { newFreeSketch(); render(); };
+    row.appendChild(nb);
+    card.appendChild(row);
+  }
+  root.appendChild(card);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1571,19 +2999,34 @@ function drawIsoAxes(canvas) {
 
 function lesson(title, buildBody) {
   const box = el("div", "lesson");
-  const head = el("div", "lesson-h");
+  const head = el("button", "lesson-h");
+  head.type = "button";
+  head.setAttribute("aria-expanded", "false");
   head.appendChild(el("span", "caret", "▸"));
   head.appendChild(el("span", null, title));
   const body = el("div", "lesson-b");
+  body.id = "lekcja-" + Math.random().toString(36).slice(2, 9);
+  head.setAttribute("aria-controls", body.id);
   buildBody(body);
-  head.onclick = () => box.classList.toggle("open");
+  head.onclick = () => {
+    const open = box.classList.toggle("open");
+    head.setAttribute("aria-expanded", open ? "true" : "false");
+  };
   box.appendChild(head); box.appendChild(body);
   return box;
 }
 
-/* ── Wspólne bryły demonstracyjne (stałe, żeby rysunki w teorii się nie zmieniały) ── */
-const DEMO_A = solidFromHeights([[3, 1], [1, 2]]);
+/* ── Wspólne bryły demonstracyjne (stałe, żeby rysunki w teorii się nie zmieniały) ──
+   DEMO_C jest chiralna: jej odbicia nie da się uzyskać obrotem. Pierwsza wersja
+   lekcji o odbiciach pokazywała bryłę [[2,1,0],[1,3,1],[0,1,2]], która ma dwie
+   płaszczyzny symetrii — jej „odbicie lustrzane" było zwykłym obrotem o 90°,
+   a lekcja twierdziła, że obrotem go uzyskać nie można. Pilnuje tego test. */
+const DEMO_A = solidFromHeights([[3, 1], [2, 0]]);
 const DEMO_B = solidFromHeights([[2, 1, 0], [1, 3, 1], [0, 1, 2]]);
+const DEMO_C = solidFromHeights([[2, 1, 0], [3, 1, 0], [0, 1, 2]]);
+const DEMO_HID = solidFromHeights([[2, 1], [2, 2]]);
+const DEMO_S = solidFromHeights([[1, 3], [2, 0]]);   // do szkicu: żaden słupek nie jest całkiem zasłonięty
+const DEMO_WEDGE = { W: 4, D: 2, H: 3, plane: "front", corner: "far", a: 2, b: 2 };
 
 function stimRow() {
   const r = el("div", "stimulus");
@@ -1597,43 +3040,87 @@ function bullets(b, items) {
   b.appendChild(ul);
 }
 function noteBox(b, t) { const n = el("div", "note"); n.textContent = t; b.appendChild(n); }
+function srcLine(b, t) { const n = el("p", "muted"); n.textContent = "Źródło: " + t; b.appendChild(n); }
+
+/** Szkic bryły na siatce punktowej — tak, jak powinien wyglądać rysunek ucznia. */
+function sketchFigure(solid, cap) {
+  const st = newSketchState({ target: solid });
+  st.segs = centerSegs(st, isoLineSet(solid));
+  const c = el("canvas");
+  drawSketch(c, st);
+  labelCanvas(c, (cap ? cap + ": " : "") + "szkic na siatce izometrycznej, " + st.segs.size + " odcinków");
+  return figure(cap, c);
+}
 
 /* ═══ REJESTR LEKCJI ═══
-   Ten sam materiał zasila zakładkę Teoria i moduły kursu. */
+   Ten sam materiał zasila zakładkę Teoria i moduły kursu. Twierdzenia
+   oparte na źródłach mają je podane pod lekcją; pełna lista i audyt
+   treści — METODYKA.md, sekcje 11 i 12. */
 const LESSONS = [
 {
   id: "osie", title: "Układ osi i rzut izometryczny",
   build: b => {
     para(b, "W rzucie izometrycznym trzy osie przestrzeni tworzą na rysunku kąty po 120°. Oś pionowa zostaje pionowa, " +
-      "dwie poziome biegną pod kątem 30° do poziomu. Dzięki temu wszystkie trzy wymiary bryły są na rysunku mierzalne " +
-      "w tej samej skali, w odróżnieniu od rzutu perspektywicznego.");
+      "dwie poziome biegną pod kątem 30° do poziomu. Wymiary równoległe do osi mają na rysunku tę samą skalę, " +
+      "więc odmierza się je wprost — w odróżnieniu od rzutu perspektywicznego.");
     const c = el("canvas"); drawIsoAxes(c);
     b.appendChild(figure("osie układu: x w prawo, y w głąb, z w górę", c));
     noteBox(b, "Wzór rzutowania użyty w aplikacji: ekranX = (x + y) · cos30 · s, ekranY = (x − y) · sin30 · s − z · s. " +
       "Obserwator stoi z przodu, z prawej i od góry, więc każda kostka pokazuje trzy ściany: górną, przednią i prawą.");
-    para(b, "Uwaga terminologiczna: w izometrii znormalizowanej długości wzdłuż osi są skracane do około 0,816 " +
-      "rzeczywistej długości. W rysunku izometrycznym stosowanym w dydaktyce skrótu się nie stosuje, bo nie wpływa " +
-      "on na kształt, a tylko na wielkość rysunku.");
+    para(b, "Ta sama skala obowiązuje tylko wzdłuż osi. Linia, która nie jest równoległa do żadnej osi, ma na rysunku " +
+      "inną długość niż w rzeczywistości, a kąty między krawędziami są zniekształcone. Okrąg staje się elipsą. " +
+      "Tym przypadkom poświęcone są lekcje o liniach pochyłych i o okręgach.");
+    para(b, "Skala: w ścisłym rzucie izometrycznym długości wzdłuż osi skracają się do √(2/3) ≈ 0,816 rzeczywistych. " +
+      "W praktyce rysuje się zwykle bez skrótu, odmierzając wymiary w rzeczywistej wielkości. Rysunek jest wtedy " +
+      "około 1,22 raza większy, ale ma ten sam kształt. Ta aplikacja rysuje bez skrótu.");
+    srcLine(b, "materiały „Rzuty aksonometryczne” (PCEZ Bytów) — skrót 0,816:1 i wymiary elips przy rysowaniu bez skrótu.");
   }
 },
 {
   id: "plan", title: "Plan kodowany — pomost między 2D a 3D",
   build: b => {
     para(b, "Plan kodowany to siatka rzutu z góry, w której każde pole zawiera liczbę kostek stojących w tym miejscu. " +
-      "Zapisuje bryłę jednoznacznie i pozwala odczytać ją analitycznie, słupek po słupku, zamiast próbować ogarnąć " +
-      "całość naraz.");
+      "Bryłę bez nawisów — taką, w której każdy słupek stoi na ziemi — zapisuje jednoznacznie i pozwala odczytać " +
+      "ją analitycznie, słupek po słupku, zamiast próbować ogarnąć całość naraz.");
     b.appendChild(stimRow(planFigure(heightsOf(DEMO_B), "plan kodowany"), isoFigure(DEMO_B, "ta sama bryła", { w: 210, h: 180 })));
     para(b, "Konwencja przyjęta w aplikacji: górny wiersz planu to tył bryły, dolny — przód. Taka sama jak w rzucie " +
       "z góry, dzięki czemu plan i rzut z góry mają identyczny zarys.");
     noteBox(b, "Suma wszystkich liczb w planie to liczba kostek bryły. To najszybszy sposób na sprawdzenie objętości, " +
       "łącznie z kostkami, których nie widać.");
+    srcLine(b, "Sorby i Baartmans (2000) — plany kodowane w drugim tygodniu kursu GN102.");
+  }
+},
+{
+  id: "szkic", title: "Szkicowanie izometryczne na siatce",
+  build: b => {
+    para(b, "W kursie Sorby bryłę z kostek szkicuje się na papierze z siatką punktów izometrycznych. Punkty leżą " +
+      "w wierzchołkach trójkątów równobocznych, więc krawędzie równoległe do osi biegną po liniach siatki: pionowo " +
+      "albo pod kątem 30° do poziomu. Długość krawędzi odmierza się w odstępach między punktami.");
+    b.appendChild(stimRow(planFigure(heightsOf(DEMO_S), "plan kodowany"),
+      isoFigure(DEMO_S, "bryła z kostek", { w: 190, h: 172 }), sketchFigure(DEMO_S, "jej szkic")));
+    para(b, "Szkic bryły to nie rysunek kostek. Porównaj dwa rysunki powyżej: na szkicu nie ma linii tam, gdzie " +
+      "kostki stykają się na płaskiej ścianie. Linia jest tylko tam, gdzie powierzchnia bryły zmienia płaszczyznę.");
+    bullets(b, [
+      "<b>Zacznij od słupka najbliżej Ciebie</b> — z przodu po prawej. Nic go nie zasłania. Każda kostka wysokości " +
+        "to jeden odstęp pionowo.",
+      "<b>Dokładaj słupki w głąb i w lewo.</b> Słupek niższy niż sąsiad z przodu jest częściowo zasłonięty — " +
+        "rysujesz tylko to, co wystaje.",
+      "<b>Rysuj tylko krawędzie bryły:</b> zarys i miejsca, gdzie powierzchnia się załamuje. Krawędzi " +
+        "niewidocznych w rysunku izometrycznym się nie rysuje.",
+      "<b>Sprawdź zarys:</b> to jedna zamknięta linia, a każda pionowa krawędź zaczyna się i kończy na innej krawędzi.",
+    ]);
+    noteBox(b, "Program porównuje szkic z rysunkiem bryły odcinek po odcinku, z dokładnością do przesunięcia, więc " +
+      "miejsce na siatce nie ma znaczenia. Na każdy szkic masz dwie próby sprawdzenia.");
+    srcLine(b, "Sorby i Baartmans (2000) — szkicowanie na siatce po zbudowaniu bryły z kostek; Higher Education Services — " +
+      "moduł 3 kursu „Developing Spatial Thinking”; Ozden (2025) — szkicowanie z natychmiastową informacją zwrotną " +
+      "(mała próba, bez losowego przydziału).");
   }
 },
 {
   id: "rzuty", title: "Trzy rzuty prostokątne",
   build: b => {
-    para(b, "Rzut prostokątny to widok bryły z jednego kierunku, rzutowany prostopadle na płaszczyznę. Trzy rzuty " +
-      "wystarczają do opisania większości brył, bo każdy podaje inną parę wymiarów.");
+    para(b, "Rzut prostokątny to widok bryły z jednego kierunku, rzutowany prostopadle na płaszczyznę. Każdy " +
+      "rzut podaje inną parę wymiarów, dlatego rysunek techniczny składa się zwykle z kilku rzutów.");
     b.appendChild(stimRow(
       isoFigure(DEMO_B, "bryła", { w: 200, h: 172 }),
       orthoFigure(orthoView(DEMO_B, "front"), "rzut z przodu", 28),
@@ -1650,43 +3137,114 @@ const LESSONS = [
   }
 },
 {
-  id: "uskoki", title: "Uskoki — dlaczego zarys nie wystarcza",
+  id: "krawedzie", title: "Krawędzie widoczne i niewidoczne",
   build: b => {
-    para(b, "Gruba linia na rzucie to zarys zewnętrzny. Cienka linia wewnątrz zarysu oznacza uskok: miejsce, " +
-      "w którym powierzchnia bryły przeskakuje na inną głębokość.");
+    para(b, "Na rysunku technicznym rodzaj linii niesie informację. Zgodnie z PN-EN ISO 128 krawędzie widoczne " +
+      "i zarysy rysuje się linią ciągłą grubą, a krawędzie niewidoczne — linią kreskową cienką.");
+    const t = el("table", "tbl");
+    t.innerHTML = "<tr><th>Linia</th><th>Zastosowanie</th></tr>" +
+      "<tr><td><b>ciągła gruba</b></td><td>krawędzie widoczne i zarysy — także wewnątrz zarysu</td></tr>" +
+      "<tr><td><b>kreskowa cienka</b></td><td>krawędzie niewidoczne</td></tr>" +
+      "<tr><td><b>ciągła cienka</b></td><td>m.in. kreskowanie przekrojów, linie wymiarowe</td></tr>" +
+      "<tr><td><b>cienka kreska-kropka</b></td><td>osie symetrii</td></tr>";
+    b.appendChild(t);
     const flat = solidFromHeights([[2, 2], [2, 2]]);
     const step = solidFromHeights([[2, 1], [2, 1]]);
     b.appendChild(stimRow(
-      isoFigure(flat, "bryła pełna", { w: 180, h: 158 }),
+      isoFigure(flat, "bryła pełna", { w: 170, h: 150 }),
       orthoFigure(orthoView(flat, "front"), "jej rzut z przodu", 30),
-      isoFigure(step, "bryła z uskokiem", { w: 180, h: 158 }),
+      isoFigure(step, "bryła z uskokiem", { w: 170, h: 150 }),
       orthoFigure(orthoView(step, "front"), "jej rzut z przodu", 30)));
-    para(b, "Obie bryły mają identyczny zarys rzutu z przodu. Różni je wyłącznie cienka linia, która mówi, " +
-      "że tylny rząd jest niższy. Bez niej rysunek byłby dwuznaczny.");
-    noteBox(b, "To najczęstsze źródło pomyłek przy czytaniu rysunku technicznego: uczeń patrzy na kształt zarysu " +
-      "i pomija linie wewnętrzne, które niosą informację o głębokości.");
+    para(b, "Obie bryły mają identyczny zarys rzutu z przodu. Różni je linia wewnątrz zarysu: krawędź, w której " +
+      "tylny rząd się kończy. Bez niej rysunek byłby dwuznaczny.");
+    b.appendChild(stimRow(
+      isoFigure(DEMO_HID, "bryła z wcięciem z tyłu", { w: 190, h: 165 }),
+      orthoFigure(orthoView(DEMO_HID, "front"), "rzut z przodu", 34)));
+    para(b, "Tu wcięcie leży z tyłu, za pełną ścianą przednią. Z przodu go nie widać, ale rzut je pokazuje — " +
+      "linią kreskową. Gdy krawędź niewidoczna pokrywa się z widoczną, rysuje się tylko widoczną.");
+    noteBox(b, "Częsty błąd przy czytaniu rysunku: patrzenie na sam zarys i pomijanie linii wewnątrz. To one mówią, " +
+      "gdzie powierzchnia cofa się w głąb i co kryje się z tyłu. W rysunku izometrycznym krawędzi niewidocznych " +
+      "zwykle się nie rysuje — chyba że bez nich kształt byłby niejasny.");
+    srcLine(b, "materiały z rysunku technicznego (PCEZ Bytów, AGH) — rodzaje linii wg PN-EN ISO 128; Design Graphics " +
+      "for Engineering Communication (SDC Publications) — linie niewidoczne w rysunkach aksonometrycznych.");
   }
 },
 {
   id: "czytanie", title: "Czytanie rzutów: procedura odtworzenia bryły",
   build: b => {
-    para(b, "Odtworzenie bryły z rzutów nie wymaga zgadywania. Istnieje procedura, która działa zawsze " +
-      "dla brył złożonych z kostek. Wykonuje się ją w trzech krokach.");
+    para(b, "Odtworzenie bryły z rzutów nie wymaga zgadywania. Dla brył z kostek bez nawisów prowadzi do celu " +
+      "procedura w czterech krokach.");
     bullets(b, [
-      "<b>Krok 1 — rzut z góry daje zarys podstawy.</b> Zaznacz w planie te pola, które są wypełnione na rzucie z góry. " +
-        "Pozostałe zostają puste i już się nimi nie zajmujesz.",
-      "<b>Krok 2 — rzut z przodu daje maksymalne wysokości kolumn.</b> Każda kolumna rzutu z przodu odpowiada jednej " +
-        "kolumnie planu. Jej wysokość to najwyższy słupek w tej kolumnie.",
-      "<b>Krok 3 — rzut z boku daje maksymalne wysokości rzędów.</b> Analogicznie, ale dla rzędów planu. " +
-        "Przecięcie obu ograniczeń wyznacza wysokość każdego słupka.",
+      "<b>Krok 1 — rzut z góry daje zarys podstawy.</b> Zaznacz w planie pola wypełnione na rzucie z góry. " +
+        "Pozostałe zostają puste.",
+      "<b>Krok 2 — rzut z przodu daje najwyższy słupek w każdej kolumnie planu.</b>",
+      "<b>Krok 3 — rzut z boku daje najwyższy słupek w każdym rzędzie.</b> Słupek nie może być wyższy " +
+        "niż oba te ograniczenia.",
+      "<b>Krok 4 — linie wewnątrz zarysów rozstrzygają resztę.</b> Ograniczenia z kroków 2 i 3 to tylko górne granice: " +
+        "słupek ukryty za wyższymi może być niższy. Krawędzie widoczne pokazują, gdzie wysokość się zmienia, " +
+        "a niewidoczne — co kryje się z tyłu.",
     ]);
     b.appendChild(stimRow(
       orthoFigure(orthoView(DEMO_B, "top"), "1. zarys podstawy", 28),
-      orthoFigure(orthoView(DEMO_B, "front"), "2. wysokości kolumn", 28),
-      orthoFigure(orthoView(DEMO_B, "left"), "3. wysokości rzędów", 28),
+      orthoFigure(orthoView(DEMO_B, "front"), "2. kolumny", 28),
+      orthoFigure(orthoView(DEMO_B, "left"), "3. rzędy", 28),
       planFigure(heightsOf(DEMO_B), "wynik: plan kodowany")));
-    para(b, "Jeżeli po trzech krokach pozostaje niejednoznaczność, decydują linie uskoków. " +
-      "Tryb Buduj w tej aplikacji jest ćwiczeniem dokładnie tej procedury.");
+    noteBox(b, "Bez linii niewidocznych trzy rzuty nie wyznaczały bryły jednoznacznie w 3–30% losowych brył z tej " +
+      "aplikacji, zależnie od poziomu. Z liniami niewidocznymi w 1200 sprawdzonych bryłach nie znaleziono ani jednej " +
+      "takiej. Gdyby jednak Twoja bryła w trybie Buduj różniła się od wzorcowej, a miała identyczne rzuty, program " +
+      "uzna ją za poprawną.");
+    para(b, "Tryb Buduj jest ćwiczeniem dokładnie tej procedury.");
+  }
+},
+{
+  id: "skosy", title: "Linie pochyłe (nieizometryczne)",
+  build: b => {
+    para(b, "Linia nieizometryczna nie jest równoległa do żadnej osi. Na rysunku izometrycznym nie ma prawdziwej " +
+      "długości, a kąty, które tworzy z innymi krawędziami, są zniekształcone. Dlatego takiej linii nie odmierza się " +
+      "wprost, tylko wyznacza jej końce.");
+    const w = makeWedge(DEMO_WEDGE);
+    const side = State.method === "E" ? "left" : "right";
+    const iso = el("canvas");
+    drawPolyIso(iso, w, { w: 220, h: 190, marks: [[2, 0, 3], [4, 0, 1], [2, 2, 3], [4, 2, 1]] });
+    labelCanvas(iso, "rysunek izometryczny: " + describeWedge(DEMO_WEDGE) + "; końce skosu zaznaczone");
+    b.appendChild(stimRow(viewsLayout(w, State.method, side), figure("końce skosu zaznaczone", iso)));
+    bullets(b, [
+      "<b>Narysuj prostopadłościan obrysowy</b> — tak, jakby ścięcia nie było.",
+      "<b>Odmierz końce skosu na krawędziach izometrycznych</b>, w jednostkach wzdłuż osi. Tu: 2 jednostki od " +
+        "prawej krawędzi na górze i 2 jednostki od góry na prawej krawędzi.",
+      "<b>Połącz końce linią pochyłą</b>, na przedniej i na tylnej ścianie, i usuń zbędny narożnik.",
+    ]);
+    noteBox(b, "Ten skos ma w rzucie z przodu 45°, a na rysunku izometrycznym biegnie pod kątem 60° do poziomu. " +
+      "Kąta nie przenosi się więc kątomierzem — przenosi się odcinki wzdłuż osi.");
+    para(b, "Ściana pochyła jest prostopadła do jednej rzutni i w tym rzucie widać ją jako linię pochyłą. W dwóch " +
+      "pozostałych rzutach jest powierzchnią ograniczoną liniami równoległymi do osi — widoczną albo, jeśli leży " +
+      "z tyłu, zaznaczoną linią kreskową.");
+    srcLine(b, "Design Graphics for Engineering Communication (SDC Publications), rozdz. 4 — linie nieizometryczne " +
+      "wyznacza się przez połączenie końców odmierzonych wzdłuż linii izometrycznych.");
+  }
+},
+{
+  id: "elipsy", title: "Okręgi w izometrii",
+  build: b => {
+    para(b, "Okrąg leżący na ścianie bryły jest na rysunku izometrycznym elipsą. Kwadrat opisany na okręgu staje się " +
+      "rombem, a elipsa jest w niego wpisana: dotyka środków jego boków, a jej duża oś leży wzdłuż dłuższej przekątnej.");
+    const c = el("canvas");
+    const g = cubeCanvas(c, 240, 210, 20);
+    for (const f of ["top", "front", "right"]) holeOnFace(g, f, { angle: FACE_ANGLE[f] }, true);
+    labelCanvas(c, "sześcian z elipsami na trzech ścianach i zaznaczonymi osiami elips");
+    b.appendChild(stimRow(figure("okręgi na trzech ścianach sześcianu", c)));
+    bullets(b, [
+      "<b>Duża oś elipsy jest prostopadła do osi otworu albo walca.</b> Otwór w ścianie górnej ma oś pionową, " +
+        "więc jego elipsa leży poziomo.",
+      "<b>Wszystkie trzy elipsy są takie same</b> — różnią się tylko obrotem. Stosunek osi wynosi około 0,58.",
+      "<b>Wymiary przy rysowaniu bez skrótu:</b> duża oś ≈ 1,22·d, mała ≈ 0,71·d, gdzie d to średnica okręgu. " +
+        "W rzucie ścisłym, ze skrótem 0,816: d i 0,58·d.",
+    ]);
+    noteBox(b, "Odręcznie i cyrklem elipsę izometryczną przybliża się czterema łukami (metoda czterech środków). " +
+      "Kształt sprawdza się po tym, czy elipsa dotyka środków boków rombu.");
+    srcLine(b, "materiały „Rzuty aksonometryczne” (PCEZ Bytów) — osie 1,2·d i 0,7·d bez skrótu; Design Graphics for " +
+      "Engineering Communication (SDC Publications) — elipsa dotyka środków boków rombu, duża oś wzdłuż dłuższej " +
+      "przekątnej.");
   }
 },
 {
@@ -1694,17 +3252,18 @@ const LESSONS = [
   build: b => {
     para(b, "Obrót wokół osi pionowej jest najprostszy, bo bryła pozostaje postawiona: wysokości słupków się " +
       "nie zmieniają, zmienia się tylko ich rozmieszczenie w planie.");
-    const rot = xform(DEMO_B, XF.rotZ);
-    const sc = sharedIsoScale([DEMO_B, rot], 200, 172, 12);
+    const rot = xform(DEMO_C, XF.rotZ);
+    const sc = sharedIsoScale([DEMO_C, rot], 200, 172, 12);
     b.appendChild(stimRow(
-      isoFigure(DEMO_B, "przed obrotem", { w: 200, h: 172 }, sc),
+      isoFigure(DEMO_C, "przed obrotem", { w: 200, h: 172 }, sc),
       isoFigure(rot, "po obrocie o 90° w prawo", { w: 200, h: 172 }, sc)));
-    para(b, "Widać to najlepiej na rzucie z góry: obrót bryły w prawo obraca cały rzut z góry w prawo.");
+    para(b, "Widać to najlepiej na rzucie z góry: obrót bryły w prawo (zgodnie z ruchem wskazówek zegara, patrząc " +
+      "z góry) obraca cały rzut z góry w prawo.");
     b.appendChild(stimRow(
-      orthoFigure(orthoView(DEMO_B, "top"), "rzut z góry przed", 28),
+      orthoFigure(orthoView(DEMO_C, "top"), "rzut z góry przed", 28),
       orthoFigure(orthoView(rot, "top"), "rzut z góry po", 28)));
-    noteBox(b, "Praktyczna reguła: po obrocie w prawo dotychczasowy rzut z prawej strony staje się nowym rzutem " +
-      "z przodu. Po obrocie w lewo — rzut z lewej strony.");
+    noteBox(b, "Praktyczna reguła: po obrocie w prawo dotychczasowa prawa ściana staje się przednią, więc " +
+      "dotychczasowy rzut z prawej strony staje się nowym rzutem z przodu. Po obrocie w lewo — rzut z lewej strony.");
   }
 },
 {
@@ -1720,8 +3279,8 @@ const LESSONS = [
     noteBox(b, "Po takim obrocie bryła może mieć nawisy, czyli kostki wiszące nad pustką. Plan kodowany przestaje " +
       "wtedy wystarczać do jej opisania — a to dobra ilustracja tego, że plan jest wygodnym skrótem, nie pełnym zapisem.");
     bullets(b, [
-      "<b>Przechylenie do przodu</b> — góra bryły jedzie w Twoją stronę, tył wędruje do góry.",
-      "<b>Przechylenie do tyłu</b> — odwrotnie, przód wędruje pod spód.",
+      "<b>Przechylenie do przodu</b> — góra bryły jedzie w Twoją stronę, tył wędruje do góry, a przód pod spód.",
+      "<b>Przechylenie do tyłu</b> — odwrotnie: góra odjeżdża od Ciebie, przód wędruje do góry, a tył pod spód.",
       "<b>Położenie na bok</b> — obrót wokół osi biegnącej w głąb, wysokość zamienia się z szerokością.",
     ]);
     para(b, "Strategia, która działa: wybierz jeden narożnik, najlepiej wierzchołek najwyższego słupka, " +
@@ -1731,43 +3290,56 @@ const LESSONS = [
 {
   id: "odbicia", title: "Odbicia i symetria",
   build: b => {
-    para(b, "Odbicie lustrzane zamienia stronę lewą z prawą. Kluczowa własność: bryły chiralnej nie da się " +
-      "nałożyć na jej odbicie żadnym obrotem. To najczęstsza pułapka w zadaniach przestrzennych.");
-    const mir = xform(DEMO_B, XF.mirX);
-    const rot180 = xform(DEMO_B, XF.rotZ, 2);
-    const sc = sharedIsoScale([DEMO_B, mir, rot180], 190, 164, 12);
+    para(b, "Odbicie lustrzane zamienia stronę lewą z prawą. Bryły chiralnej nie da się nałożyć na jej odbicie " +
+      "żadnym obrotem — to właśnie definicja chiralności. Bryła, która ma płaszczyznę symetrii, chiralna nie jest. " +
+      "Odbicia są klasyczną pułapką w testach wyobraźni przestrzennej.");
+    const mir = xform(DEMO_C, XF.mirX);
+    const rot180 = xform(DEMO_C, XF.rotZ, 2);
+    const sc = sharedIsoScale([DEMO_C, mir, rot180], 190, 164, 12);
     b.appendChild(stimRow(
-      isoFigure(DEMO_B, "oryginał", { w: 190, h: 164 }, sc),
+      isoFigure(DEMO_C, "oryginał", { w: 190, h: 164 }, sc),
       isoFigure(mir, "odbicie lustrzane", { w: 190, h: 164 }, sc),
       isoFigure(rot180, "obrót o 180°", { w: 190, h: 164 }, sc)));
     para(b, "Środkowa i prawa bryła bywają mylone, bo obie wyglądają jak „odwrócony oryginał”. " +
       "Tylko środkowa jest odbiciem. Prawa to nadal ta sama bryła, ustawiona inaczej.");
-    noteBox(b, "Test na odróżnienie: policz kostki wzdłuż jednej krawędzi, idąc od lewej. Obrót zachowa tę kolejność " +
-      "przy odpowiednim ustawieniu, odbicie odwróci ją zawsze.");
+    noteBox(b, "Test na odróżnienie — reguła dłoni. Wybierz w bryle trzy charakterystyczne kierunki z jednego miejsca, " +
+      "np. od najwyższego słupka: do drugiego co do wysokości, do najdłuższego ramienia i w górę. Ułóż wzdłuż nich " +
+      "kciuk, palec wskazujący i środkowy. Jeśli w obu bryłach pasuje ta sama dłoń, to obrót. Jeśli potrzebna jest " +
+      "druga dłoń, to odbicie. Obrót zachowuje „skrętność”, odbicie ją odwraca.");
+    para(b, "Uwaga: bryła symetryczna, na przykład taka, którą przecina płaszczyzna symetrii, nałoży się na swoje " +
+      "odbicie po obrocie. W zadaniach na odbicia aplikacja używa wyłącznie brył chiralnych.");
   }
 },
 {
-  id: "przekroje", title: "Przekroje brył",
+  id: "przekroje", title: "Przekroje i kłady",
   build: b => {
-    para(b, "Przekrój pokazuje tylko materiał leżący dokładnie w płaszczyźnie cięcia. Nie jest widokiem: " +
-      "nie widać na nim tego, co leży za płaszczyzną ani przed nią.");
+    para(b, "W geometrii i w testach wyobraźni przestrzennej przekrój bryły to figura, którą płaszczyzna wycina z bryły. " +
+      "Rysunek techniczny rozróżnia tu dwie rzeczy:");
+    bullets(b, [
+      "<b>Kład</b> pokazuje tylko figurę leżącą w płaszczyźnie przekroju.",
+      "<b>Przekrój</b> to kład, który dodatkowo pokazuje zarysy przedmiotu leżące za płaszczyzną przekroju.",
+    ]);
+    para(b, "Zadania w tej aplikacji pytają o samą figurę — w języku rysunku technicznego o kład. Pole przekroju " +
+      "kreskuje się cienkimi liniami ciągłymi pod kątem 45°.");
     b.appendChild(stimRow(
       isoFigure(DEMO_B, "bryła", { w: 200, h: 172 }),
       planFigure(heightsOf(DEMO_B), "plan kodowany"),
-      orthoFigure(sectionView(DEMO_B, "y", 0), "przekrój przez 1. rząd od przodu", 28),
-      orthoFigure(sectionView(DEMO_B, "y", 1), "przekrój przez 2. rząd", 28)));
+      orthoFigure(sectionView(DEMO_B, "y", 0), "kład: 1. rząd od przodu", 28),
+      orthoFigure(sectionView(DEMO_B, "y", 1), "kład: 2. rząd", 28)));
     para(b, "Przy cięciu płaszczyzną pionową równoległą do rzutu z przodu wynik odczytuje się wprost z planu: " +
       "bierzesz jeden rząd planu i rysujesz słupki o podanych wysokościach.");
-    noteBox(b, "Dlatego przekrój przez pierwszy rząd bywa identyczny z rzutem z przodu, ale tylko wtedy, gdy nic " +
-      "za nim nie wystaje ponad ten rząd. W innym wypadku rzut pokaże więcej niż przekrój.");
+    noteBox(b, "Kład przez pierwszy rząd ma ten sam zarys co rzut z przodu tylko wtedy, gdy nic za tym rzędem nie " +
+      "wystaje ponad niego. W innym wypadku rzut pokaże więcej niż kład.");
+    srcLine(b, "PCEZ Bytów, „Rodzaje rysunku i jego elementy składowe” — definicje kładu i przekroju; WAT, " +
+      "„Widoki, przekroje, kłady”.");
   }
 },
 {
   id: "metoda", title: "Metoda pierwszego i trzeciego kąta",
   build: b => {
     para(b, "Obraz każdego rzutu jest w obu metodach taki sam. Różni się wyłącznie ROZMIESZCZENIE rzutów na arkuszu. " +
-      "W metodzie europejskiej (pierwszego kąta) przedmiot znajduje się przed rzutnią, w amerykańskiej " +
-      "(trzeciego kąta) — za rzutnią.");
+      "W metodzie europejskiej (pierwszego kąta) przedmiot leży między obserwatorem a rzutnią, w amerykańskiej " +
+      "(trzeciego kąta) rzutnia leży między obserwatorem a przedmiotem.");
     const t = el("table", "tbl");
     t.innerHTML = "<tr><th>Rzut</th><th>Metoda pierwszego kąta (E)</th><th>Metoda trzeciego kąta (A)</th></tr>" +
       "<tr><td><b>z góry</b></td><td>pod rzutem głównym</td><td>nad rzutem głównym</td></tr>" +
@@ -1775,28 +3347,48 @@ const LESSONS = [
       "<tr><td><b>z prawej strony</b></td><td>po lewej stronie</td><td>po prawej stronie</td></tr>";
     b.appendChild(t);
     b.appendChild(stimRow(viewsLayout(DEMO_A, "E", "left"), viewsLayout(DEMO_A, "A", "right")));
-    noteBox(b, "Ten sam rysunek odczytany w niewłaściwej konwencji daje inną bryłę. Dlatego norma PN-EN ISO 5456-2 " +
-      "wymaga umieszczenia na rysunku symbolu graficznego zastosowanej metody — rzutu ściętego stożka. " +
-      "Polska i Europa stosują metodę pierwszego kąta, Ameryka Północna trzeciego.");
+    noteBox(b, "Ten sam rysunek odczytany w niewłaściwej konwencji daje inną bryłę. Dlatego na rysunku umieszcza " +
+      "się symbol graficzny zastosowanej metody. W Polsce i większości Europy stosuje się metodę pierwszego kąta, " +
+      "w Ameryce Północnej — trzeciego.");
+    b.appendChild(el("h3", null, "Jak czytać symbol"));
+    para(b, "Symbol to ścięty stożek narysowany w dwóch rzutach. Widziany od węższego końca daje dwa " +
+      "współśrodkowe okręgi, widziany z boku — trapez. Symbol jest po prostu zasadą rozmieszczenia " +
+      "zastosowaną do stożka, dlatego oba warianty są swoimi lustrzanymi odbiciami.");
+    const symE = el("canvas"); drawMethodSymbol(symE, "E", { w: 170, h: 74, lw: 2 });
+    const symA = el("canvas"); drawMethodSymbol(symA, "A", { w: 170, h: 74, lw: 2 });
+    b.appendChild(stimRow(
+      figure("pierwszy kąt (E): krótszy bok odwrócony od okręgów", symE),
+      figure("trzeci kąt (A): krótszy bok zwrócony do okręgów", symA)));
+    para(b, "Reguła do zapamiętania: patrz, gdzie wskazuje węższy koniec trapezu. Jeżeli ucieka od okręgów, " +
+      "rysunek jest w metodzie pierwszego kąta i każdy rzut leży po stronie przeciwnej niż obserwator. " +
+      "Jeżeli celuje w okręgi, to metoda trzeciego kąta i rzut leży po stronie obserwatora.");
+    srcLine(b, "Wikipedia, „Multiview orthographic projection”; SizeMarker — orientacja symbolu.");
   }
 },
 {
   id: "strategie", title: "Strategie rozwiązywania zadań",
   build: b => {
-    para(b, "Badania nad wyobraźnią przestrzenną wyróżniają dwa style pracy. Oba są potrzebne.");
+    para(b, "Przy obracaniu brył w wyobraźni stosuje się dwa sposoby. Oba są potrzebne.");
     bullets(b, [
-      "<b>Całościowy</b> — obracasz bryłę w wyobraźni jako jeden obiekt. Szybki, ale zawodzi przy bryłach złożonych.",
+      "<b>Całościowy</b> — obracasz bryłę w wyobraźni jako jeden obiekt.",
       "<b>Analityczny</b> — śledzisz pojedynczy element: jeden narożnik, jedną ścianę, jeden słupek. Wolniejszy, " +
-        "ale niezawodny. To on ratuje przy trudnych zadaniach.",
+        "ale pozwala rozłożyć trudne zadanie na kroki.",
     ]);
-    para(b, "Praktyczne wskazówki, które warto stosować przy zadaniach w tym trenerze:");
+    para(b, "Khooshabeh, Hegarty i Shipley (2013) zauważyli, że osoby z dobrą wyobraźnią przestrzenną domyślnie " +
+      "obracają bryłę w całości, ale zmieniają strategię, gdy zadanie tego wymaga. Osoby ze słabszą wyobraźnią " +
+      "częściej analizują bryłę po kawałku niezależnie od zadania. Wniosek praktyczny: warto ćwiczyć oba sposoby " +
+      "i umieć się między nimi przełączać.");
+    para(b, "Praktyczne wskazówki do zadań w tym trenerze:");
     bullets(b, [
       "Przy obrotach wybierz <b>jeden charakterystyczny narożnik</b> i sprawdź, gdzie trafia.",
       "Przy czytaniu rzutów zacznij od <b>rzutu z góry</b>: on podaje zarys podstawy.",
-      "Potem <b>rzut z przodu</b> podaje maksymalne wysokości w kolumnach, a rzut boczny — w rzędach.",
-      "Odbicie lustrzane <b>nigdy</b> nie jest obrotem. Jeśli bryła wygląda znajomo, ale coś się nie zgadza, sprawdź stronę.",
+      "Potem <b>rzut z przodu</b> podaje najwyższe słupki w kolumnach, a rzut boczny — w rzędach.",
+      "Odbicie lustrzane bryły chiralnej <b>nigdy</b> nie jest obrotem. Jeśli bryła wygląda znajomo, ale coś się " +
+        "nie zgadza, sprawdź regułą dłoni.",
       "Przy liczeniu kostek sumuj plan kodowany, nie licz tego, co widać.",
     ]);
+    srcLine(b, "Khooshabeh, P., Hegarty, M., Shipley, T. F. (2013). Individual differences in mental rotation: " +
+      "piecemeal versus holistic processing. Experimental Psychology.");
   }
 },
 {
@@ -1804,17 +3396,17 @@ const LESSONS = [
   build: b => {
     para(b, "Program nie podaje zadań po kolei tematami. Robi trzy rzeczy naraz, zgodnie z wynikami badań nad uczeniem się:");
     bullets(b, [
-      "<b>Przeplata typy zadań</b> — dwa razy z rzędu ta sama umiejętność nie wystąpi. Utrudnia to naukę w trakcie, " +
-        "ale poprawia trwałość i przenoszenie umiejętności na nowe przypadki.",
+      "<b>Przeplata typy zadań</b> — ta sama umiejętność nie wystąpi dwa razy z rzędu ani co drugie zadanie. " +
+        "Utrudnia to naukę w trakcie, ale poprawia trwałość i rozróżnianie typów zadań.",
       "<b>Rozkłada powtórki w czasie</b> — każda umiejętność ma własny licznik. Po poprawnej odpowiedzi odstęp do " +
         "kolejnej powtórki rośnie, po błędnej wraca do zera.",
-      "<b>Dobiera trudność</b> — poziom rośnie przy skuteczności powyżej 85% i spada poniżej 60%, żeby zadania " +
-        "utrzymywały się w okolicy 75–85% trafień.",
+      "<b>Dobiera trudność</b> — poziom rośnie po 8 poprawnych odpowiedziach z rzędu, a spada, gdy w ostatnich 8 " +
+        "zadaniach są co najmniej 2 błędy. W symulacji z modelowym uczniem utrzymuje to skuteczność 75–85%.",
     ]);
     para(b, "Kurs w zakładce Kurs prowadzi przez materiał po kolei i sprawdza każdy moduł osobno. Zakładka Trening " +
       "robi coś innego: miesza wszystko, co już umiesz, i pilnuje powtórek. Oba tryby są potrzebne — kurs buduje " +
       "wiedzę, trening ją utrwala.");
-    para(b, "Pełne uzasadnienie i lista źródeł znajdują się w pliku METODYKA.md w repozytorium.");
+    para(b, "Pełne uzasadnienie, lista źródeł i audyt treści znajdują się w pliku METODYKA.md w repozytorium.");
   }
 },
 ];
@@ -1828,7 +3420,7 @@ function renderLessons(container, ids, openAll) {
   list.forEach((L, i) => {
     const num = ids ? "" : (LESSONS.indexOf(L) + 1) + ". ";
     const box = lesson(num + L.title, L.build);
-    if (openAll) box.classList.add("open");
+    if (openAll) { box.classList.add("open"); box.firstChild.setAttribute("aria-expanded", "true"); }
     wrap.appendChild(box);
   });
   container.appendChild(wrap);
@@ -1865,8 +3457,12 @@ function screenPostepy(root) {
   st.appendChild(stat(State.sessions, "ukończonych sesji"));
   c1.appendChild(st);
   if (State.diag) {
+    const g = measuredGain();
     const p = el("p", null, "Test wstępny: " + State.diag.score + " / " + State.diag.total +
-      " punktów, poziom startowy " + State.diag.level + ". Powtórz go po przerobieniu materiału, żeby zmierzyć przyrost.");
+      ", poziom startowy " + State.diag.level + ". " +
+      (g.ok ? "Test końcowy: " + State.diagPost.score + " / " + State.diagPost.total +
+              " (" + (g.delta >= 0 ? "+" : "") + g.delta + " pkt proc.)" + attemptNote(g) + "."
+            : "Przyrost: " + g.why + "."));
     p.style.marginTop = "14px";
     c1.appendChild(p);
   }
@@ -1919,15 +3515,15 @@ function screenPostepy(root) {
 
   const rst = el("div", "row mt");
   const rb = el("button", "btn danger sm", "Wyczyść wszystkie postępy");
-  rb.onclick = () => {
-    if (!window.confirm("Usunąć cały zapisany postęp? Tej operacji nie da się cofnąć.")) return;
+  rb.onclick = () => askConfirm("Cały zapisany postęp zostanie usunięty. Tej operacji nie da się cofnąć.", "Usuń postęp", () => {
     try { localStorage.removeItem(STORE_KEY); } catch (e) {}
     State.skills = {}; State.seen = 0; State.ok = 0; State.streak = 0; State.best = 0;
-    State.recent = []; State.lastSkills = []; State.diag = null; State.sessions = 0; State.level = 2;
+    State.recent = []; State.lastSkills = []; State.diag = null; State.diagPost = null; State.diagPostAttempts = 0;
+    State.sessions = 0; State.level = 2;
     State.course = { mods: {}, exam: null }; UI.module = null;
     for (const id of SKILL_IDS) skillOf(id);
     save(); render();
-  };
+  });
   rst.appendChild(rb);
   c3.appendChild(rst);
   const note = el("p", "muted");
@@ -1944,6 +3540,7 @@ function screenPostepy(root) {
 const TABS = [
   ["kurs",    "Kurs"],
   ["trening", "Trening"],
+  ["szkicuj", "Szkicuj"],
   ["buduj",   "Buduj"],
   ["teoria",  "Teoria"],
   ["postepy", "Postępy"],
@@ -1954,7 +3551,10 @@ function renderNav() {
   nav.innerHTML = "";
   for (const t of TABS) {
     const b = el("button", UI.screen === t[0] ? "on" : "", t[1]);
-    b.onclick = () => { UI.screen = t[0]; render(); };
+    // Podsumowanie sesji to chwilowa informacja zwrotna. Bez jego zamknięcia
+    // przy nawigacji ekran startowy treningu, a z nim przycisk testu
+    // końcowego, był osiągalny tylko okrężną drogą przez zakładkę Postępy.
+    b.onclick = () => { if (!Session.active) Session.summary = null; UI.screen = t[0]; render(); };
     nav.appendChild(b);
   }
 }
@@ -1979,9 +3579,19 @@ function render() {
   renderNav();
   const root = $("#view");
   root.innerHTML = "";
+  if (UI.error) {
+    const c = el("div", "fb err");
+    c.setAttribute("role", "alert");
+    c.appendChild(el("div", "fb-title", "Sesja przerwana"));
+    c.appendChild(el("div", "fb-body", UI.error));
+    c.style.marginBottom = "16px";
+    root.appendChild(c);
+    UI.error = null;   // komunikat pokazujemy raz
+  }
   if (UI.screen === "kurs")         screenKurs(root);
   else if (UI.screen === "trening") screenTrening(root);
   else if (UI.screen === "buduj")   screenBuduj(root);
+  else if (UI.screen === "szkicuj") screenSzkicuj(root);
   else if (UI.screen === "teoria")  screenTeoria(root);
   else                              screenPostepy(root);
 }
@@ -1989,12 +3599,14 @@ function render() {
 /* ═══════════════════════════════════════════════════════════════
    CZĘŚĆ 16 — KURS
 
-   Ścieżka prowadzona: 10 modułów w ustalonej kolejności, każdy
-   zamknięty sprawdzianem, plus egzamin końcowy. Układ modułów
-   odwzorowuje strukturę kursu "Developing Spatial Thinking"
-   (rysunki izometryczne, rzuty, obroty, odbicia, przekroje),
-   przycięty do tego, czego ten silnik potrafi uczciwie uczyć.
-   Trening obok kursu robi co innego: miesza i utrwala.
+   Ścieżka prowadzona: 12 modułów w ustalonej kolejności, każdy
+   zamknięty sprawdzianem, plus egzamin końcowy. Kolejność tematów
+   idzie za kursem „Developing Spatial Thinking" (Sorby): szkicowanie
+   izometryczne, rzuty, powierzchnie pochyłe i krzywe, obroty wokół
+   jednej i dwóch osi, odbicia, przekroje. Z jego dziesięciu modułów
+   trzech aplikacja nie obejmuje: brył obrotowych, łączenia brył
+   i rozwinięć. Identyfikatory m1–m10 zostały z pierwszej wersji kursu,
+   żeby zapisany postęp nie przepadł.
    ═══════════════════════════════════════════════════════════════ */
 
 const COURSE = [
@@ -2010,24 +3622,40 @@ const COURSE = [
     drill: [{ skill: "plan-bryla", n: 4, level: 2 }, { skill: "liczenie", n: 2, level: 3 }],
     test:  [{ skill: "plan-bryla", n: 6, level: 3 }], pass: 5 },
 
+  { id: "m-szkic", title: "Szkicowanie izometryczne", time: "20 min",
+    goal: "Narysujesz na siatce izometrycznej bryłę opisaną planem kodowanym — tylko jej krawędzie, bez linii między kostkami.",
+    lessons: ["szkic"],
+    drill: [{ skill: "szkic", n: 3, level: 2, opts: { from: "plan" } }],
+    test:  [{ skill: "szkic", n: 4, level: 3, opts: { from: "plan" } }], pass: 3,
+    tip: "To jedyny moduł, w którym nic nie wybierasz z listy: rysujesz. Szkic jest zaliczony, jeśli jest poprawny " +
+         "przy pierwszym albo drugim sprawdzeniu." },
+
   { id: "m3", title: "Trzy rzuty prostokątne", time: "12 min",
     goal: "Wskażesz, jak wygląda rzut z przodu, z góry i z boku dla zadanej bryły.",
     lessons: ["rzuty"],
     drill: [{ skill: "bryla-rzut", n: 6, level: 2, opts: { kinds: ["front", "top"] } }],
     test:  [{ skill: "bryla-rzut", n: 6, level: 3 }], pass: 5 },
 
-  { id: "m4", title: "Uskoki i linie wewnętrzne", time: "12 min",
-    goal: "Odróżnisz bryły o identycznym zarysie po samych liniach uskoków.",
-    lessons: ["uskoki"],
-    drill: [{ skill: "bryla-rzut", n: 6, level: 4 }],
-    test:  [{ skill: "bryla-rzut", n: 6, level: 4 }], pass: 5 },
+  { id: "m4", title: "Krawędzie widoczne i niewidoczne", time: "14 min",
+    goal: "Odróżnisz bryły o identycznym zarysie po liniach wewnątrz zarysu: krawędziach widocznych i niewidocznych.",
+    lessons: ["krawedzie"],
+    drill: [{ skill: "bryla-rzut", n: 6, level: 4, opts: { sameOutline: true } }],
+    test:  [{ skill: "bryla-rzut", n: 6, level: 4, opts: { sameOutline: true } }], pass: 5 },
 
-  { id: "m5", title: "Czytanie rzutów: od rysunku do bryły", time: "15 min",
-    goal: "Odtworzysz bryłę z trzech rzutów, stosując procedurę: podstawa, kolumny, rzędy.",
+  { id: "m5", title: "Czytanie rzutów: od rysunku do bryły", time: "18 min",
+    goal: "Odtworzysz bryłę z trzech rzutów, stosując procedurę: podstawa, kolumny, rzędy, linie wewnętrzne.",
     lessons: ["czytanie", "strategie"],
-    drill: [{ skill: "rzuty-bryla", n: 5, level: 3 }],
+    drill: [{ skill: "rzuty-bryla", n: 4, level: 3 }, { skill: "szkic", n: 1, level: 3, opts: { from: "views" } }],
     test:  [{ skill: "rzuty-bryla", n: 6, level: 4 }], pass: 5,
-    tip: "Po sprawdzianie przejdź do zakładki Buduj. Konstruowanie bryły utrwala tę umiejętność mocniej niż wybór z listy." },
+    build: true,
+    tip: "Zadanie konstrukcyjne jest tu ważniejsze od testu wyboru: wybór z listy sprawdza rozpoznawanie, " +
+         "budowanie sprawdza, czy procedura odczytu rzutów naprawdę działa." },
+
+  { id: "m-skosy", title: "Powierzchnie pochyłe i okręgi", time: "18 min",
+    goal: "Narysujesz linię pochyłą przez odmierzenie jej końców i rozpoznasz poprawną elipsę okręgu na każdej ścianie.",
+    lessons: ["skosy", "elipsy"],
+    drill: [{ skill: "skos", n: 3, level: 3 }, { skill: "elipsa", n: 3, level: 3 }],
+    test:  [{ skill: "skos", n: 3, level: 4 }, { skill: "elipsa", n: 3, level: 4 }], pass: 5 },
 
   { id: "m6", title: "Obroty wokół osi pionowej", time: "12 min",
     goal: "Przewidzisz wygląd bryły po obrocie o 90° w prawo lub w lewo, patrząc z góry.",
@@ -2042,13 +3670,13 @@ const COURSE = [
     test:  [{ skill: "obrot", n: 6, level: 4, opts: { axes: ["x", "y"] } }], pass: 5 },
 
   { id: "m8", title: "Odbicia i symetria", time: "12 min",
-    goal: "Odróżnisz odbicie lustrzane od obrotu — najczęstszą pułapkę w zadaniach przestrzennych.",
+    goal: "Odróżnisz odbicie lustrzane od obrotu — klasyczną pułapkę w zadaniach przestrzennych.",
     lessons: ["odbicia"],
     drill: [{ skill: "odbicie", n: 5, level: 3 }],
     test:  [{ skill: "odbicie", n: 6, level: 4 }], pass: 5 },
 
-  { id: "m9", title: "Przekroje brył", time: "12 min",
-    goal: "Wyznaczysz przekrój bryły płaszczyzną pionową i poziomą.",
+  { id: "m9", title: "Przekroje i kłady", time: "12 min",
+    goal: "Wyznaczysz figurę przekroju bryły płaszczyzną pionową i poziomą.",
     lessons: ["przekroje"],
     drill: [{ skill: "przekroj", n: 5, level: 3, opts: { cuts: ["y", "x"] } }],
     test:  [{ skill: "przekroj", n: 6, level: 4 }], pass: 5 },
@@ -2062,14 +3690,18 @@ const COURSE = [
 
 const COURSE_BY_ID = {};
 for (const m of COURSE) COURSE_BY_ID[m.id] = m;
+const COURSE_MINUTES = COURSE.reduce((a, m) => a + parseInt(m.time, 10), 0);
 
 const EXAM = {
-  pass: 9,
+  pass: 11,
   specs: [
     { skill: "liczenie",    n: 1, level: 4 },
-    { skill: "plan-bryla",  n: 2, level: 4 },
+    { skill: "plan-bryla",  n: 1, level: 4 },
+    { skill: "szkic",       n: 1, level: 3, opts: { from: "plan" } },
     { skill: "bryla-rzut",  n: 2, level: 4 },
     { skill: "rzuty-bryla", n: 2, level: 4 },
+    { skill: "skos",        n: 1, level: 4 },
+    { skill: "elipsa",      n: 1, level: 4 },
     { skill: "obrot",       n: 1, level: 4, opts: { axes: ["z"] } },
     { skill: "obrot",       n: 1, level: 5, opts: { axes: ["x", "y"] } },
     { skill: "odbicie",     n: 1, level: 4 },
@@ -2077,13 +3709,19 @@ const EXAM = {
     { skill: "uklad",       n: 1 },
   ],
 };
+EXAM.total = EXAM.specs.reduce((a, s) => a + s.n, 0);
 
 function courseProgress(id) {
-  if (!State.course.mods[id]) State.course.mods[id] = { drill: false, best: 0, passed: false };
-  return State.course.mods[id];
+  if (!State.course.mods[id]) State.course.mods[id] = { drill: false, best: 0, passed: false, attempts: 0, built: false };
+  const pr = State.course.mods[id];
+  if (pr.attempts == null) pr.attempts = 0;
+  if (pr.built == null) pr.built = false;
+  return pr;
 }
 function moduleIndex(id) { for (let i = 0; i < COURSE.length; i++) if (COURSE[i].id === id) return i; return -1; }
-function moduleUnlocked(i) { return i === 0 || courseProgress(COURSE[i - 1].id).passed; }
+/** Moduł jest otwarty, gdy poprzedni jest zaliczony — albo gdy sam był już zaliczony.
+    Drugi warunek chroni postęp sprzed dodania nowych modułów w środku kursu. */
+function moduleUnlocked(i) { return i === 0 || courseProgress(COURSE[i - 1].id).passed || courseProgress(COURSE[i].id).passed; }
 function passedCount() { let n = 0; for (const m of COURSE) if (courseProgress(m.id).passed) n++; return n; }
 function examUnlocked() { return passedCount() === COURSE.length; }
 function courseDone() { return !!(State.course.exam && State.course.exam.passed); }
@@ -2115,10 +3753,9 @@ function courseSessionBar() {
   row.appendChild(el("b", null, m ? m.title : "Egzamin końcowy"));
   row.appendChild(el("div", "spacer"));
   const stop = el("button", "btn ghost sm", "Przerwij");
-  stop.onclick = () => {
-    Session.active = false; Session.summary = null;
-    UI.module = Session.moduleId; render();
-  };
+  const doStop = () => { Session.active = false; Session.summary = null; UI.module = Session.moduleId; render(); };
+  stop.onclick = () => Session.mode === "kurs-drill" ? doStop()
+    : askConfirm("Wynik tego podejścia nie zostanie zapisany, ale samo podejście jest liczone.", "Przerwij", doStop);
   row.appendChild(stop);
   row.style.alignItems = "center";
   c.appendChild(row);
@@ -2133,14 +3770,31 @@ function syllabus(root) {
   const intro = el("div", "card");
   intro.appendChild(el("h1", null, "Kurs izometryki"));
   intro.appendChild(el("p", "lead",
-    "Dziesięć modułów w ustalonej kolejności, każdy zamknięty sprawdzianem, na końcu egzamin. " +
-    "Kolejny moduł otwiera się po zaliczeniu poprzedniego. Całość zajmuje około dwóch godzin."));
+    COURSE.length + " modułów w ustalonej kolejności, każdy zamknięty sprawdzianem, na końcu egzamin. " +
+    "Kolejny moduł otwiera się po zaliczeniu poprzedniego. Całość zajmuje około " +
+    Math.round(COURSE_MINUTES / 10) * 10 + " minut."));
   const bar = el("div", "bar good");
   bar.style.margin = "16px 0 8px";
   const fill = el("i"); fill.style.width = (done / COURSE.length * 100) + "%"; bar.appendChild(fill);
   intro.appendChild(bar);
   intro.appendChild(el("div", "muted", "Zaliczone moduły: " + done + " z " + COURSE.length +
     (courseDone() ? " · kurs ukończony" : "")));
+  if (!State.diag && done === 0) {
+    const n = el("div", "note");
+    n.textContent = "Zanim zaczniesz: zrób test wstępny. Osiem zadań na obroty, kilka minut. " +
+      "Bez niego nie da się na końcu zmierzyć, ile kurs Ci dał.";
+    intro.appendChild(n);
+    const b = el("button", "btn ghost sm", "Test wstępny (8 zadań)");
+    b.onclick = () => startSession({ mode: "diag" });
+    intro.appendChild(b);
+  } else if (courseDone() && State.diag && !State.diagPost) {
+    const n = el("div", "note");
+    n.textContent = "Kurs ukończony. Zrób teraz test końcowy — to samo narzędzie co test wstępny, więc wynik pokaże przyrost.";
+    intro.appendChild(n);
+    const b = el("button", "btn sm", "Test końcowy (8 zadań)");
+    b.onclick = () => startSession({ mode: "post" });
+    intro.appendChild(b);
+  }
   root.appendChild(intro);
 
   if (courseDone()) root.appendChild(certificate());
@@ -2149,7 +3803,9 @@ function syllabus(root) {
   COURSE.forEach((m, i) => {
     const pr = courseProgress(m.id);
     const unlocked = moduleUnlocked(i);
-    const row = el("div", "mod" + (pr.passed ? " done" : "") + (unlocked ? "" : " locked"));
+    const row = el("button", "mod" + (pr.passed ? " done" : "") + (unlocked ? "" : " locked"));
+    row.type = "button";
+    if (!unlocked) row.setAttribute("aria-disabled", "true");
     row.appendChild(el("div", "mod-num", pr.passed ? "✓" : String(i + 1)));
     const body = el("div", "mod-body");
     body.appendChild(el("div", "mod-title", m.title));
@@ -2167,11 +3823,13 @@ function syllabus(root) {
   // Egzamin końcowy
   const ex = State.course.exam;
   const exOpen = examUnlocked();
-  const exRow = el("div", "mod" + (courseDone() ? " done" : "") + (exOpen ? "" : " locked"));
+  const exRow = el("button", "mod" + (courseDone() ? " done" : "") + (exOpen ? "" : " locked"));
+  exRow.type = "button";
+  if (!exOpen) exRow.setAttribute("aria-disabled", "true");
   exRow.appendChild(el("div", "mod-num", courseDone() ? "✓" : "★"));
   const eb = el("div", "mod-body");
   eb.appendChild(el("div", "mod-title", "Egzamin końcowy"));
-  eb.appendChild(el("div", "mod-meta", "12 zadań ze wszystkich modułów · próg zaliczenia " + EXAM.pass + "/12" +
+  eb.appendChild(el("div", "mod-meta", EXAM.total + " zadań ze wszystkich modułów · próg zaliczenia " + EXAM.pass + "/" + EXAM.total +
     (ex ? " · najlepszy wynik " + ex.score + "/" + ex.total : "")));
   exRow.appendChild(eb);
   exRow.appendChild(el("div", "mod-badge " + (courseDone() ? "badge-done" : exOpen ? "badge-open" : "badge-lock"),
@@ -2220,9 +3878,18 @@ function moduleDetail(root, id) {
   const bt = el("button", "btn" + (pr.drill ? "" : " ghost"), (pr.passed ? "Popraw sprawdzian" : "Sprawdzian") + " (" + testTotal + ")");
   bt.onclick = () => startSession({ mode: "kurs-test", moduleId: id, queue: expandQueue(m.test, true) });
   row.appendChild(bt);
+  if (m.build) {
+    const bb = el("button", "btn ghost", pr.built ? "Powtórz zadanie konstrukcyjne" : "Zadanie konstrukcyjne");
+    bb.onclick = () => { Builder.courseModule = id; newBuild(); UI.screen = "buduj"; render(); };
+    row.appendChild(bb);
+  }
   act.appendChild(row);
+  if (m.build) act.appendChild(el("div", "muted", pr.built
+    ? "Zadanie konstrukcyjne zaliczone."
+    : "Zadanie konstrukcyjne: odtwórz bryłę z rzutów w trybie Buduj. Nie jest wymagane do zaliczenia modułu."));
   if (!pr.drill) act.appendChild(el("div", "muted", "Zalecana kolejność: najpierw ćwiczenia, potem sprawdzian."));
-  if (pr.best) act.appendChild(el("div", "muted", "Najlepszy wynik sprawdzianu: " + pr.best + " / " + testTotal + "."));
+  if (pr.attempts) act.appendChild(el("div", "muted", "Podejść do sprawdzianu: " + pr.attempts +
+    (pr.best ? " · najlepszy wynik " + pr.best + " / " + testTotal : " · brak ukończonego podejścia")));
   if (m.tip) { const t = el("div", "note"); t.textContent = m.tip; act.appendChild(t); }
   root.appendChild(act);
 }
@@ -2314,25 +3981,43 @@ function certificate() {
   c.appendChild(el("div", "cert-seal", "◆"));
   c.appendChild(el("h2", null, "KURS UKOŃCZONY"));
   c.appendChild(el("div", "meta", "Izometryka i czytanie rysunku technicznego"));
-  c.appendChild(el("div", "who", "Zaliczono " + COURSE.length + " modułów oraz egzamin końcowy"));
+  c.appendChild(el("div", "who", "Zaliczono " + passedCount() + " z " + COURSE.length + " modułów oraz egzamin końcowy"));
   const d = new Date(ex.date);
   c.appendChild(el("div", "meta", "Wynik egzaminu: " + ex.score + " / " + ex.total +
     " · data: " + d.toLocaleDateString("pl-PL")));
-  if (State.diag) {
-    const pre = Math.round(State.diag.score / State.diag.total * 100);
-    const post = Math.round(ex.score / ex.total * 100);
-    c.appendChild(el("div", "meta", "Test wstępny " + pre + "% → egzamin " + post + "%" +
-      (post > pre ? " (przyrost " + (post - pre) + " pkt proc.)" : "")));
-  }
+  // Przyrost liczy się tylko między testem wstępnym a końcowym — to samo
+  // narzędzie. Wcześniej porównywano test wstępny z egzaminem, czyli dwa
+  // różne narzędzia, i różnica niczego nie mierzyła.
+  const g = measuredGain();
+  c.appendChild(el("div", "meta", g.ok
+    ? "Test wstępny " + g.pre + "% → test końcowy " + g.post + "% (" + (g.delta >= 0 ? "+" : "") + g.delta + " pkt proc.)" + attemptNote(g)
+    : "Przyrost niezmierzony: " + g.why));
+  let att = 0;
+  for (const m of COURSE) att += courseProgress(m.id).attempts;
+  c.appendChild(el("div", "meta", "Łączna liczba podejść do sprawdzianów: " + att));
+  const disc = el("div", "meta");
+  disc.style.cssText = "margin-top:18px;font-size:11px;color:#6a7a86;max-width:420px;margin-left:auto;margin-right:auto;line-height:1.6";
+  disc.textContent = "Zapis nauki własnej. Wynik powstaje w przeglądarce na tym urządzeniu, " +
+    "nie jest przez nikogo weryfikowany ani poświadczany i nie stanowi dokumentu potwierdzającego kwalifikacje.";
+  c.appendChild(disc);
   box.appendChild(c);
+  // W osadzonym podglądzie (np. opublikowanym na claude.ai) drukowanie jest
+  // zablokowane — wtedy zamiast martwego przycisku pada wskazówka.
   const row = el("div", "row mt"); row.style.justifyContent = "center";
-  const pr = el("button", "btn ghost sm", "Drukuj / zapisz PDF");
-  pr.onclick = () => window.print();
-  row.appendChild(pr);
+  if (window.ISO_NO_PRINT) row.appendChild(el("div", "muted", "Certyfikat zapiszesz zrzutem ekranu."));
+  else {
+    const pr = el("button", "btn ghost sm", "Drukuj / zapisz PDF");
+    pr.onclick = () => window.print();
+    row.appendChild(pr);
+  }
   box.appendChild(row);
   return box;
 }
 
+/* ═══ START APLIKACJI ═══
+   Wszystko poniżej tej linii dotyka DOM. testy/uruchom.sh wycina ten blok,
+   żeby testy logiki mogły wczytać resztę pliku w Node. */
+document.addEventListener("keydown", sessionKeys);
 load();
 render();
 </script>
