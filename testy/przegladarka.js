@@ -322,6 +322,35 @@ async function testSzkic(browser) {
   await page.close();
 }
 
+async function testPotwierdzenie(browser) {
+  console.log('\n— Potwierdzenie na stronie —');
+  const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
+  watch(page, '[potwierdzenie]');
+  let nativeDialog = false;
+  page.on('dialog', d => { nativeDialog = true; d.dismiss(); });
+  await page.goto(APP);
+  await page.waitForTimeout(250);
+  await page.evaluate(() => startSession({ mode: 'kurs-test', moduleId: 'm1', queue: expandQueue(COURSE[0].test, true) }));
+  await page.waitForTimeout(150);
+  await page.locator('button.btn').filter({ hasText: 'Przerwij' }).first().click();
+  await page.waitForTimeout(100);
+  if (!(await page.locator('.dlg[role="alertdialog"]').count())) errors.push('brak okna potwierdzenia przy przerwaniu sprawdzianu');
+  await page.keyboard.press('1');
+  if (await page.evaluate(() => Session.answered)) errors.push('cyfra pod otwartym oknem wybrała odpowiedź');
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(80);
+  if (await page.locator('.dlg').count()) errors.push('Escape nie zamyka okna');
+  if (!(await page.evaluate(() => Session.active))) errors.push('anulowanie przerwało sesję');
+  await page.locator('button.btn').filter({ hasText: 'Przerwij' }).first().click();
+  await page.waitForTimeout(80);
+  await page.locator('.dlg button').filter({ hasText: 'Przerwij' }).click();
+  await page.waitForTimeout(120);
+  if (await page.evaluate(() => Session.active)) errors.push('zatwierdzenie nie przerwało sesji');
+  if (nativeDialog) errors.push('aplikacja użyła okna przeglądarki zamiast własnego');
+  console.log('  okno na stronie: Escape anuluje, cyfry nie przechodzą pod spód, zatwierdzenie działa');
+  await page.close();
+}
+
 async function testPomiar(browser) {
   console.log('\n— Test wstępny i końcowy —');
   const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
@@ -374,6 +403,7 @@ async function testPomiar(browser) {
   await testKurs(browser);
   await testDostepnosc(browser);
   await testSzkic(browser);
+  await testPotwierdzenie(browser);
   await testPomiar(browser);
   await browser.close();
   if (errors.length) { console.log('\nBŁĘDY:\n' + errors.join('\n') + '\n'); process.exit(1); }

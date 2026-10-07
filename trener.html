@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ISO Master — Trener Izometryki</title>
+<title>ISO Master Trener</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    ISO MASTER — TRENER IZOMETRYKI
@@ -29,6 +29,7 @@
   --bad:       #FF3B30;
   --warn:      #FFD60A;
   --radius:    10px;
+  color-scheme: dark;
 }
 
 body {
@@ -40,9 +41,12 @@ body {
 
 /* ───── UKŁAD ───── */
 .shell { max-width: 1080px; margin: 0 auto; padding: 0 20px 80px; }
+.dlg-back { position: fixed; inset: 0; background: rgba(0,0,0,.62); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 100; }
+.dlg { background: var(--card); border: 1px solid var(--line-hi); border-radius: var(--radius); padding: 22px; max-width: 420px; width: 100%; }
+.dlg p { color: var(--txt); margin-bottom: 18px; }
 
 .topbar {
-  position: sticky; top: 0; z-index: 50;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50;
   background: rgba(13,13,13,0.92); backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
   display: flex; align-items: center; gap: 18px;
@@ -299,7 +303,7 @@ kbd {
 .muted { color: var(--txt-faint); font-size: 13px; }
 
 @media (max-width: 640px) {
-  .shell { padding: 0 14px 60px; }
+  .shell { padding: 0 16px 60px; }
   .stimulus { gap: 16px; }
   .plan-cell { width: 40px; height: 40px; font-size: 15px; }
 }
@@ -333,6 +337,35 @@ function shuffle(a) {
   const r = a.slice();
   for (let i = r.length - 1; i > 0; i--) { const j = randInt(i + 1); [r[i], r[j]] = [r[j], r[i]]; }
   return r;
+}
+
+/** Potwierdzenie zadawane przez stronę. window.confirm() bywa blokowane —
+    w osadzonych podglądach zwraca od razu false — więc pyta sama strona.
+    Okno przechwytuje klawisze, żeby cyfry nie wybierały odpowiedzi pod spodem. */
+function askConfirm(text, yesLabel, onYes) {
+  const prev = document.activeElement;
+  const back = el("div", "dlg-back");
+  const box = el("div", "dlg");
+  box.setAttribute("role", "alertdialog"); box.setAttribute("aria-modal", "true");
+  const p = el("p", null, text); p.id = "dlg-txt";
+  box.setAttribute("aria-describedby", "dlg-txt");
+  box.appendChild(p);
+  const row = el("div", "row"); row.style.justifyContent = "flex-end";
+  const no = el("button", "btn ghost sm", "Anuluj");
+  const yes = el("button", "btn sm", yesLabel);
+  row.appendChild(no); row.appendChild(yes); box.appendChild(row); back.appendChild(box);
+  const keys = e => {
+    if (e.key === "Escape") { e.preventDefault(); close(); }
+    else if (e.key === "Tab") { e.preventDefault(); (document.activeElement === no ? yes : no).focus(); }
+    e.stopPropagation();
+  };
+  const close = () => { back.remove(); document.removeEventListener("keydown", keys, true); if (prev && prev.focus) prev.focus(); };
+  no.onclick = close;
+  yes.onclick = () => { close(); onYes(); };
+  back.onclick = e => { if (e.target === back) close(); };
+  document.addEventListener("keydown", keys, true);
+  document.body.appendChild(back);
+  setTimeout(() => no.focus(), 0);
 }
 
 function setupCanvas(canvas, w, h) {
@@ -2390,11 +2423,8 @@ function screenTrening(root) {
     b2.onclick = () => startSession({ mode: "post" });
     row.appendChild(b2);
     const b3 = el("button", "btn ghost sm", "Powtórz test wstępny");
-    b3.onclick = () => {
-      if (!window.confirm("Powtórzenie testu wstępnego zastąpi punkt odniesienia i skasuje wynik testu końcowego. " +
-                          "Robi się to tylko na początku nauki. Kontynuować?")) return;
-      startSession({ mode: "diag" });
-    };
+    b3.onclick = () => askConfirm("Powtórzenie testu wstępnego zastąpi punkt odniesienia i skasuje wynik testu końcowego. " +
+      "Robi się to tylko na początku nauki.", "Powtórz test wstępny", () => startSession({ mode: "diag" }));
     row.appendChild(b3);
   }
   card.appendChild(row);
@@ -3485,8 +3515,7 @@ function screenPostepy(root) {
 
   const rst = el("div", "row mt");
   const rb = el("button", "btn danger sm", "Wyczyść wszystkie postępy");
-  rb.onclick = () => {
-    if (!window.confirm("Usunąć cały zapisany postęp? Tej operacji nie da się cofnąć.")) return;
+  rb.onclick = () => askConfirm("Cały zapisany postęp zostanie usunięty. Tej operacji nie da się cofnąć.", "Usuń postęp", () => {
     try { localStorage.removeItem(STORE_KEY); } catch (e) {}
     State.skills = {}; State.seen = 0; State.ok = 0; State.streak = 0; State.best = 0;
     State.recent = []; State.lastSkills = []; State.diag = null; State.diagPost = null; State.diagPostAttempts = 0;
@@ -3494,7 +3523,7 @@ function screenPostepy(root) {
     State.course = { mods: {}, exam: null }; UI.module = null;
     for (const id of SKILL_IDS) skillOf(id);
     save(); render();
-  };
+  });
   rst.appendChild(rb);
   c3.appendChild(rst);
   const note = el("p", "muted");
@@ -3724,12 +3753,9 @@ function courseSessionBar() {
   row.appendChild(el("b", null, m ? m.title : "Egzamin końcowy"));
   row.appendChild(el("div", "spacer"));
   const stop = el("button", "btn ghost sm", "Przerwij");
-  stop.onclick = () => {
-    if (Session.mode !== "kurs-drill" &&
-        !window.confirm("Przerwać? Wynik tego podejścia nie zostanie zapisany, ale samo podejście jest liczone.")) return;
-    Session.active = false; Session.summary = null;
-    UI.module = Session.moduleId; render();
-  };
+  const doStop = () => { Session.active = false; Session.summary = null; UI.module = Session.moduleId; render(); };
+  stop.onclick = () => Session.mode === "kurs-drill" ? doStop()
+    : askConfirm("Wynik tego podejścia nie zostanie zapisany, ale samo podejście jest liczone.", "Przerwij", doStop);
   row.appendChild(stop);
   row.style.alignItems = "center";
   c.appendChild(row);
@@ -3975,10 +4001,15 @@ function certificate() {
     "nie jest przez nikogo weryfikowany ani poświadczany i nie stanowi dokumentu potwierdzającego kwalifikacje.";
   c.appendChild(disc);
   box.appendChild(c);
+  // W osadzonym podglądzie (np. opublikowanym na claude.ai) drukowanie jest
+  // zablokowane — wtedy zamiast martwego przycisku pada wskazówka.
   const row = el("div", "row mt"); row.style.justifyContent = "center";
-  const pr = el("button", "btn ghost sm", "Drukuj / zapisz PDF");
-  pr.onclick = () => window.print();
-  row.appendChild(pr);
+  if (window.ISO_NO_PRINT) row.appendChild(el("div", "muted", "Certyfikat zapiszesz zrzutem ekranu."));
+  else {
+    const pr = el("button", "btn ghost sm", "Drukuj / zapisz PDF");
+    pr.onclick = () => window.print();
+    row.appendChild(pr);
+  }
   box.appendChild(row);
   return box;
 }
