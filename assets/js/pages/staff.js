@@ -1,6 +1,6 @@
 import { eq, gte, list, remove, rpc } from '../api/db.js';
 import { h, icon, mount } from '../dom.js';
-import { productIcon } from '../lib/catalog.js';
+import { artEl } from '../ui/art.js';
 import { errorMessage } from '../lib/errors.js';
 import { formatDate, formatLongDate, relativeTime } from '../lib/format.js';
 import { formatDuration, localTime, localToIso, periodRange, shiftDate, shiftMinutes, sumMinutes, } from '../lib/hours.js';
@@ -303,7 +303,7 @@ export async function memberPage(c) {
                         ? h('div', { class: 'card card-flush' }, shortages.map((s) => {
                             const pr = products.get(s.product_id);
                             const [label, cls] = SHORTAGE_STATUS[s.status];
-                            return h('div', { class: 'item' }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, pr ? productIcon(pr) : '📦'), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, pr?.name ?? 'Produkt'), h('div', { class: 'item-sub' }, `${relativeTime(s.created_at, new Date(), zone)}${s.urgent ? ' · PILNE' : ''}${s.note ? ` · ${s.note}` : ''}`)), h('span', { class: `badge ${cls}` }, label), h('div', { class: 'item-end' }, qtyText(s.quantity, s.unit)));
+                            return h('div', { class: 'item' }, pr ? artEl(pr) : h('span', { class: 'prod-art art-emoji', 'aria-hidden': 'true' }, '📦'), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, pr?.name ?? 'Produkt'), h('div', { class: 'item-sub' }, `${relativeTime(s.created_at, new Date(), zone)}${s.urgent ? ' · PILNE' : ''}${s.note ? ` · ${s.note}` : ''}`)), h('span', { class: `badge ${cls}` }, label), h('div', { class: 'item-end' }, qtyText(s.quantity, s.unit)));
                         }))
                         : emptyState('Brak zamówień', 'Tu pojawią się produkty, które ta osoba dopisała do listy potrzebnych.'));
                 }
@@ -312,7 +312,7 @@ export async function memberPage(c) {
                         ? h('div', { class: 'card card-flush' }, moves.map((m) => {
                             const pr = products.get(m.product_id);
                             const d = Number(m.quantity_delta);
-                            return h('div', { class: 'item' }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, pr ? productIcon(pr) : '📦'), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, pr?.name ?? 'Produkt'), h('div', { class: 'item-sub' }, `${relativeTime(m.created_at, new Date(), zone)}${m.note ? ` · ${m.note}` : ''}`)), h('div', { class: `item-end ${d > 0 ? 'pos' : 'neg'}` }, `${d > 0 ? '+' : '−'}${qtyText(Math.abs(d), pr?.unit ?? '')}`));
+                            return h('div', { class: 'item' }, pr ? artEl(pr) : h('span', { class: 'prod-art art-emoji', 'aria-hidden': 'true' }, '📦'), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, pr?.name ?? 'Produkt'), h('div', { class: 'item-sub' }, `${relativeTime(m.created_at, new Date(), zone)}${m.note ? ` · ${m.note}` : ''}`)), h('div', { class: `item-end ${d > 0 ? 'pos' : 'neg'}` }, `${d > 0 ? '+' : '−'}${qtyText(Math.abs(d), pr?.unit ?? '')}`));
                         }))
                         : emptyState('Brak zmian stanu', 'Tu pojawi się, co ta osoba dodała lub odjęła z magazynu.'));
                 }

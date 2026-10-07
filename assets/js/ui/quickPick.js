@@ -1,5 +1,6 @@
 import { h } from '../dom.js';
-import { categoryIcon, productIcon } from '../lib/catalog.js';
+import { categoryIcon } from '../lib/catalog.js';
+import { artEl } from './art.js';
 import { unitLabel } from '../lib/units.js';
 const FREQUENT = '__czesto';
 const ALL = '__wszystkie';
@@ -55,7 +56,7 @@ export function quickPick(opts) {
             class: 'tile',
             'aria-label': `Wybierz: ${p.name}`,
             onclick: () => opts.onPick(p),
-        }, h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, productIcon(p, catName.get(p.category_id ?? ''))), h('span', null, p.name), h('span', { class: 'tile-sub' }, unitLabel(p.unit)))));
+        }, artEl(p, catName.get(p.category_id ?? ''), 'tile-art'), h('span', { class: 'tile-name' }, p.name), h('span', { class: 'tile-sub' }, unitLabel(p.unit)))));
     }
     draw();
     return h('section', { class: 'card quick-pick', 'aria-label': 'Szybki wybór produktu' }, h('div', { class: 'section-head', style: 'margin:0 0 8px' }, h('h2', null, 'Szybki wybór')), chipsEl, h('div', { style: 'height:10px' }), tilesEl);

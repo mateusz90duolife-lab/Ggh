@@ -1,6 +1,6 @@
 import { callFunction, eq, insert, list, one, rpc, update } from '../api/db.js';
 import { h, icon, mount } from '../dom.js';
-import { guessIcon, productIcon } from '../lib/catalog.js';
+import { productIcon } from '../lib/catalog.js';
 import { ApiError, errorMessage } from '../lib/errors.js';
 import { formatDate, formatDateTime, formatPLN, formatQty, normalize, plural } from '../lib/format.js';
 import { aliasKey, matchProduct, receiptRows, toCsv, toPurchaseLine, toTsv, unitForNewProduct, } from '../lib/receipt.js';
@@ -180,11 +180,11 @@ export async function scannerPage(c) {
         }
         async function createProduct(it) {
             const name = (it.name_guess || it.name).slice(0, 80);
-            const row = { name, unit: unitForNewProduct(it), icon: guessIcon(name), minimum_stock: 0 };
+            const row = { name, unit: unitForNewProduct(it), minimum_stock: 0 };
             try {
                 const [p] = await insert('products', row);
                 if (p) {
-                    products.push({ ...p, icon: row.icon });
+                    products.push(p);
                     return p.id;
                 }
             }
@@ -373,7 +373,7 @@ export async function scannerPage(c) {
                 type: 'button',
                 class: 'item item-btn',
                 onclick: () => openScan(r),
-            }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, '🧾'), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, r.store || 'Paragon'), h('div', { class: 'item-sub' }, `${r.receipt_date ? formatDate(r.receipt_date) : formatDateTime(r.created_at, tz())} · ${r.items.length} ${plural(r.items.length, 'pozycja', 'pozycje', 'pozycji')}${r.total !== null ? ` · ${formatPLN(r.total)}` : ''}`)), r.purchase_id
+            }, h('span', { class: 'prod-art art-emoji', 'aria-hidden': 'true' }, '🧾'), h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, r.store || 'Paragon'), h('div', { class: 'item-sub' }, `${r.receipt_date ? formatDate(r.receipt_date) : formatDateTime(r.created_at, tz())} · ${r.items.length} ${plural(r.items.length, 'pozycja', 'pozycje', 'pozycji')}${r.total !== null ? ` · ${formatPLN(r.total)}` : ''}`)), r.purchase_id
                 ? h('span', { class: 'badge badge-ok' }, icon('check', 14), 'zapisany')
                 : h('span', { class: 'badge badge-low' }, 'do zapisu')))));
     }
