@@ -1,0 +1,22 @@
+{
+  "name": "restaurant-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Restaurant OS — aplikacja PWA do zarządzania magazynem, brakami i zadaniami w restauracji (po polsku).",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "node scripts/write-config.mjs && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.functions.json --noEmit",
+    "lint": "prettier --check . && npm run typecheck",
+    "format": "prettier --write .",
+    "test": "npm run build && node --test \"tests/*.test.mjs\"",
+    "db:test": "scripts/db-test.sh",
+    "e2e": "npm run build && node e2e/run.mjs",
+    "serve": "npm run build && node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,7 @@
+MASTER_PROMPT.md
+public/assets/js
+public/config.js
+supabase/migrations
+supabase/tests
+e2e/.artifacts
+node_modules

@@ -1104,7 +1104,7 @@ Po każdym kroku: uruchom `lint`, `typecheck`, testy; zrób commit z opisem; zak
 | T19 | SQL | `generate_tasks_for` jest idempotentne i uwzględnia dni tygodnia |
 | T20 | E2E | Viewporty z sekcji 13: brak poziomego scrolla, kluczowe akcje widoczne |
 
-**Materiał referencyjny:** w `restaurant-os/verification/` leży działający test dymny SQL (`00_supabase_mock.sql` + `rls_smoke.sql`), który uruchomiono na PostgreSQL 16 po migracjach z sekcji 4. Pokrywa T2, T3, T5–T8, T12, T13, T15–T19 oraz walidacje ilości. Przepisz go na pgTAP/skrypty w `supabase/tests/` i rozszerz — nie traktuj go jako kompletu.
+**Materiał referencyjny:** w `restaurant-os/supabase/tests/` leży działający test dymny SQL (`00_supabase_mock.sql` + `10_rls_smoke.sql`), który uruchomiono na PostgreSQL 16 po migracjach z sekcji 4. Pokrywa T2, T3, T5–T8, T12, T13, T15–T19 oraz walidacje ilości. Przepisz go na pgTAP/skrypty w `supabase/tests/` i rozszerz — nie traktuj go jako kompletu.
 
 Reguły: testy muszą być deterministyczne (stałe dane, kontrolowany czas), niezależne od kolejności; test, który nie przechodzi, naprawiasz **kodem lub testem z uzasadnieniem w commicie** — nigdy nie wyłączasz/pomijasz (`skip`/`xit`) żeby „zazielenić”.
 
