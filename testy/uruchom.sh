@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Uruchamia komplet testów trenera izometryki.
 #
-#   ./testy/uruchom.sh            testy logiki (Node, bez zależności)
+#   ./testy/uruchom.sh            logika (Node) + skrypt RLS + migracja RLS na PostgreSQL
 #   ./testy/uruchom.sh --all      dodatkowo testy w przeglądarce (Playwright)
 #
 # Testy logiki działają na kodzie wyciętym z trener.html, więc aplikacja
@@ -22,6 +22,12 @@ sed '/START APLIKACJI/,$d' "$TMP/pelny.js" > "$TMP/rdzen.js"
 
 cat "$TMP/rdzen.js" testy/logika.js > "$TMP/testy.js"
 node "$TMP/testy.js"
+
+# Skrypt sprawdzający szczelność RLS — na lokalnym serwerze udającym Supabase
+node testy/rls-skrypt.js
+
+# Migracja RLS na prawdziwym PostgreSQL (pomijana, gdy go brak)
+./testy/rls-baza.sh
 
 if [ "${1:-}" = "--all" ]; then
   echo "Testy w przeglądarce (Chromium)..."

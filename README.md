@@ -75,6 +75,22 @@ odnotować.
 
 Domyślną metodą rzutowania jest **metoda pierwszego kąta** (europejska,
 PN-EN ISO 5456-2). W ustawieniach można przełączyć na metodę trzeciego kąta.
+Każdy układ rzutów ma obok symbol metody wymagany przez normę, a jeden
+z wariantów zadania wymaga odczytania metody z samego symbolu.
+
+### Test wstępny i końcowy
+
+Przyrost mierzy się tym samym narzędziem przed nauką i po niej, tak jak robili
+to Sorby i Baartmans z testem PSVT:R. Każde z ośmiu zadań pokazuje obrót na
+jednej bryle i każe zastosować go do drugiej; na wyższych poziomach obrót jest
+złożony z dwóch osi. Generator odrzuca zadania, w których przykład pasuje do
+więcej niż jednego z 24 obrotów sześcianu, bo wtedy poprawnie odczytany obrót
+mógłby prowadzić do innej odpowiedzi.
+
+Certyfikat porównuje test wstępny z końcowym, a wynik egzaminu podaje osobno.
+Test jest wzorowany na PSVT:R, ale nim nie jest: ma 8 zadań zamiast 30 i nie
+przeszedł walidacji psychometrycznej, więc pokazuje kierunek zmiany, nie wynik
+porównywalny z normami.
 
 ---
 
@@ -97,7 +113,7 @@ nieuczciwe.
 ### Testy
 
 ```bash
-./testy/uruchom.sh          # logika: geometria, zadania, model ucznia, kurs
+./testy/uruchom.sh          # logika, skrypt RLS, migracja RLS na PostgreSQL
 ./testy/uruchom.sh --all    # dodatkowo przebieg w przeglądarce (Playwright)
 ```
 
@@ -112,6 +128,13 @@ zwykłe sprawdzenie struktury, bo konfrontują kod z niezależnym wyliczeniem:
   jest porównywana z wynikiem rasteryzacji o wysokiej rozdzielczości.
   Dwie analityczne reguły, które wydawały się oczywiste, poległy właśnie na
   tym teście.
+- **Jednoznaczność zadań PSVT** — dla każdego zadania sprawdzane są wszystkie
+  24 obroty sześcianu. Kontrola ograniczona do obrotów obecnych w opcjach
+  przepuszczała 7% zadań z dwiema poprawnymi interpretacjami.
+- **Polityki RLS na prawdziwej bazie** — migracja jest uruchamiana dwukrotnie
+  na tymczasowym PostgreSQL z imitacją Supabase, a 17 sprawdzeń weryfikuje,
+  co widzi i co może zmienić każda rola. Sprawdzono też, że test wychwytuje
+  celowo zepsutą politykę.
 
 Test przeglądarkowy przechodzi cały kurs od pierwszego modułu po certyfikat,
 potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu, i sprawdza
@@ -186,32 +209,34 @@ w kodzie przeglądarki **nie jest zabezpieczeniem**, tylko ukryciem przycisku.
 Jedyną realną granicą są polityki RLS. W szczególności musi być chroniona
 tabela `questions`: bez tego treść płatna jest publiczna.
 
-```sql
--- Pytania tylko dla aktywnej subskrypcji
-alter table questions enable row level security;
-create policy "pytania dla subskrybentow" on questions for select
-  using (exists (
-    select 1 from subscriptions s
-    where s.user_id = auth.uid()
-      and s.active
-      and (s.expires_at is null or s.expires_at > now())
-  ));
+Polityki są w pliku migracji, który da się uruchamiać wielokrotnie:
 
--- Własne postępy, cudzych nie widać i nie da się ich podrobić
-alter table progress enable row level security;
-create policy "wlasne postepy" on progress for all
-  using (user_id = auth.uid()) with check (user_id = auth.uid());
-
--- Subskrypcję można tylko odczytać; zapisuje wyłącznie webhook Stripe
--- działający rolą service_role, która pomija RLS. Brak polityki insert,
--- update i delete oznacza, że klient nie nada sobie dostępu PRO.
-alter table subscriptions enable row level security;
-create policy "odczyt wlasnej subskrypcji" on subscriptions for select
-  using (user_id = auth.uid());
+```bash
+supabase db push
+# albo wklej supabase/migrations/20261007120000_rls_paywall.sql
+# w Supabase → SQL Editor → Run
 ```
 
-Sprawdzenie po wdrożeniu: wyloguj się i spróbuj pobrać `questions` czystym
-kluczem `anon`. Jeżeli przyjdą jakiekolwiek wiersze, paywall jest nieszczelny.
+Migracja chroni trzy tabele:
+
+| Tabela | Kto widzi | Kto zapisuje |
+| --- | --- | --- |
+| `questions` | zalogowani z aktywną subskrypcją | nikt z klientów |
+| `progress` | właściciel wiersza | właściciel, tylko we własnym imieniu |
+| `subscriptions` | właściciel wiersza | wyłącznie webhook Stripe (`service_role`) |
+
+Po wdrożeniu sprawdź szczelność z zewnątrz, tak jak widzi ją każdy, kto
+otworzy źródło strony:
+
+```bash
+./testy/sprawdz-rls.sh
+```
+
+Skrypt tylko czyta i kończy się kodem `0`, gdy żadna tabela nie ujawnia danych,
+`1` przy wycieku i `2`, gdy wynik jest nierozstrzygnięty — na przykład z braku
+połączenia. Brak połączenia nigdy nie jest raportowany jako szczelność.
+Pusta odpowiedź oznacza albo działającą politykę, albo pustą tabelę, więc
+wynik rozstrzyga dopiero wtedy, gdy w `questions` jest co najmniej jedno pytanie.
 
 #### Logowanie nazwą użytkownika
 

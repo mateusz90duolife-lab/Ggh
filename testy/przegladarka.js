@@ -252,11 +252,58 @@ async function testDostepnosc(browser) {
   await page.close();
 }
 
+async function testPomiar(browser) {
+  console.log('\n— Test wstępny i końcowy —');
+  const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
+  watch(page, '[pomiar]');
+  await page.goto(APP);
+  await page.waitForTimeout(250);
+
+  // Test wstępny uruchomiony ze spisu kursu musi pokazać zadanie
+  await page.locator('button.btn').filter({ hasText: 'Test wstępny' }).first().click();
+  await page.waitForTimeout(250);
+  if ((await page.textContent('#nav button.on')).trim() !== 'Trening') errors.push('test ze spisu kursu nie przełącza ekranu');
+  if (!(await page.locator('.psvt').count())) errors.push('test wstępny nie jest w formacie PSVT');
+  const answerAll = async (good) => {
+    for (let i = 0; i < 20; i++) {
+      if (!(await page.evaluate(() => Session.active))) break;
+      const c = await page.evaluate(() => Session.q.correct);
+      const n = await page.locator('.opt').count();
+      await page.locator('.opt').nth(good(i) ? c : (c + 1) % n).click();
+      await page.waitForTimeout(25);
+      await page.locator('button.btn').filter({ hasText: /Dalej|Zakończ sesję/ }).first().click();
+      await page.waitForTimeout(40);
+    }
+  };
+  await answerAll(i => i < 3);                     // 3 z 8
+  if (!/Test wstępny zakończony/.test(await page.textContent('h2'))) errors.push('brak podsumowania testu wstępnego');
+  console.log('  test wstępny: format PSVT, uruchomiony ze spisu kursu');
+
+  await page.click('#nav button:has-text("Trening")');
+  await page.waitForTimeout(200);
+  await page.locator('button.btn').filter({ hasText: 'Test końcowy' }).first().click();
+  await page.waitForTimeout(250);
+  await answerAll(i => i < 7);                     // 7 z 8
+  const txt = await page.textContent('.card');
+  if (!/Test końcowy zakończony/.test(txt)) errors.push('brak podsumowania testu końcowego');
+  if (!/38% → test końcowy 88%/.test(txt)) errors.push('podsumowanie nie porównuje testów tym samym narzędziem: ' + txt.slice(0, 160));
+  console.log('  test końcowy: porównanie 38% → 88% tym samym narzędziem');
+
+  await page.click('#nav button:has-text("Teoria")');
+  await page.waitForTimeout(200);
+  const symbols = await page.evaluate(() => [...document.querySelectorAll('canvas[aria-label]')]
+    .filter(c => /symbol metody rzutowania/.test(c.getAttribute('aria-label'))).length);
+  if (symbols < 2) errors.push('w teorii brak symboli metody rzutowania (' + symbols + ')');
+  console.log('  symbole metody w dziale Teoria: ' + symbols);
+  await page.close();
+}
+
 (async () => {
   const browser = await chromium.launch();
   await testTrening(browser);
   await testKurs(browser);
   await testDostepnosc(browser);
+  await testPomiar(browser);
   await browser.close();
   if (errors.length) { console.log('\nBŁĘDY:\n' + errors.join('\n') + '\n'); process.exit(1); }
   console.log('\nTesty w przeglądarce przeszły.\n');

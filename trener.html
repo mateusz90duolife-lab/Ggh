@@ -268,6 +268,17 @@ table.tbl td b { color: var(--txt); }
   outline-offset: 2px;
   border-radius: 4px;
 }
+.psvt { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+.psvt-arrow { font-size: 26px; color: var(--txt-faint); }
+.psvt-sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 14px; }
+.psvt-q {
+  width: 152px; height: 132px; display: flex; align-items: center; justify-content: center;
+  font-size: 40px; color: var(--txt-faint); border: 2px dashed var(--line-hi); border-radius: 8px;
+}
+.method-cap {
+  display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px;
+  font-size: 11px; color: var(--txt-faint); text-transform: uppercase; letter-spacing: 1.2px;
+}
 .kbd-hint { font-size: 12px; color: var(--txt-faint); margin-top: 10px; }
 kbd {
   font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px;
@@ -833,6 +844,8 @@ const WHY = {
   viewFlip: "rzut odbity — pomylony kierunek patrzenia",
   otherSec: "przekrój poprowadzony w innym miejscu",
   onlySeen: "policzone tylko kostki widoczne na rysunku, bez tych zasłoniętych przez inne",
+  symbolMisread: "to miejsce byłoby poprawne w drugiej metodzie — symbol został odczytany odwrotnie",
+  slotWrong: "w żadnej z metod ten rzut nie trafia w to miejsce",
   stepLine: "ten rysunek ma poprawny zarys, ale inne linie uskoków — powierzchnia cofa się w innym miejscu",
   onlyCols: "policzona liczba słupków (pól planu), a nie kostek",
   offOne:   "pomyłka o jedną kostkę",
@@ -1070,8 +1083,39 @@ const SLOTS = {
 const SLOT_TXT = { right: "po prawej stronie rzutu głównego", left: "po lewej stronie rzutu głównego",
                    below: "pod rzutem głównym", above: "nad rzutem głównym" };
 
+const SYMBOL_PLACE = {
+  E: { top: "below", left: "right", right: "left" },
+  A: { top: "above", left: "left",  right: "right" },
+};
+const PLACE_TXT = { below: "pod rzutem głównym", above: "nad rzutem głównym",
+                    left: "po lewej stronie rzutu głównego", right: "po prawej stronie rzutu głównego" };
+const PLACE_VIEW_TXT = { top: "rzut z góry", left: "rzut z lewej strony", right: "rzut z prawej strony" };
+
+/** Wariant, w którym metody nie podano słownie — trzeba ją odczytać z symbolu.
+    Do tego właśnie służy symbol na prawdziwym rysunku. */
+function exUkladSymbol(method) {
+  const view = pick(["top", "left", "right"]);
+  const ok = SYMBOL_PLACE[method][view];
+  const other = SYMBOL_PLACE[method === "E" ? "A" : "E"][view];
+  const cand = Object.keys(PLACE_TXT).filter(k => k !== ok)
+    .map(k => textOpt(PLACE_TXT[k], k === other ? "symbolMisread" : "slotWrong"));
+  return {
+    skill: "uklad",
+    prompt: "Na rysunku jest ten symbol metody rzutowania. Gdzie względem rzutu głównego leży " +
+            PLACE_VIEW_TXT[view] + "?",
+    hint: "Trapez to stożek widziany z boku, okręgi to ten sam stożek od węższego końca. " +
+          "Sprawdź, czy węższy bok trapezu jest zwrócony do okręgów, czy od nich odwrócony.",
+    stimulus: [{ type: "symbol", method: method }],
+    options: assembleOptions(textOpt(PLACE_TXT[ok], "ok"), cand, 4),
+    note: method === "E"
+      ? "Węższy bok trapezu jest odwrócony od okręgów, więc to metoda pierwszego kąta: rzut trafia po stronie przeciwnej niż obserwator."
+      : "Węższy bok trapezu jest zwrócony do okręgów, więc to metoda trzeciego kąta: rzut trafia po tej samej stronie co obserwator.",
+  };
+}
+
 function exUklad(cfg, opts) {
   const method = (opts && opts.forceMethod) || (Math.random() < 0.5 ? "E" : "A");
+  if (!(opts && opts.noSymbol) && Math.random() < 0.5) return exUkladSymbol(method);
   const slot = pick(Object.keys(SLOTS[method]));
   const info = SLOTS[method][slot];
   const all = ["rzut z lewej strony", "rzut z prawej strony", "rzut z góry", "rzut z dołu", "rzut z tyłu"];
@@ -1089,6 +1133,94 @@ function exUklad(cfg, opts) {
   };
 }
 
+/* ═══ ZADANIE W FORMACIE PSVT:R ═══
+   Format testu Guaya (1977): pokazany jest obrót na jednej bryle, a trzeba
+   zastosować ten sam obrót do drugiej. Obrotu nie podaje się słownie —
+   trzeba go odczytać z przykładu. Na wyższych poziomach obrót jest złożony
+   z dwóch obrotów wokół różnych osi, jak w tygodniu 7 kursu Sorby.
+   Służy wyłącznie jako test wstępny i końcowy: to samo narzędzie przed
+   kursem i po nim, inaczej różnica wyników nie mierzyłaby przyrostu. */
+
+const XF_INV = new Map([
+  [XF.rotZ, XF.rotZi], [XF.rotZi, XF.rotZ], [XF.rotX, XF.rotXi],
+  [XF.rotXi, XF.rotX], [XF.rotY, XF.rotYi], [XF.rotYi, XF.rotY],
+]);
+const applySeq = (solid, seq) => { let t = solid; for (const f of seq) t = xform(t, f); return t; };
+
+/** Wszystkie 24 obroty sześcianu jako sekwencje obrotów elementarnych.
+    Wyznaczone przeszukiwaniem: każda nowa sekwencja, która daje inny obraz
+    bryły wzorcowej, to nowy obrót. Bryła wzorcowa nie ma żadnej symetrii,
+    więc różne obroty zawsze dają różne obrazy. */
+let CUBE_ROTATIONS = null;
+function cubeRotations() {
+  if (CUBE_ROTATIONS) return CUBE_ROTATIONS;
+  const ref = solidFromHeights([[3, 1, 0], [1, 0, 2], [0, 2, 1]]);
+  const out = [], seen = new Set(), queue = [[]];
+  while (queue.length) {
+    const seq = queue.shift();
+    const key = applySeq(ref, seq).id;
+    if (seen.has(key)) continue;
+    seen.add(key); out.push(seq);
+    for (const g of [XF.rotX, XF.rotY, XF.rotZ]) queue.push(seq.concat([g]));
+  }
+  CUBE_ROTATIONS = out;
+  return out;
+}
+const inverseSeq = seq => seq.slice().reverse().map(f => XF_INV.get(f));
+
+function exPsvt(cfg, opts) {
+  const level = (opts && opts.level) || 4;
+  const singles = [XF.rotZ, XF.rotZi, XF.rotX, XF.rotXi, XF.rotY, XF.rotYi];
+  const axisOf = f => (f === XF.rotZ || f === XF.rotZi) ? "z" : (f === XF.rotX || f === XF.rotXi) ? "x" : "y";
+
+  for (let attempt = 0; attempt < 80; attempt++) {
+    // obrót: pojedynczy na poziomach 1–4, złożony z dwóch osi na 5–8
+    const first = pick(singles);
+    let seq = [first];
+    if (level >= 5) seq.push(pick(singles.filter(f => axisOf(f) !== axisOf(first))));
+    const inv = inverseSeq(seq);
+    const other = [pick(singles.filter(f => axisOf(f) !== axisOf(seq[0])))];
+
+    const ex = generateSolidWhere(cfg, isChiralEnough);
+    const target = generateSolidWhere(cfg, q => isChiralEnough(q) && q.id !== ex.id);
+    const exAfter = applySeq(ex, seq);
+
+    // Przykład musi jednoznacznie wyznaczać obrót spośród tych, które pojawią
+    // się w odpowiedziach — inaczej zadanie ma dwie poprawne interpretacje.
+    if (exAfter.id === ex.id) continue;
+    if (applySeq(ex, inv).id === exAfter.id || applySeq(ex, other).id === exAfter.id) continue;
+
+    const correct = applySeq(target, seq);
+    if (correct.id === target.id) continue;
+
+    // Najmocniejszy warunek: KAŻDY z 24 obrotów, który przekształca przykład
+    // w jego obraz, musi dawać ten sam wynik na bryle docelowej. Bez tego
+    // przykład z symetrią pasuje do kilku obrotów, a uczeń, który poprawnie
+    // odczyta inny z nich, zostałby oceniony jako błędny. Pierwsza wersja
+    // sprawdzała tylko obroty obecne w opcjach i przepuszczała 7% takich zadań.
+    const outcomes = new Set();
+    for (const g of cubeRotations()) if (applySeq(ex, g).id === exAfter.id) outcomes.add(applySeq(target, g).id);
+    if (outcomes.size !== 1) continue;
+
+    const cand = [
+      isoOpt(applySeq(target, inv), "rotWrong"),
+      isoOpt(applySeq(target, other), "axWrong"),
+      isoOpt(xform(correct, XF.mirX), "mirror"),
+      isoOpt(target, "identity"),
+    ];
+    return {
+      skill: "obrot",
+      prompt: "Pierwsza bryła została obrócona tak, jak pokazano. Obróć drugą bryłę dokładnie w ten sam sposób. " +
+              "Który wynik jest poprawny?",
+      hint: "",
+      stimulus: [{ type: "psvt", a: ex, b: exAfter, target: target }],
+      options: assembleOptions(isoOpt(correct, "ok"), cand, 4),
+      solution: correct,
+    };
+  }
+  return exObrot(cfg, {});   // awaryjnie, gdyby losowanie wielokrotnie zawiodło
+}
+
 const BUILDERS = {
   "plan-bryla":  exPlanBryla,
   "bryla-rzut":  exBrylaRzut,
@@ -1098,6 +1230,7 @@ const BUILDERS = {
   "przekroj":    exPrzekroj,
   "liczenie":    exLiczenie,
   "uklad":       exUklad,
+  "psvt":        exPsvt,
 };
 
 function buildExercise(skill, level, opts) {
@@ -1121,7 +1254,7 @@ const SESSION_LEN = 10;
 const State = {
   level: 2, method: "E",
   skills: {}, seen: 0, ok: 0, streak: 0, best: 0,
-  recent: [], lastSkills: [], diag: null, sessions: 0,
+  recent: [], lastSkills: [], diag: null, diagPost: null, sessions: 0,
   course: { mods: {}, exam: null },
 };
 
@@ -1267,6 +1400,66 @@ function planFigure(hm, cap) {
   return figure(cap, c);
 }
 
+/* ═══ SYMBOL METODY RZUTOWANIA (PN-EN ISO 5456-2) ═══
+   Ścięty stożek w dwóch rzutach. Widziany od węższego końca daje dwa
+   współśrodkowe okręgi, widziany z prawej — trapez z krótszym bokiem po
+   lewej, bo obserwator z prawej widzi węższy koniec po swojej lewej.
+   Symbol to po prostu zasada rozmieszczenia zastosowana do stożka:
+     pierwszy kąt (E): [trapez][okręgi] — krótszy bok odwrócony od okręgów
+     trzeci kąt  (A):  [okręgi][trapez] — krótszy bok zwrócony do okręgów
+   Orientację potwierdzają Wikipedia („Multiview orthographic projection")
+   i SizeMarker; treści samej normy nie przeczytano, bo dostępna próbka to
+   skan. Proporcje są więc przybliżone, a znaczenie niesie kierunek trapezu. */
+
+function methodSymbolGeometry(method, W, H) {
+  const R = H * 0.36, r = R * 0.5;            // promień okręgu dużego i małego
+  const trapLen = R * 2.2, gap = R * 0.8;
+  const total = trapLen + gap + 2 * R;
+  const x0 = (W - total) / 2, cy = H / 2;
+  const trapX = method === "E" ? x0 : x0 + 2 * R + gap;
+  const circX = method === "E" ? x0 + trapLen + gap + R : x0 + R;
+  return { cy: cy, R: R, r: r, x0: x0, total: total, circX: circX,
+           narrowX: trapX, wideX: trapX + trapLen };
+}
+
+function describeMethodSymbol(method) {
+  return method === "E"
+    ? "symbol metody rzutowania: trapez po lewej, dwa współśrodkowe okręgi po prawej, węższy bok trapezu odwrócony od okręgów"
+    : "symbol metody rzutowania: dwa współśrodkowe okręgi po lewej, trapez po prawej, węższy bok trapezu zwrócony do okręgów";
+}
+
+function drawMethodSymbol(canvas, method, opt) {
+  opt = opt || {};
+  const W = opt.w || 90, H = opt.h || 38;
+  const ctx = setupCanvas(canvas, W, H);
+  const g = methodSymbolGeometry(method, W, H);
+  ctx.strokeStyle = opt.color || "#d8e6f0";
+  ctx.lineWidth = opt.lw || 1.5; ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(g.narrowX, g.cy - g.r); ctx.lineTo(g.wideX, g.cy - g.R);
+  ctx.lineTo(g.wideX, g.cy + g.R);   ctx.lineTo(g.narrowX, g.cy + g.r);
+  ctx.closePath(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(g.circX, g.cy, g.R, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(g.circX, g.cy, g.r, 0, Math.PI * 2); ctx.stroke();
+  // linie osiowe kreska-kropka, jak na rysunku technicznym
+  ctx.setLineDash([4, 2, 1, 2]); ctx.lineWidth = 0.7;
+  ctx.beginPath(); ctx.moveTo(g.x0 - 4, g.cy); ctx.lineTo(g.x0 + g.total + 4, g.cy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(g.circX, g.cy - g.R - 4); ctx.lineTo(g.circX, g.cy + g.R + 4); ctx.stroke();
+  ctx.setLineDash([]);
+  labelCanvas(canvas, describeMethodSymbol(method));
+  return g;
+}
+
+/** Podpis układu rzutów: symbol metody i jej nazwa, tak jak w tabliczce rysunku. */
+function methodCaption(method) {
+  const row = el("div", "method-cap");
+  const c = el("canvas");
+  drawMethodSymbol(c, method, { w: 70, h: 30 });
+  row.appendChild(c);
+  row.appendChild(el("span", null, "metoda " + (method === "E" ? "pierwszego kąta (E)" : "trzeciego kąta (A)")));
+  return row;
+}
+
 /** Układ trzech rzutów zgodny z wybraną metodą rzutowania. */
 function viewsLayout(solid, method, side) {
   const wrap = el("div", "views-layout");
@@ -1293,10 +1486,7 @@ function viewsLayout(solid, method, side) {
   }
   const box = el("div", "views-card");
   box.appendChild(wrap);
-  const cap = el("div", "fig-cap");
-  cap.style.marginTop = "12px";
-  cap.textContent = "metoda " + (method === "E" ? "pierwszego kąta (E)" : "trzeciego kąta (A)");
-  box.appendChild(cap);
+  box.appendChild(methodCaption(method));
   return box;
 }
 
@@ -1320,8 +1510,7 @@ function layoutDiagram(method, slot) {
   put(cellBox(slot === "below" ? "?" : "", slot === "below"), 3, 2);
   const box = el("div", "views-card");
   box.appendChild(wrap);
-  box.appendChild(el("div", "fig-cap", "metoda " + (method === "E" ? "pierwszego kąta (E)" : "trzeciego kąta (A)")));
-  box.lastChild.style.marginTop = "12px";
+  box.appendChild(methodCaption(method));
   return box;
 }
 
@@ -1332,6 +1521,28 @@ function renderStimulus(list, scale) {
     else if (s.type === "plan")      row.appendChild(planFigure(s.hm, s.cap));
     else if (s.type === "views")     row.appendChild(viewsLayout(s.solid, s.method, s.side));
     else if (s.type === "layoutDiagram") row.appendChild(layoutDiagram(s.method, s.slot));
+    else if (s.type === "psvt") {
+      const box = el("div", "psvt");
+      const sz = { w: 152, h: 132 };
+      box.appendChild(isoFigure(s.a, "przed obrotem", sz, scale));
+      box.appendChild(el("div", "psvt-arrow", "→"));
+      box.appendChild(isoFigure(s.b, "po obrocie", sz, scale));
+      box.appendChild(el("div", "psvt-sep"));
+      box.appendChild(isoFigure(s.target, "obróć tę bryłę", sz, scale));
+      box.appendChild(el("div", "psvt-arrow", "→"));
+      const qbox = el("div", "fig");
+      const qm = el("div", "psvt-q", "?");
+      qm.setAttribute("aria-hidden", "true");
+      qbox.appendChild(qm);
+      qbox.appendChild(el("div", "fig-cap", "wynik"));
+      box.appendChild(qbox);
+      row.appendChild(box);
+    }
+    else if (s.type === "symbol") {
+      const c = el("canvas");
+      drawMethodSymbol(c, s.method, { w: 200, h: 88, lw: 2.2 });
+      row.appendChild(figure("symbol metody rzutowania", c));
+    }
   }
   return row;
 }
@@ -1354,6 +1565,20 @@ function renderOptionBody(opt, scale) {
 
 const UI = { screen: "kurs", module: null };
 const DIAG_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8];
+// Wersja narzędzia pomiarowego. Wynik z innej wersji nie jest porównywalny,
+// dlatego przyrost liczy się tylko, gdy oba testy mają tę samą wartość.
+const PSVT_INSTRUMENT = "psvt-v1";
+
+/** Przyrost między testem wstępnym a końcowym, albo powód, dla którego go brak. */
+function measuredGain() {
+  const pre = State.diag, post = State.diagPost;
+  if (!pre) return { ok: false, why: "brak testu wstępnego" };
+  if (pre.instrument !== PSVT_INSTRUMENT)
+    return { ok: false, why: "test wstępny wykonano w starszej wersji narzędzia, której wyniku nie da się porównać" };
+  if (!post) return { ok: false, why: "test końcowy niewykonany" };
+  const a = Math.round(pre.score / pre.total * 100), b = Math.round(post.score / post.total * 100);
+  return { ok: true, pre: a, post: b, delta: b - a };
+}
 
 const Session = { active: false, mode: "trening", diag: false, queue: null, moduleId: null,
                   i: 0, len: SESSION_LEN, ok: 0, q: null, answered: false, chosen: -1, summary: null };
@@ -1363,10 +1588,13 @@ function startSession(opts) {
   opts = opts || {};
   Session.active   = true;
   Session.mode     = opts.mode || "trening";
-  Session.diag     = Session.mode === "diag";
+  Session.diag     = Session.mode === "diag" || Session.mode === "post";
   Session.queue    = opts.queue || null;
   Session.moduleId = opts.moduleId || null;
   Session.i = 0; Session.ok = 0; Session.summary = null;
+  // Testy i trening wyświetla zakładka Trening; bez tego test uruchomiony
+  // ze spisu kursu startowałby na ekranie, który go nie pokazuje.
+  if (Session.mode === "trening" || Session.diag) UI.screen = "trening";
   Session.len = Session.queue ? Session.queue.length : (Session.diag ? DIAG_LEVELS.length : SESSION_LEN);
   // Podejście liczy się od chwili rozpoczęcia, także gdy zostanie przerwane.
   // Inaczej zapis pokazywałby wyłącznie udane próby.
@@ -1379,7 +1607,8 @@ function loadQuestion() {
     const spec = Session.queue[Session.i];
     Session.q = nextQuestion(spec.skill, spec.level, spec.opts);
   } else if (Session.diag) {
-    Session.q = nextQuestion("obrot", DIAG_LEVELS[Session.i]);
+    const lvl = DIAG_LEVELS[Session.i];
+    Session.q = nextQuestion("psvt", lvl, { level: lvl });
   } else {
     Session.q = nextQuestion();
   }
@@ -1422,8 +1651,12 @@ function finishSession() {
   const m = Session.mode;
   if (m === "diag") {
     const lvl = clamp(1 + Session.ok, 1, 8);
-    State.diag = { score: Session.ok, total: Session.len, level: lvl, date: Date.now() };
+    State.diag = { score: Session.ok, total: Session.len, level: lvl, date: Date.now(), instrument: PSVT_INSTRUMENT };
     State.level = lvl;
+    State.diagPost = null;   // nowy punkt wyjścia unieważnia stary test końcowy
+  } else if (m === "post") {
+    // Test końcowy nie zmienia poziomu: mierzy, a nie steruje nauką.
+    State.diagPost = { score: Session.ok, total: Session.len, date: Date.now(), instrument: PSVT_INSTRUMENT };
   } else if (m === "trening") {
     State.sessions++;
   } else if (m === "kurs-drill") {
@@ -1456,14 +1689,26 @@ function screenTrening(root) {
     const s = Session.summary;
     const pct = Math.round(s.ok / s.len * 100);
     const card = el("div", "card center");
-    card.appendChild(el("h2", null, s.mode === "diag" ? "Test wstępny zakończony" : "Sesja zakończona"));
+    card.appendChild(el("h2", null, s.mode === "diag" ? "Test wstępny zakończony"
+                                   : s.mode === "post" ? "Test końcowy zakończony" : "Sesja zakończona"));
     const big = el("div", "stat-n", s.ok + " / " + s.len);
     big.style.fontSize = "42px";
     card.appendChild(big);
     card.appendChild(el("p", null, "Skuteczność " + pct + "%."));
-    card.appendChild(el("p", null, s.mode === "diag"
-      ? "Poziom startowy ustawiony na " + State.level + ". Możesz zacząć trening."
-      : "Aktualny poziom trudności: " + State.level + " z 8. Kolejne powtórki materiału zaplanowane są w czasie."));
+    if (s.mode === "post") {
+      const g = measuredGain();
+      card.appendChild(el("p", null, g.ok
+        ? "Test wstępny " + g.pre + "% → test końcowy " + g.post + "%. " +
+          (g.delta > 0 ? "Przyrost: " + g.delta + " pkt proc." : g.delta < 0 ? "Spadek: " + (-g.delta) + " pkt proc." : "Bez zmiany.") +
+          " Oba wyniki pochodzą z tego samego narzędzia, więc da się je porównać."
+        : "Przyrostu nie da się policzyć: " + g.why + "."));
+      card.appendChild(el("p", "muted", "Przy ośmiu zadaniach różnica jednego zadania to 12,5 punktu procentowego. " +
+        "Pojedynczy wynik pokazuje kierunek zmiany, nie jej dokładną wielkość."));
+    } else {
+      card.appendChild(el("p", null, s.mode === "diag"
+        ? "Poziom startowy ustawiony na " + State.level + ". Ten wynik jest punktem odniesienia: po nauce zrób test końcowy, żeby zmierzyć przyrost."
+        : "Aktualny poziom trudności: " + State.level + " z 8. Kolejne powtórki materiału zaplanowane są w czasie."));
+    }
     const row = el("div", "row center mt");
     row.style.justifyContent = "center";
     const b1 = el("button", "btn", "Następna sesja");
@@ -1485,8 +1730,9 @@ function screenTrening(root) {
 
   if (!State.diag) {
     const note = el("div", "note");
-    note.textContent = "Nie masz jeszcze wyniku testu wstępnego. Osiem zadań na obroty przestrzenne ustawi poziom startowy, " +
-      "żeby nie zaczynać od zadań zbyt łatwych albo zbyt trudnych. Test można pominąć.";
+    note.textContent = "Nie masz jeszcze wyniku testu wstępnego. Osiem zadań w formacie testu PSVT:R ustawi poziom " +
+      "startowy i stanie się punktem odniesienia, do którego porówna się test końcowy. Test można pominąć, " +
+      "ale wtedy przyrostu nie da się zmierzyć.";
     card.appendChild(note);
   }
 
@@ -1494,10 +1740,29 @@ function screenTrening(root) {
   const b1 = el("button", "btn", "Zacznij sesję");
   b1.onclick = () => startSession({ mode: "trening" });
   row.appendChild(b1);
-  const b2 = el("button", "btn ghost", State.diag ? "Powtórz test wstępny" : "Test wstępny (8 zadań)");
-  b2.onclick = () => startSession({ mode: "diag" });
-  row.appendChild(b2);
+  if (!State.diag) {
+    const b2 = el("button", "btn ghost", "Test wstępny (8 zadań)");
+    b2.onclick = () => startSession({ mode: "diag" });
+    row.appendChild(b2);
+  } else {
+    const b2 = el("button", "btn ghost", State.diagPost ? "Powtórz test końcowy" : "Test końcowy (8 zadań)");
+    b2.onclick = () => startSession({ mode: "post" });
+    row.appendChild(b2);
+    const b3 = el("button", "btn ghost sm", "Powtórz test wstępny");
+    b3.onclick = () => {
+      if (!window.confirm("Powtórzenie testu wstępnego zastąpi punkt odniesienia i skasuje wynik testu końcowego. " +
+                          "Robi się to tylko na początku nauki. Kontynuować?")) return;
+      startSession({ mode: "diag" });
+    };
+    row.appendChild(b3);
+  }
   card.appendChild(row);
+  const g = measuredGain();
+  if (g.ok) {
+    const m = el("div", "muted", "Test wstępny " + g.pre + "% → test końcowy " + g.post + "%.");
+    m.style.marginTop = "10px";
+    card.appendChild(m);
+  }
   root.appendChild(card);
 
   // Co jest zaplanowane do powtórki
@@ -1526,6 +1791,7 @@ function renderQuestion(root) {
   // Jedna skala dla bodźca i wszystkich opcji — porównywalność rysunków
   const isoSolids = q.options.filter(o => o.kind === "iso").map(o => o.solid)
     .concat(q.stimulus.filter(s => s.type === "iso").map(s => s.solid));
+  for (const st of q.stimulus) if (st.type === "psvt") isoSolids.push(st.a, st.b, st.target);
   const isoScale = isoSolids.length ? sharedIsoScale(isoSolids, 152, 132, 12) : null;
 
   card.appendChild(renderStimulus(q.stimulus, isoScale));
@@ -1985,8 +2251,20 @@ const LESSONS = [
     b.appendChild(t);
     b.appendChild(stimRow(viewsLayout(DEMO_A, "E", "left"), viewsLayout(DEMO_A, "A", "right")));
     noteBox(b, "Ten sam rysunek odczytany w niewłaściwej konwencji daje inną bryłę. Dlatego norma PN-EN ISO 5456-2 " +
-      "wymaga umieszczenia na rysunku symbolu graficznego zastosowanej metody — rzutu ściętego stożka. " +
+      "wymaga umieszczenia na rysunku symbolu graficznego zastosowanej metody. " +
       "Polska i Europa stosują metodę pierwszego kąta, Ameryka Północna trzeciego.");
+    b.appendChild(el("h3", null, "Jak czytać symbol"));
+    para(b, "Symbol to ścięty stożek narysowany w dwóch rzutach. Widziany od węższego końca daje dwa " +
+      "współśrodkowe okręgi, widziany z boku — trapez. Symbol jest po prostu zasadą rozmieszczenia " +
+      "zastosowaną do stożka, dlatego oba warianty są swoimi lustrzanymi odbiciami.");
+    const symE = el("canvas"); drawMethodSymbol(symE, "E", { w: 170, h: 74, lw: 2 });
+    const symA = el("canvas"); drawMethodSymbol(symA, "A", { w: 170, h: 74, lw: 2 });
+    b.appendChild(stimRow(
+      figure("pierwszy kąt (E): krótszy bok odwrócony od okręgów", symE),
+      figure("trzeci kąt (A): krótszy bok zwrócony do okręgów", symA)));
+    para(b, "Reguła do zapamiętania: patrz, gdzie wskazuje węższy koniec trapezu. Jeżeli ucieka od okręgów, " +
+      "rysunek jest w metodzie pierwszego kąta i każdy rzut leży po stronie przeciwnej niż obserwator. " +
+      "Jeżeli celuje w okręgi, to metoda trzeciego kąta i rzut leży po stronie obserwatora.");
   }
 },
 {
@@ -2074,8 +2352,12 @@ function screenPostepy(root) {
   st.appendChild(stat(State.sessions, "ukończonych sesji"));
   c1.appendChild(st);
   if (State.diag) {
+    const g = measuredGain();
     const p = el("p", null, "Test wstępny: " + State.diag.score + " / " + State.diag.total +
-      " punktów, poziom startowy " + State.diag.level + ". Powtórz go po przerobieniu materiału, żeby zmierzyć przyrost.");
+      ", poziom startowy " + State.diag.level + ". " +
+      (g.ok ? "Test końcowy: " + State.diagPost.score + " / " + State.diagPost.total +
+              " (" + (g.delta >= 0 ? "+" : "") + g.delta + " pkt proc.)."
+            : "Przyrost: " + g.why + "."));
     p.style.marginTop = "14px";
     c1.appendChild(p);
   }
@@ -2132,7 +2414,7 @@ function screenPostepy(root) {
     if (!window.confirm("Usunąć cały zapisany postęp? Tej operacji nie da się cofnąć.")) return;
     try { localStorage.removeItem(STORE_KEY); } catch (e) {}
     State.skills = {}; State.seen = 0; State.ok = 0; State.streak = 0; State.best = 0;
-    State.recent = []; State.lastSkills = []; State.diag = null; State.sessions = 0; State.level = 2;
+    State.recent = []; State.lastSkills = []; State.diag = null; State.diagPost = null; State.sessions = 0; State.level = 2;
     State.course = { mods: {}, exam: null }; UI.module = null;
     for (const id of SKILL_IDS) skillOf(id);
     save(); render();
@@ -2163,7 +2445,10 @@ function renderNav() {
   nav.innerHTML = "";
   for (const t of TABS) {
     const b = el("button", UI.screen === t[0] ? "on" : "", t[1]);
-    b.onclick = () => { UI.screen = t[0]; render(); };
+    // Podsumowanie sesji to chwilowa informacja zwrotna. Bez jego zamknięcia
+    // przy nawigacji ekran startowy treningu, a z nim przycisk testu
+    // końcowego, był osiągalny tylko okrężną drogą przez zakładkę Postępy.
+    b.onclick = () => { if (!Session.active) Session.summary = null; UI.screen = t[0]; render(); };
     nav.appendChild(b);
   }
 }
@@ -2357,6 +2642,22 @@ function syllabus(root) {
   intro.appendChild(bar);
   intro.appendChild(el("div", "muted", "Zaliczone moduły: " + done + " z " + COURSE.length +
     (courseDone() ? " · kurs ukończony" : "")));
+  if (!State.diag && done === 0) {
+    const n = el("div", "note");
+    n.textContent = "Zanim zaczniesz: zrób test wstępny. Osiem zadań na obroty, kilka minut. " +
+      "Bez niego nie da się na końcu zmierzyć, ile kurs Ci dał.";
+    intro.appendChild(n);
+    const b = el("button", "btn ghost sm", "Test wstępny (8 zadań)");
+    b.onclick = () => startSession({ mode: "diag" });
+    intro.appendChild(b);
+  } else if (courseDone() && State.diag && !State.diagPost) {
+    const n = el("div", "note");
+    n.textContent = "Kurs ukończony. Zrób teraz test końcowy — to samo narzędzie co test wstępny, więc wynik pokaże przyrost.";
+    intro.appendChild(n);
+    const b = el("button", "btn sm", "Test końcowy (8 zadań)");
+    b.onclick = () => startSession({ mode: "post" });
+    intro.appendChild(b);
+  }
   root.appendChild(intro);
 
   if (courseDone()) root.appendChild(certificate());
@@ -2547,12 +2848,13 @@ function certificate() {
   const d = new Date(ex.date);
   c.appendChild(el("div", "meta", "Wynik egzaminu: " + ex.score + " / " + ex.total +
     " · data: " + d.toLocaleDateString("pl-PL")));
-  if (State.diag) {
-    const pre = Math.round(State.diag.score / State.diag.total * 100);
-    const post = Math.round(ex.score / ex.total * 100);
-    c.appendChild(el("div", "meta", "Test wstępny " + pre + "% → egzamin " + post + "%" +
-      (post > pre ? " (przyrost " + (post - pre) + " pkt proc.)" : "")));
-  }
+  // Przyrost liczy się tylko między testem wstępnym a końcowym — to samo
+  // narzędzie. Wcześniej porównywano test wstępny z egzaminem, czyli dwa
+  // różne narzędzia, i różnica niczego nie mierzyła.
+  const g = measuredGain();
+  c.appendChild(el("div", "meta", g.ok
+    ? "Test wstępny " + g.pre + "% → test końcowy " + g.post + "% (" + (g.delta >= 0 ? "+" : "") + g.delta + " pkt proc.)"
+    : "Przyrost niezmierzony: " + g.why));
   let att = 0;
   for (const m of COURSE) att += courseProgress(m.id).attempts;
   c.appendChild(el("div", "meta", "Łączna liczba podejść do sprawdzianów: " + att));

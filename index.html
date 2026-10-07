@@ -367,7 +367,7 @@ function showMsg(el, text, type) {
 // w interfejsie. Klucz anon jest w źródle strony, więc każdy może odpytać
 // API z pominięciem tego kodu. Jedyną realną granicą są polityki RLS —
 // w szczególności tabela "questions" musi być czytelna tylko dla aktywnych
-// subskrybentów. Komplet polityk znajduje się w README.
+// subskrybentów. Polityki: supabase/migrations/20261007120000_rls_paywall.sql
 async function checkSubscription(userId) {
   try {
     const { data, error } = await db

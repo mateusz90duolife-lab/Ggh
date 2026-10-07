@@ -313,5 +313,95 @@ head("14. Zapis podejść do sprawdzianu");
   render = realRender;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   15. SYMBOL METODY RZUTOWANIA
+   Znaczenie symbolu niesie wyłącznie kierunek trapezu względem okręgów.
+   Orientacja potwierdzona w dwóch źródłach (METODYKA.md, sekcja 8).
+   ───────────────────────────────────────────────────────────── */
+head("15. Symbol metody rzutowania");
+{
+  const E = methodSymbolGeometry("E", 120, 50), A = methodSymbolGeometry("A", 120, 50);
+  const dist = (g, x) => Math.abs(x - g.circX);
+  chk("pierwszy kąt: trapez po lewej, okręgi po prawej", E.wideX < E.circX, true);
+  chk("pierwszy kąt: krótszy bok odwrócony od okręgów", dist(E, E.narrowX) > dist(E, E.wideX), true);
+  chk("trzeci kąt: okręgi po lewej, trapez po prawej", A.circX < A.narrowX, true);
+  chk("trzeci kąt: krótszy bok zwrócony do okręgów", dist(A, A.narrowX) < dist(A, A.wideX), true);
+  chk("krótszy bok zawsze po lewej stronie trapezu", E.narrowX < E.wideX && A.narrowX < A.wideX, true);
+  chk("oba rzuty stożka mają zgodne wymiary (mały okrąg = krótszy bok)", E.r * 2 < E.R * 2 && E.r === E.R / 2, true);
+  chk("symbol mieści się w płótnie", E.x0 >= 0 && E.x0 + E.total <= 120, true);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   16. TEST WSTĘPNY I KOŃCOWY W FORMACIE PSVT:R
+   Najważniejsza właściwość: przykład musi jednoznacznie wyznaczać
+   odpowiedź spośród WSZYSTKICH 24 obrotów sześcianu. Pierwsza wersja
+   sprawdzała tylko obroty obecne w opcjach i przepuszczała 7% zadań,
+   w których poprawnie odczytany obrót dawał inną odpowiedź.
+   ───────────────────────────────────────────────────────────── */
+head("16. Zadania w formacie PSVT:R");
+{
+  chk("grupa obrotów sześcianu ma 24 elementy", cubeRotations().length, 24);
+  let ambiguous = 0, wrong = 0, fallback = 0, few = 0, n = 0, doubles = 0, singlesHigh = 0;
+  for (let lvl = 1; lvl <= 8; lvl++) for (let i = 0; i < 50; i++) {
+    const q = nextQuestion("psvt", lvl, { level: lvl });
+    const st = q.stimulus[0];
+    if (!st || st.type !== "psvt") { fallback++; continue; }
+    n++;
+    if (q.options.length < 3) few++;
+    const correct = q.options[q.correct].solid;
+    const outcomes = new Set();
+    let mappers = 0;
+    for (const g of cubeRotations()) if (applySeq(st.a, g).id === st.b.id) { mappers++; outcomes.add(applySeq(st.target, g).id); }
+    if (outcomes.size !== 1) ambiguous++;
+    else if ([...outcomes][0] !== correct.id) wrong++;
+    // obrót złożony z dwóch osi nie da się zastąpić jednym obrotem o 90°
+    const single = cubeRotations().filter(g => g.length === 1);
+    const bySingle = single.some(g => applySeq(st.a, g).id === st.b.id);
+    if (lvl >= 5 && !bySingle) doubles++;
+    if (lvl >= 5 && bySingle) singlesHigh++;
+  }
+  chk("żadne zadanie nie wpada w format awaryjny", fallback, 0);
+  chk(n + " zadań: przykład jednoznacznie wyznacza odpowiedź", ambiguous, 0);
+  chk("poprawna opcja to wynik odczytanego obrotu", wrong, 0);
+  chk("każde zadanie ma co najmniej 3 opcje", few, 0);
+  chk("na poziomach 5–8 przeważają obroty złożone z dwóch osi", doubles > singlesHigh, true);
+  ok("poziomy 5–8: obrotów złożonych " + doubles + ", sprowadzalnych do pojedynczego " + singlesHigh);
+}
+
+head("17. Porównanie testu wstępnego z końcowym");
+{
+  const save = { d: State.diag, p: State.diagPost };
+  State.diag = null; State.diagPost = null;
+  chk("bez testu wstępnego przyrostu nie ma", measuredGain().ok, false);
+  State.diag = { score: 4, total: 8, instrument: "stary" };
+  State.diagPost = { score: 7, total: 8, instrument: PSVT_INSTRUMENT };
+  chk("różne wersje narzędzia nie są porównywane", measuredGain().ok, false);
+  State.diag = { score: 4, total: 8, instrument: PSVT_INSTRUMENT };
+  State.diagPost = null;
+  chk("bez testu końcowego przyrostu nie ma", measuredGain().ok, false);
+  State.diagPost = { score: 7, total: 8, instrument: PSVT_INSTRUMENT };
+  const g = measuredGain();
+  chk("przyrost liczony między testami tym samym narzędziem", [g.ok, g.pre, g.post, g.delta], [true, 50, 88, 38]);
+  State.diag = save.d; State.diagPost = save.p;
+}
+
+head("18. Zadanie: metoda odczytana z symbolu");
+{
+  let bad = 0, misreadOk = 0, n = 0;
+  for (let i = 0; i < 300; i++) {
+    const m = i % 2 ? "E" : "A";
+    const q = exUkladSymbol(m);
+    q.correct = q.options.findIndex(o => o.tag === "ok");
+    n++;
+    const view = Object.keys(PLACE_VIEW_TXT).find(v => q.prompt.indexOf(PLACE_VIEW_TXT[v]) >= 0);
+    if (q.options[q.correct].text !== PLACE_TXT[SYMBOL_PLACE[m][view]]) bad++;
+    const mis = q.options.find(o => o.tag === "symbolMisread");
+    if (mis && mis.text === PLACE_TXT[SYMBOL_PLACE[m === "E" ? "A" : "E"][view]]) misreadOk++;
+    if (q.stimulus[0].type !== "symbol" || /pierwszego|trzeciego/.test(q.prompt)) bad++;
+  }
+  chk(n + " zadań: poprawna odpowiedź zgodna z tabelą rozmieszczenia", bad, 0);
+  chk("dystraktor „zła metoda” to miejsce poprawne w drugiej metodzie", misreadOk, n);
+}
+
 console.log(FAILS ? "\n" + FAILS + " BŁĘDÓW\n" : "\nWszystkie testy logiki przeszły.\n");
 process.exit(FAILS ? 1 : 0);
