@@ -101,6 +101,11 @@ for (const skill of SKILL_IDS) {
       catch (e) { bad(skill + " poz." + level + " wyjątek: " + e.message); qFails++; continue; }
       checked++;
       if (q.skill !== skill) { bad(skill + ": zwrócono " + q.skill); qFails++; }
+      if (q.kind === "sketch") {   // szkic nie ma opcji — ma rozwiązanie w postaci zbioru odcinków
+        if (!q.lines || !q.lines.size || !q.target) { bad(skill + " poz." + level + ": szkic bez rozwiązania"); qFails++; }
+        if (!q.stimulus || !q.stimulus.length) { bad(skill + ": brak bodźca"); qFails++; }
+        continue;
+      }
       if (q.options.filter(o => o.tag === "ok").length !== 1) { bad(skill + " poz." + level + ": zła liczba poprawnych opcji"); qFails++; }
       if (q.options[q.correct].tag !== "ok") { bad(skill + ": indeks nie wskazuje poprawnej opcji"); qFails++; }
       if (q.options.length < 3) { bad(skill + " poz." + level + ": mniej niż 3 opcje"); qFails++; }
@@ -172,8 +177,8 @@ if (modOk) ok(COURSE.length + " modułów: opisy, lekcje, umiejętności i progi
 const taught = new Set();
 for (const m of COURSE) for (const sp of m.drill.concat(m.test)) taught.add(sp.skill);
 chk("kurs pokrywa wszystkie umiejętności", SKILL_IDS.filter(id => !taught.has(id)), []);
-chk("egzamin ma 12 zadań", EXAM.specs.reduce((a, s) => a + s.n, 0), 12);
-chk("próg egzaminu nie przekracza liczby zadań", EXAM.pass <= 12, true);
+chk("egzamin ma 14 zadań", EXAM.specs.reduce((a, s) => a + s.n, 0), 14);
+chk("próg egzaminu: 75–85% zadań", EXAM.pass / EXAM.total >= 0.75 && EXAM.pass / EXAM.total <= 0.85, true);
 
 let queued = 0, qcOk = true;
 for (const m of COURSE) {
@@ -270,7 +275,7 @@ head("11. Tożsamość rzutu");
 head("12. Liczba opcji odpowiedzi");
 {
   let worst = 9, worstSkill = "";
-  for (const skill of SKILL_IDS) {
+  for (const skill of SKILL_IDS.filter(id => id !== "szkic")) {
     let sum = 0, n = 200;
     for (let i = 0; i < n; i++) sum += nextQuestion(skill, 4).options.length;
     const avg = sum / n;
@@ -471,6 +476,271 @@ head("20. Podejścia do testu końcowego");
   startSession({ mode: "diag" }); Session.ok = 3; finishSession();
   chk("nowy test wstępny zeruje licznik podejść", [State.diagPost, State.diagPostAttempts], [null, 0]);
   State.diag = save.d; State.diagPost = save.p; State.diagPostAttempts = save.a;
+  render = realRender;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   21–29. AUDYT TREŚCI I NOWE MODUŁY (2026-10)
+   Każda sekcja sprawdza konkretny błąd znaleziony w audycie albo
+   poprawność nowej funkcji metodą niezależną od kodu aplikacji.
+   ───────────────────────────────────────────────────────────── */
+
+head("21. Chiralność brył w zadaniach i lekcjach");
+{
+  chk("bryła lekcji o odbiciach (DEMO_C) jest chiralna", isChiral(DEMO_C), true);
+  chk("DEMO_C nadaje się do zadań na odbicie", isChiralEnough(DEMO_C), true);
+  chk("dawna bryła lekcji (DEMO_B) jest achiralna — dlatego ją wymieniono", isChiral(DEMO_B), false);
+  chk("bryła awaryjna generatora jest chiralna", isChiral(solidFromHeights([[3, 1], [2, 0]])), true);
+  let bad = 0, n = 0;
+  for (const sk of ["obrot", "odbicie", "plan-bryla", "rzuty-bryla"])
+    for (let i = 0; i < 160; i++) {
+      const q = buildExercise(sk, 1 + (i % 8));
+      for (const o of q.options) if (o.tag === "mirror") { n++; if (!isChiral(o.solid)) bad++; }
+    }
+  chk("dystraktor „odbicie” nigdy nie jest osiągalny obrotem (" + n + " sprawdzonych)", bad, 0);
+}
+
+head("22. Linie niewidoczne — sprawdzenie niezależną metodą");
+{
+  chk("wcięcie z tyłu daje dwie linie kreskowe w rzucie z przodu", [...orthoView(DEMO_HID, "front").hid].sort(), ["h:0,0", "v:0,0"]);
+  chk("bryła pełna nie ma linii niewidocznych", orthoView(solidFromHeights([[2, 2], [2, 2]]), "front").hid.size, 0);
+
+  // Krawędzie bryły wyliczone w 3D, bez viewCell i edgeAlong: krawędź biegnie
+  // wzdłuż prostej, wokół której z czterech kostek pełna jest 1 albo 3, albo 2 po przekątnej.
+  const isEdge = (a, b, c, d) => { const n = a + b + c + d; return n === 1 || n === 3 || (n === 2 && ((a && d) || (b && c))); };
+  const H = (S, x, y, z) => S.has(x, y, z) ? 1 : 0;
+  // Dla każdego rzutu: współrzędne kostki w rzucie (r, c, warstwa t) i rzut krawędzi na granicę pól.
+  const VIEWS = {
+    front: S => ({ cell: (x, y, z) => [S.nz - 1 - z, x, y],
+      edges: function* () {
+        for (let x = 0; x < S.nx; x++) for (let y = 0; y <= S.ny; y++) for (let z = 1; z < S.nz; z++)
+          if (isEdge(H(S, x, y - 1, z - 1), H(S, x, y, z - 1), H(S, x, y - 1, z), H(S, x, y, z))) yield ["h:" + (S.nz - 1 - z) + "," + x, y];
+        for (let x = 1; x < S.nx; x++) for (let y = 0; y <= S.ny; y++) for (let z = 0; z < S.nz; z++)
+          if (isEdge(H(S, x - 1, y - 1, z), H(S, x, y - 1, z), H(S, x - 1, y, z), H(S, x, y, z))) yield ["v:" + (S.nz - 1 - z) + "," + (x - 1), y];
+      } }),
+    top: S => ({ cell: (x, y, z) => [S.ny - 1 - y, x, S.nz - 1 - z],
+      edges: function* () {
+        for (let x = 0; x < S.nx; x++) for (let y = 1; y < S.ny; y++) for (let z = 0; z <= S.nz; z++)
+          if (isEdge(H(S, x, y - 1, z - 1), H(S, x, y, z - 1), H(S, x, y - 1, z), H(S, x, y, z))) yield ["h:" + (S.ny - 1 - y) + "," + x, S.nz - z];
+        for (let x = 1; x < S.nx; x++) for (let y = 0; y < S.ny; y++) for (let z = 0; z <= S.nz; z++)
+          if (isEdge(H(S, x - 1, y, z - 1), H(S, x, y, z - 1), H(S, x - 1, y, z), H(S, x, y, z))) yield ["v:" + (S.ny - 1 - y) + "," + (x - 1), S.nz - z];
+      } }),
+    right: S => ({ cell: (x, y, z) => [S.nz - 1 - z, y, S.nx - 1 - x],
+      edges: function* () {
+        for (let y = 0; y < S.ny; y++) for (let x = 0; x <= S.nx; x++) for (let z = 1; z < S.nz; z++)
+          if (isEdge(H(S, x - 1, y, z - 1), H(S, x, y, z - 1), H(S, x - 1, y, z), H(S, x, y, z))) yield ["h:" + (S.nz - 1 - z) + "," + y, S.nx - x];
+        for (let y = 1; y < S.ny; y++) for (let x = 0; x <= S.nx; x++) for (let z = 0; z < S.nz; z++)
+          if (isEdge(H(S, x - 1, y - 1, z), H(S, x, y - 1, z), H(S, x - 1, y, z), H(S, x, y, z))) yield ["v:" + (S.nz - 1 - z) + "," + (y - 1), S.nx - x];
+      } }),
+  };
+  let mismatchHid = 0, mismatchVis = 0, solids = 0;
+  for (let i = 0; i < 250; i++) {
+    const S = generateSolid(cfgFor(1 + (i % 8)));
+    solids++;
+    for (const kind of Object.keys(VIEWS)) {
+      const V = VIEWS[kind](S), view = orthoView(S, kind);
+      // najbliższa warstwa materiału w każdym polu rzutu, liczona wprost z kostek
+      const near = new Map();
+      for (const [x, y, z] of S.cells) { const [r, c, t] = V.cell(x, y, z); const k = r + "," + c; near.set(k, Math.min(near.has(k) ? near.get(k) : Infinity, t)); }
+      const sides = key => { const [r, c] = key.slice(2).split(",").map(Number); return key[0] === "h" ? [r + "," + c, (r + 1) + "," + c] : [r + "," + c, r + "," + (c + 1)]; };
+      const visB = new Set(), hidB = new Set();
+      for (const [key, t] of V.edges()) {
+        const [p, q] = sides(key);
+        const np = near.has(p) ? near.get(p) : Infinity, nq = near.has(q) ? near.get(q) : Infinity;
+        if (np === Infinity || nq === Infinity) continue;            // zarys — zawsze linia ciągła
+        if (np >= t || nq >= t) visB.add(key); else hidB.add(key);   // promień tuż obok krawędzi po którejś stronie jest wolny
+      }
+      for (const k of visB) hidB.delete(k);                          // widoczna ma pierwszeństwo
+      const appVis = new Set();
+      for (let r = 0; r < view.rows; r++) for (let c = 0; c < view.cols; c++) {
+        if (r + 1 < view.rows && view.filled[r][c] && view.filled[r + 1][c] && view.depth[r][c] !== view.depth[r + 1][c]) appVis.add("h:" + r + "," + c);
+        if (c + 1 < view.cols && view.filled[r][c] && view.filled[r][c + 1] && view.depth[r][c] !== view.depth[r][c + 1]) appVis.add("v:" + r + "," + c);
+      }
+      if (JSON.stringify([...hidB].sort()) !== JSON.stringify([...view.hid].sort())) mismatchHid++;
+      if (JSON.stringify([...visB].sort()) !== JSON.stringify([...appVis].sort())) mismatchVis++;
+    }
+  }
+  chk(solids + " brył × 3 rzuty: linie niewidoczne zgodne z wyliczeniem z krawędzi 3D", mismatchHid, 0);
+  chk(solids + " brył × 3 rzuty: linie widoczne wewnątrz zarysu zgodne z wyliczeniem z krawędzi 3D", mismatchVis, 0);
+}
+
+head("23. Jednoznaczność trzech rzutów (tryb Buduj i zadania rzuty → bryła)");
+{
+  // Wszystkie bryły bez nawisów w tym samym prostopadłościanie, zgodne z rzutem
+  // z przodu kolumna po kolumnie; potem pełne porównanie trzech rzutów.
+  const solutions = (target, side) => {
+    const nx = target.nx, ny = target.ny, nz = target.nz, hmT = heightsOf(target);
+    const key = threeViewKey(target, side), fr = orthoView(target, "front");
+    const cands = [];
+    for (let x = 0; x < nx; x++) {
+      const list = [];
+      const rec = (y, v) => {
+        if (y === ny) {
+          for (let r = 0; r < nz; r++) { const z = nz - 1 - r; let d = null; for (let yy = 0; yy < ny; yy++) if (v[yy] > z) { d = yy; break; }
+            if ((d !== null) !== fr.filled[r][x] || (d !== null && d !== fr.depth[r][x])) return; }
+          list.push(v.slice()); return;
+        }
+        if (hmT[x][y] === 0) { v.push(0); rec(y + 1, v); v.pop(); return; }
+        for (let h = 1; h <= nz; h++) { v.push(h); rec(y + 1, v); v.pop(); }
+      };
+      rec(0, []); cands.push(list);
+    }
+    let count = 0; const hm = [];
+    const go = x => {
+      if (x === nx) { const s = solidFromHeights(hm); if (s.nz === nz && threeViewKey(s, side) === key) count++; return; }
+      for (const c of cands[x]) { hm.push(c); go(x + 1); hm.pop(); }
+    };
+    go(0); return count;
+  };
+  let amb = 0, N = 0;
+  for (const lvl of [2, 4, 6, 8]) for (let i = 0; i < 60; i++) { N++; if (solutions(generateSolid(cfgFor(lvl)), i % 2 ? "left" : "right") > 1) amb++; }
+  chk(N + " brył: trzy rzuty z liniami niewidocznymi wyznaczają bryłę jednoznacznie", amb, 0);
+  let dup = 0;
+  for (let i = 0; i < 300; i++) {
+    const q = buildExercise("rzuty-bryla", 1 + (i % 8), { forceMethod: i % 2 ? "E" : "A" });
+    const side = q.stimulus[0].side, k = threeViewKey(q.solution, side);
+    if (q.options.some(o => o.tag !== "ok" && threeViewKey(o.solid, side) === k)) dup++;
+  }
+  chk("300 zadań rzuty → bryła: żaden dystraktor nie ma tych samych rzutów", dup, 0);
+}
+
+head("24. Szkic izometryczny — zbiór odcinków");
+{
+  chk("sześcian: 6 odcinków zarysu i 3 wewnętrzne", isoLineSet(solidFromHeights([[1]])).size, 9);
+  chk("dwie kostki w rzędzie: bez linii między kostkami (12 odcinków)", isoLineSet(solidFromHeights([[1], [1]])).size, 12);
+  chk("słupek 2 kostek: 12 odcinków", isoLineSet(solidFromHeights([[2]])).size, 12);
+  // Niezależnie: etykiety trójkątów metodą malarza (kolejność drawIso) zamiast porównania głębokości
+  let diff = 0;
+  for (let i = 0; i < 300; i++) {
+    const S = generateSolid(cfgFor(1 + (i % 8)));
+    const paint = new Map();
+    const order = S.cells.slice().sort((a, c) => (a[0] - a[1] + a[2]) - (c[0] - c[1] + c[2]));
+    for (const [x, y, z] of order) {
+      const u = x + y, v = x - y - 2 * z;
+      if (!S.has(x, y, z + 1)) { paint.set(u + "," + (v - 3) + ",L", "z" + (z + 1)); paint.set((u + 1) + "," + (v - 3) + ",R", "z" + (z + 1)); }
+      if (!S.has(x, y - 1, z)) { paint.set(u + "," + (v - 2) + ",R", "y" + y); paint.set(u + "," + (v - 1) + ",L", "y" + y); }
+      if (!S.has(x + 1, y, z)) { paint.set((u + 1) + "," + (v - 1) + ",R", "x" + (x + 1)); paint.set((u + 1) + "," + (v - 2) + ",L", "x" + (x + 1)); }
+    }
+    const tri = isoTriangles(S);
+    if (tri.size !== paint.size) { diff++; continue; }
+    for (const [k, t] of tri) if (paint.get(k) !== t.lab) { diff++; break; }
+  }
+  chk("300 brył: przypisanie ścian do trójkątów zgodne z algorytmem malarza", diff, 0);
+  const T = isoLineSet(DEMO_C);
+  chk("szkic przesunięty o wektor siatki jest poprawny", compareSketch(shiftSegs(T, 3, 5), T).ok, true);
+  const one = shiftSegs(T, 1, 1); one.delete([...one][0]);
+  const c1 = compareSketch(one, T);
+  chk("brak jednego odcinka: wykryty jeden brak", [c1.ok, c1.missing.size, c1.extra.size], [false, 1, 0]);
+  const plus = shiftSegs(T, 2, 0); plus.add(segKey(40, 0, 41, 1));
+  const c2 = compareSketch(plus, T);
+  chk("zbędny odcinek: wykryty jeden nadmiar", [c2.ok, c2.missing.size, c2.extra.size], [false, 0, 1]);
+  chk("pusty szkic nie jest poprawny", compareSketch(new Set(), T).ok, false);
+  chk("ścieżka po siatce: pion", latticePath({ u: 2, v: 2 }, { u: 2, v: 8 }).length, 3);
+  chk("ścieżka po siatce: skos", latticePath({ u: 2, v: 2 }, { u: 5, v: -1 }).length, 3);
+  chk("punkty poza linią siatki nie dają odcinka", latticePath({ u: 2, v: 2 }, { u: 4, v: 6 }), null);
+}
+
+head("25. Okręgi w izometrii");
+{
+  // Elipsa = obraz okręgu przez liniowy rzut ściany. Osie to wartości osobliwe
+  // macierzy rzutu; liczone tu wprost z isoPt, niezależnie od stałych aplikacji.
+  // Tolerancja 1e-6, bo stała cos30 w aplikacji ma siedem cyfr znaczących.
+  for (const face of ["top", "front", "right"]) {
+    const g = FACE_GEOM[face];
+    const a = isoPt(g.e1[0], g.e1[1], g.e1[2], 1), b = isoPt(g.e2[0], g.e2[1], g.e2[2], 1);
+    const m11 = a.x * a.x + b.x * b.x, m12 = a.x * a.y + b.x * b.y, m22 = a.y * a.y + b.y * b.y;
+    const tr = m11 + m22, det = m11 * m22 - m12 * m12, disc = Math.sqrt(tr * tr / 4 - det);
+    const l1 = tr / 2 + disc, l2 = tr / 2 - disc;
+    const ang = Math.atan2(l1 - m11, m12);   // wektor własny (m12, l1 − m11)
+    const sameDir = Math.abs(Math.sin(ang - FACE_ANGLE[face])) < 1e-6;
+    chk("ściana " + face + ": osie √1,5 i √0,5 średnicy, kierunek dużej osi zgodny",
+      [Math.abs(Math.sqrt(l1) - ELLIPSE.major) < 1e-6, Math.abs(Math.sqrt(l2) - ELLIPSE.minor) < 1e-6, sameDir], [true, true, true]);
+    const n = { top: [0, 0, 1], front: [0, 1, 0], right: [1, 0, 0] }[face];
+    const ax = isoPt(n[0], n[1], n[2], 1);
+    chk("ściana " + face + ": duża oś prostopadła do osi otworu", Math.abs(Math.cos(FACE_ANGLE[face]) * ax.x + Math.sin(FACE_ANGLE[face]) * ax.y) < 1e-6, true);
+  }
+  chk("osie bez skrótu ≈ 1,22·d i 0,71·d", [ELLIPSE.major.toFixed(2), ELLIPSE.minor.toFixed(2)], ["1.22", "0.71"]);
+  let okE = true;
+  for (let i = 0; i < 200; i++) {
+    const q = buildExercise("elipsa", 4, { mode: i % 3 ? "rys" : "osie" });
+    if (q.options.length !== 4 || new Set(q.options.map(o => o.id)).size !== 4) okE = false;
+  }
+  chk("200 zadań z elipsą: po 4 różne opcje", okE, true);
+}
+
+head("26. Linie pochyłe");
+{
+  const w = makeWedge({ W: 4, D: 2, H: 3, plane: "front", corner: "far", a: 2, b: 1 });
+  const V = new Set(w.verts.map(v => v.join(","))).size;
+  chk("bryła ze skosem spełnia wzór Eulera (W − K + S = 2)", V - w.edges.length + w.faces.length, 2);
+  chk("normalne ścian są jednostkowe i skierowane na zewnątrz", w.faces.every(f => Math.abs(Math.hypot(f.n[0], f.n[1], f.n[2]) - 1) < 1e-9), true);
+  const hidL = polyViewEdges(w, "left").hidden;
+  chk("rzut z lewej: krawędź skosu po prawej stronie jest niewidoczna, na wysokości H − b",
+    hidL.length === 1 && hidL[0].a[2] === 2 && hidL[0].b[2] === 2, true);
+  const visT = polyViewEdges(w, "top").visible;
+  chk("rzut z góry: widać krawędź skosu w odległości a od prawej krawędzi", visT.some(e => e.a[0] === 2 && e.b[0] === 2), true);
+  chk("rzut z prawej: brak krawędzi niewidocznych (skos zwrócony do obserwatora)", polyViewEdges(w, "right").hidden.length, 0);
+  let okS = true;
+  for (let i = 0; i < 200; i++) {
+    const q = buildExercise("skos", 1 + (i % 8));
+    if (q.options.length < 3 || new Set(q.options.map(o => o.id)).size !== q.options.length) okS = false;
+    if (q.options[q.correct].poly.id !== q.stimulus[0].solid.id) okS = false;
+  }
+  chk("200 zadań ze skosem: opcje różne, poprawna zgodna z rzutami", okS, true);
+}
+
+head("27. Regulator trudności utrzymuje 75–85%");
+{
+  const save = { level: State.level, recent: State.recent };
+  const sim = k => {
+    let sum = 0, m = 0;
+    for (let th = 2.5; th <= 6.5; th += 0.5) {
+      State.level = 2; State.recent = [];
+      let ok = 0, n = 0;
+      for (let t = 0; t < 5000; t++) {
+        const c = Math.random() < 1 / (1 + Math.exp(-(k * (th - State.level) + 1))) ? 1 : 0;
+        if (t > 300) { ok += c; n++; }
+        State.recent.push(c); if (State.recent.length > 12) State.recent.shift();
+        adaptLevel();
+      }
+      sum += ok / n; m++;
+    }
+    return sum / m;
+  };
+  for (const k of [0.8, 1.5]) {
+    const acc = sim(k);
+    chk("modelowy uczeń (nachylenie " + k + "): skuteczność " + (100 * acc).toFixed(1) + "% w przedziale 75–85%", acc >= 0.75 && acc <= 0.85, true);
+  }
+  State.level = save.level; State.recent = save.recent;
+}
+
+head("28. Kurs: nowe moduły i zachowanie postępu");
+{
+  chk("kurs ma 12 modułów", COURSE.length, 12);
+  chk("moduł szkicowania stoi po planie kodowanym, jak w kursie Sorby", COURSE.findIndex(m => m.id === "m-szkic"), COURSE.findIndex(m => m.id === "m2") + 1);
+  chk("moduł powierzchni pochyłych stoi przed obrotami", COURSE.findIndex(m => m.id === "m-skosy") < COURSE.findIndex(m => m.id === "m6"), true);
+  const save = JSON.stringify(State.course);
+  State.course = { mods: {}, exam: null };
+  courseProgress("m3").passed = true;   // postęp sprzed dodania modułu szkicowania
+  chk("zaliczony wcześniej moduł zostaje otwarty mimo nowego modułu przed nim", moduleUnlocked(COURSE.findIndex(m => m.id === "m3")), true);
+  chk("nowy moduł wymaga zaliczenia poprzedniego", moduleUnlocked(COURSE.findIndex(m => m.id === "m-szkic")), false);
+  State.course = JSON.parse(save);
+  let lessonsOk = true;
+  for (const L of LESSONS) if (!L.id || !L.title || typeof L.build !== "function") lessonsOk = false;
+  chk("lekcje: " + LESSONS.length + ", wszystkie kompletne", lessonsOk, true);
+}
+
+head("29. Sesja ze szkicem");
+{
+  const realRender = render; render = function () {};
+  startSession({ mode: "kurs-drill", moduleId: "m-szkic", queue: [{ skill: "szkic", level: 2, opts: { from: "plan" } }] });
+  chk("zadanie szkicu ma stan edytora", !!Session.sk && Session.q.kind === "sketch", true);
+  Session.sk.segs = shiftSegs(Session.q.lines, 4, 6);
+  const cmp = compareOnPad(Session.sk, Session.q.lines);
+  chk("poprawny szkic rozpoznany w edytorze", cmp.ok, true);
+  answerSketch(true);
+  chk("rozstrzygnięty szkic liczy się jako poprawna odpowiedź", [Session.answered, Session.ok], [true, 1]);
+  Session.active = false; Session.summary = null;
   render = realRender;
 }
 

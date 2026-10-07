@@ -6,13 +6,14 @@ przekłada się na konkretną funkcję programu.
 
 > **Status źródeł.** Pierwsza wersja tego dokumentu opierała się wyłącznie
 > na streszczeniach wyszukiwarki, bo środowisko robocze blokowało dostęp do
-> stron źródłowych. W obecnej wersji **11 z 20 pozycji zostało przeczytanych**
+> stron źródłowych. W obecnej wersji **17 z 28 pozycji zostało przeczytanych**
 > za pośrednictwem konektora Firecrawl — w całości albo w postaci dosłownych
 > fragmentów wybranych pod kątem konkretnych pytań. Weryfikacja obaliła dwa
 > twierdzenia z pierwszej wersji i doprecyzowała kilka innych; zmiany są
-> opisane w tekście. Każda pozycja na liście źródeł ma oznaczenie, czy ją
-> przeczytano. Liczby podane niżej pochodzą wyłącznie z pozycji oznaczonych
-> jako przeczytane.
+> opisane w tekście. Audyt treści samej aplikacji z października 2026
+> znalazł kolejne błędy — opisuje je sekcja 11. Każda pozycja na liście
+> źródeł ma oznaczenie, czy ją przeczytano. Liczby podane niżej pochodzą
+> wyłącznie z pozycji oznaczonych jako przeczytane.
 
 ---
 
@@ -112,10 +113,20 @@ nadal mają trudności mimo stosowania zalecanych metod.
 
 Odpowiedź wielokrotnego wyboru pozwala zgadywać. Konstruowanie nie pozwala.
 
-**Konsekwencja dla aplikacji:** tryb **Buduj** — edytor planu kodowanego
-z podglądem izometrycznym na żywo. Uczeń dostaje trzy rzuty i stawia bryłę
-słupek po słupku. Sprawdzenie porównuje zbiory kostek, więc liczy się
-dokładna zgodność. W kursie jest to zadanie konstrukcyjne modułu 5.
+**Konsekwencja dla aplikacji:** dwa tryby, w których nic się nie wybiera
+z listy.
+
+- **Buduj** — edytor planu kodowanego z podglądem izometrycznym na żywo.
+  Uczeń dostaje trzy rzuty i stawia bryłę słupek po słupku. Poprawna jest
+  bryła wzorcowa albo każda inna o identycznych trzech rzutach (sekcja 11).
+  W kursie jest to zadanie konstrukcyjne modułu „Czytanie rzutów”.
+- **Szkicuj** — rysunek izometryczny na siatce punktowej, z planu kodowanego
+  albo z trzech rzutów. Szkic składa się z odcinków między sąsiednimi
+  punktami siatki, więc da się go sprawdzić ściśle, bez rozpoznawania obrazu:
+  program porównuje zbiór narysowanych odcinków z rysunkiem bryły,
+  z dokładnością do przesunięcia, i pokazuje odcinki brakujące i zbędne.
+  Szkicowanie ma w kursie własny moduł, a jego sprawdzian składa się
+  wyłącznie ze szkiców.
 
 ---
 
@@ -149,6 +160,11 @@ zaburzenia ma nazwę, którą widać w informacji zwrotnej.
 | zamieniony rzut | mylenie rzutu z góry z rzutem z przodu |
 | ten sam zarys, inne uskoki | pominięcie linii wewnętrznych |
 | liczba widocznych kostek | pominięcie kostek zasłoniętych |
+| elipsa obrócona o 90° lub z innej ściany | mylenie kierunku dużej osi elipsy |
+| okrąg zamiast elipsy | przekonanie, że okrąg w izometrii pozostaje okręgiem |
+| osie elipsy ze skrótem 0,816 | pomylenie rysunku bez skrótu z rzutem ścisłym |
+| końce skosu zamienione | mierzenie odcinków w złych kierunkach |
+| skos w innej płaszczyźnie | brak powiązania linii pochyłej z rzutem, w którym ją widać |
 
 ---
 
@@ -162,13 +178,16 @@ zadań. Źródło powołuje się na Taylor i Rohrera.
 
 **Konsekwencja dla aplikacji:**
 
-- Zadania w treningu są **przeplatane** — ta sama umiejętność nie wystąpi
-  trzy razy z rzędu.
+- Zadania w treningu są **przeplatane** — ta sama umiejętność nie powtórzy
+  się w ciągu trzech kolejnych zadań.
 - Każda umiejętność ma **pudełko Leitnera** i termin następnej powtórki.
   Umiejętności zaległe mają priorytet w losowaniu.
 - Poziom trudności dobiera się tak, by skuteczność trzymała się w okolicy
   **75–85%**. To decyzja projektowa inspirowana zasadą pożądanych trudności
-  (Bjork); źródła tej zasady nie przeczytano.
+  (Bjork); źródła tej zasady nie przeczytano. Poziom rośnie po 8 poprawnych
+  odpowiedziach z rzędu i spada, gdy wśród ostatnich 8 są co najmniej
+  2 błędy. Pierwsza wersja miała inne progi i — jak pokazała symulacja —
+  nie realizowała tego celu (sekcja 11).
 
 ---
 
@@ -261,12 +280,21 @@ też jest ułożony tematycznie, tydzień po tygodniu.
 | **Kurs** | zbudować rozumienie po kolei | blokowa, temat po temacie |
 | **Trening** | utrwalić i utrzymać | przeplatana, sterowana powtórkami |
 
-Kurs ma dziesięć modułów. Każdy zamyka sprawdzian na progu 5 z 6, który
-otwiera kolejny moduł. Egzamin końcowy miesza wszystkie umiejętności, bo na
-tym etapie sprawdzamy transfer. Odpowiedzi z kursu zasilają ten sam model
-ucznia co trening, więc po kursie harmonogram powtórek jest gotowy.
+Kurs ma dwanaście modułów w kolejności tematów kursu „Developing Spatial
+Thinking”: osie i plan kodowany, szkicowanie izometryczne, rzuty, krawędzie
+widoczne i niewidoczne, czytanie rzutów, powierzchnie pochyłe i krzywe,
+obroty wokół jednej i dwóch osi, odbicia, przekroje, a na końcu norma
+rozmieszczenia rzutów. Każdy moduł zamyka sprawdzian na progu około 80%
+(5 z 6 albo 3 z 4 szkiców), który otwiera kolejny moduł. Egzamin końcowy —
+14 zadań, próg 11 — miesza wszystkie umiejętności, bo na tym etapie
+sprawdzamy transfer. Odpowiedzi z kursu zasilają ten sam model ucznia co
+trening, więc po kursie harmonogram powtórek jest gotowy.
 
-**Uwaga o czasie:** kurs to około dwóch godzin, a sprawdzone programy
+Z dziesięciu modułów kursu Sorby aplikacja nie obejmuje trzech: brył
+obrotowych, łączenia brył i rozwinięć (siatek brył). Silnik oparty na
+kostkach ich nie wyrazi — patrz sekcja 12.
+
+**Uwaga o czasie:** kurs to niecałe trzy godziny, a sprawdzone programy
 trwają około 15 godzin (wersja obecna) albo około 40 (pierwotny GN102).
 Kurs jest rusztowaniem, nie całą nauką. Objętość ma dostarczyć regularny
 trening.
@@ -279,11 +307,78 @@ trening.
   bryłę w rękach, kiedy ją szkicują. Tryb Buduj jest namiastką tego etapu,
   nie zamiennikiem.
 - **Nie ocenia szkicu odręcznego.** Wiarygodna ocena odręcznego rysunku
-  wymagałaby rozpoznawania obrazu. Aplikacja stawia na konstruowanie, gdzie
-  sprawdzenie jest ścisłe.
+  wymagałaby rozpoznawania obrazu. Ocenia szkic na siatce punktowej, gdzie
+  sprawdzenie jest ścisłe. Odręczne szkicowanie na papierze zostaje
+  ćwiczeniem poza aplikacją.
 - **Nie uczy CAD.** Zakres to wyobraźnia przestrzenna i czytanie rysunku.
 - **Nie mierzy psychometrycznie.** Test wstępny i końcowy pokazują kierunek
   zmiany, nie wynik porównywalny z normami PSVT:R.
+
+---
+
+## 11. Audyt treści aplikacji (październik 2026)
+
+Każde twierdzenie w lekcjach, podpowiedziach i informacji zwrotnej
+porównano ze źródłami, a każdą obietnicę opisu — z tym, co kod faktycznie
+robi. Tam, gdzie się dało, zmierzono to automatycznie; pomiary są stałą
+częścią testów (`testy/logika.js`, sekcje 21–29).
+
+**Błędy merytoryczne w lekcjach**
+
+| Miejsce | Było | Jest | Podstawa |
+| --- | --- | --- | --- |
+| Odbicia | Lekcja pokazywała bryłę z dwiema płaszczyznami symetrii i twierdziła, że jej odbicia nie da się uzyskać obrotem. Tymczasem było ono obrotem o 90°. | Bryła chiralna; test pilnuje chiralności. | sprawdzenie wszystkich 24 obrotów |
+| Odbicia | „Policz kostki wzdłuż krawędzi — odbicie odwróci kolejność zawsze.” Ciąg wzdłuż jednej krawędzi odwraca także obrót o 180°. | Reguła dłoni: obrót zachowuje skrętność trójki kierunków, odbicie ją odwraca. | geometria |
+| Obroty wokół osi poziomych | „Przechylenie do tyłu — przód wędruje pod spód.” To opis przechylenia do przodu. | Przy przechyleniu do tyłu przód idzie do góry, tył pod spód. | definicje obrotów w kodzie |
+| Przekroje | „Przekrój nie pokazuje tego, co leży za płaszczyzną.” W rysunku technicznym to definicja kładu; przekrój pokazuje także zarysy za płaszczyzną. | Lekcja rozróżnia kład i przekrój; zadania pytają o kład, który jest kreskowany. | PCEZ Bytów, WAT |
+| Krawędzie | Krawędzie wewnątrz zarysu rysowane cienką linią jako „uskoki”, brak krawędzi niewidocznych. | Wszystkie krawędzie widoczne linią ciągłą grubą, niewidoczne — kreskową cienką. | PN-EN ISO 128 wg materiałów PCEZ i AGH |
+| Czytanie rzutów | „Procedura działa zawsze; przecięcie ograniczeń wyznacza wysokość każdego słupka.” Ograniczenia to tylko górne granice. | Czwarty krok: linie wewnętrzne i niewidoczne rozstrzygają wysokości ukrytych słupków. | wyczerpujące przeszukanie brył |
+| Osie | „Wszystkie trzy wymiary są mierzalne w tej samej skali.” | Tylko wzdłuż osi; linie pochyłe, kąty i okręgi są zniekształcone. | SDC Publications |
+| Osie | Skrót 0,816 nazwany „izometrią znormalizowaną”. Źródła różnią się co do tego, co dokładnie zaleca norma, a treści normy nie przeczytano. | Rzut ścisły (0,816) i rysowanie bez skrótu opisane bez przypisywania normie. | PCEZ Bytów |
+| Plan kodowany | „Zapisuje bryłę jednoznacznie.” | Jednoznacznie dla brył bez nawisów. | geometria |
+| Strategie | „Badania wyróżniają dwa style; całościowy zawodzi przy złożonych bryłach” — bez źródła. | Wynik Khooshabeha, Hegarty i Shipleya (2013) z odwołaniem. | Semantic Scholar, streszczenie |
+| Kilka lekcji | Superlatywy bez źródła („najczęstsze źródło pomyłek”, „najczęstsza pułapka”). | Złagodzone. | — |
+
+**Rozbieżności między opisem a działaniem programu**
+
+| Obszar | Pomiar przed poprawką | Poprawka | Pomiar po poprawce |
+| --- | --- | --- | --- |
+| Chiralność brył w zadaniach na obrót i odbicie | 45% (poziom 1), 20% (poziom 3) brył achiralnych; dla nich informacja zwrotna „odbicia nie da się uzyskać obrotem” była fałszywa | sprawdzenie wszystkich 24 obrotów zamiast 3 przekształceń | 0 na 287 dystraktorów |
+| Zadania rzuty → bryła | 0,5–3,3% zadań miało dwie poprawne odpowiedzi | odrzucanie dystraktorów o identycznych trzech rzutach | 0 na 300 zadań |
+| Tryb Buduj | 3–30% brył (zależnie od poziomu) miało rzuty, które pasowały do kilku brył, a program uznawał tylko jedną | linie niewidoczne w rzutach i akceptacja każdej bryły o identycznych rzutach | 0 niejednoznacznych na 1200 brył |
+| Regulator trudności | Opis obiecywał 75–85%; symulacja z modelowym uczniem dała 62–67% | progi: w górę po 8 z 8, w dół przy co najwyżej 6 z 8 | 76–84% w symulacji |
+
+Symulacja regulatora zakłada ucznia, którego szansa sukcesu maleje
+logistycznie z poziomem; wynik zależy od nachylenia tej krzywej. Pokazuje
+więc, że reguła realizuje zamierzony cel dla rozsądnych założeń, a nie że
+każdy uczeń utrzyma dokładnie taką skuteczność.
+
+## 12. Dodatki niezbędne do opanowania izometrii
+
+Porównanie z kursem Sorby i z praktyką rysunku technicznego pokazało, że
+pierwsza wersja uczyła wyłącznie **rozpoznawania** brył z kostek. Brakowało
+czterech rzeczy, bez których rysunku izometrycznego nie da się opanować.
+Wszystkie zostały dodane.
+
+| Dodatek | Dlaczego niezbędny | Co robi aplikacja |
+| --- | --- | --- |
+| **Szkicowanie na siatce izometrycznej** | Rysunek izometryczny to umiejętność wytwórcza, a test wyboru sprawdza tylko rozpoznawanie. Kurs Sorby szkicuje od trzeciego tygodnia; Ozden (2025) — mała próba, bez losowego przydziału — zanotowała przyrost PSVT:R przy szkicowaniu z natychmiastową informacją zwrotną. | Moduł kursu, zakładka Szkicuj i zadanie w treningu. Sprawdzanie odcinek po odcinku, dwie próby, wskazanie braków i nadmiarów. |
+| **Linie pochyłe (nieizometryczne)** | Prawdziwe części mają skosy i fazki. Linii pochyłej nie da się odmierzyć wprost, a kąty są zniekształcone — trzeba wyznaczać jej końce. To moduł 5 kursu Sorby. | Lekcja z rysunkiem i zadanie: rzuty bryły ze ściętą krawędzią → wybór rysunku izometrycznego. |
+| **Okręgi w izometrii** | Otwory i walce są na niemal każdym rysunku części. Najczęstszy błąd to zła orientacja elipsy. | Lekcja i dwa rodzaje zadań: orientacja elipsy na każdej ze ścian i wymiary osi bez skrótu (1,22·d × 0,71·d). |
+| **Krawędzie niewidoczne w rzutach** | Na prawdziwym rysunku rzuty mają linie kreskowe. Bez nich nie da się czytać rysunków, a trzy rzuty nie wyznaczają bryły jednoznacznie. | Wszystkie rzuty zgodne z PN-EN ISO 128; nowa lekcja; zadania z tym samym zarysem rozróżniane także liniami niewidocznymi. |
+
+**Czego nadal brakuje** — trzy moduły kursu Sorby, których silnik oparty na
+kostkach nie wyrazi:
+
+- **rozwinięcia (siatki brył)** — składanie i rozkładanie powierzchni,
+  przydatne przy blachach i opakowaniach;
+- **bryły obrotowe** — walec, stożek i kula powstające z obrotu figury płaskiej;
+- **łączenie brył** — suma, różnica i część wspólna.
+
+Do tego dochodzą rzeczy, których żadna aplikacja nie zastąpi: budowanie
+z prawdziwych kostek przed szkicowaniem i szkicowanie odręczne na papierze.
+Rekomendacja dla ucznia: równolegle z kursem w aplikacji szkicować te same
+bryły ołówkiem na wydrukowanej siatce izometrycznej.
 
 ---
 
@@ -317,6 +412,9 @@ Oznaczenia:
 - (P) [Purdue Spatial Visualization Test: Visualization of Rotations](https://en.wikipedia.org/wiki/Purdue_Spatial_Visualization_Test:_Visualization_of_Rotations). Wikipedia.
 - (P) [Revised PSVT:R](https://www.spatiallearning.org/tools/revised-purdue-spatial-visualization-test-revised-psvtr-visualization-of-rotations). Spatial Intelligence and Learning Center. Podaje rok testu oryginalnego jako 1976; Wikipedia i praca Sorby'ego — 1977.
 
+- (P) [Presentation Slides — Developing Spatial Thinking](https://www.higheredservices.org/wp-content/uploads/2016/05/DevelopingSpatialThinkingPresentationSlides2016.pdf). Higher Education Services. Fragment: lista dziesięciu modułów kursu.
+- (P) Khooshabeh, P., Hegarty, M., Shipley, T. F. (2013). [Individual differences in mental rotation: piecemeal versus holistic processing](https://www.semanticscholar.org/paper/Individual-differences-in-mental-rotation%3A-versus-Khooshabeh-Hegarty/9220cbe8b1dff1d4873c9a4d07d29cb415e6b25f). *Experimental Psychology*. Streszczenie.
+
 **Psychologia uczenia się**
 
 - (P) [Spaced and interleaved practice](https://openlearning.mit.edu/mit-faculty/research-based-learning-findings/spaced-and-interleaved-practice). MIT Open Learning.
@@ -331,3 +429,12 @@ Oznaczenia:
 - (B) [ISO 5456-2:1996, próbka](https://cdn.standards.iteh.ai/samples/11502/b576be294da54eaab2b3b3fa748b8d1d/ISO-5456-2-1996.pdf). Skan; z próbki da się wydobyć tylko znak wodny.
 - (B) [PN-EN ISO 5456-2:2002](https://sklep.pkn.pl/pn-en-iso-5456-2-2002p.html). Polski Komitet Normalizacyjny.
 - (B) [Rzutowanie prostokątne](https://cms.upsl.edu.pl/content/download/7811/file/Rzutowanie%20Prostok%C4%85tne.pdf). Materiały UPSL.
+
+**Rysunek techniczny: linie, przekroje, aksonometria**
+
+- (P) [Moduł 1. Rodzaje rysunku i jego elementy składowe](http://www.pcez-bytow.pl/download/plk/1.1-rtdbm-tresc-20.01.21.pdf). PCEZ Bytów. Fragmenty: definicje widoku, kładu i przekroju.
+- (P) [Rzuty aksonometryczne](http://www.pcez-bytow.pl/download/plk/rzuty-aksonometryczne.pdf). PCEZ Bytów. Fragmenty: skrót 0,816 w izometrii, osie elips (d i 0,58·d; bez skrótu 1,2·d i 0,7·d).
+- (P) [Widoki, przekroje, kłady](https://www.wim.wat.edu.pl/wp-content/uploads/2024/01/widoki_przekroje_klady.pdf). WAT, Wydział Inżynierii Mechanicznej. Fragmenty: kład jako odmiana przekroju.
+- (P) [Design Graphics for Engineering Communication, rozdz. 4 (próbka)](https://static.sdcpublications.com/pdfsample/978-1-58503-909-8-4.pdf). SDC Publications. Fragmenty: linie nieizometryczne, elipsy w rombie, linie niewidoczne w rysunkach aksonometrycznych.
+- (S) [Linie na rysunku technicznym](https://www.cognity.pl/linie-na-rysunku-technicznym-jak-stosowac), [materiały PRz](https://e-learning.prz.edu.pl/), [materiały AGH](https://galaxy.agh.edu.pl/~olesiak/rysunek/01_wprowadzenie.pdf) — zgodne streszczenia: krawędzie widoczne linią ciągłą grubą, niewidoczne kreskową.
+- (B) [ISO 5456-3:1996, próbka](https://cdn.standards.iteh.ai/samples/11503/006c88f9e0b040618800ce7a590d049f/ISO-5456-3-1996.pdf). Skan; tekstu nie udało się wydobyć, więc aplikacja nie przypisuje normie konkretnej skali izometrii.

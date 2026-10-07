@@ -17,32 +17,35 @@ Metodyka, na której oparto trener, wraz ze źródłami: [METODYKA.md](METODYKA.
 Otwórz plik w przeglądarce i gotowe. Bez logowania, bez serwera, bez zależności
 zewnętrznych. Postęp zapisuje się w pamięci przeglądarki.
 
-Aplikacja ma pięć zakładek: **Kurs**, **Trening**, **Buduj**, **Teoria**
-i **Postępy**.
+Aplikacja ma sześć zakładek: **Kurs**, **Trening**, **Szkicuj**, **Buduj**,
+**Teoria** i **Postępy**.
 
 ### Kurs — ścieżka prowadzona
 
-Dziesięć modułów w ustalonej kolejności, około dwóch godzin. Każdy moduł to
-teoria, ćwiczenia bez oceny i sprawdzian z progiem 5 z 6, który otwiera
-kolejny moduł. Na końcu egzamin z 12 zadań ze wszystkich modułów, próg 9,
+Dwanaście modułów w ustalonej kolejności, niecałe trzy godziny. Każdy moduł
+to teoria, ćwiczenia bez oceny i sprawdzian z progiem około 80%, który otwiera
+kolejny moduł. Na końcu egzamin z 14 zadań ze wszystkich modułów, próg 11,
 oraz certyfikat do wydruku.
 
 | # | Moduł | # | Moduł |
 | --- | --- | --- | --- |
-| 1 | Układ osi i rzut izometryczny | 6 | Obroty wokół osi pionowej |
-| 2 | Plan kodowany | 7 | Obroty wokół osi poziomych |
-| 3 | Trzy rzuty prostokątne | 8 | Odbicia i symetria |
-| 4 | Uskoki i linie wewnętrzne | 9 | Przekroje brył |
-| 5 | Czytanie rzutów: od rysunku do bryły | 10 | Metoda pierwszego i trzeciego kąta |
+| 1 | Układ osi i rzut izometryczny | 7 | Powierzchnie pochyłe i okręgi |
+| 2 | Plan kodowany | 8 | Obroty wokół osi pionowej |
+| 3 | Szkicowanie izometryczne | 9 | Obroty wokół osi poziomych |
+| 4 | Trzy rzuty prostokątne | 10 | Odbicia i symetria |
+| 5 | Krawędzie widoczne i niewidoczne | 11 | Przekroje i kłady |
+| 6 | Czytanie rzutów: od rysunku do bryły | 12 | Metoda pierwszego i trzeciego kąta |
 
-Układ modułów odwzorowuje strukturę kursu „Developing Spatial Thinking".
+Kolejność tematów idzie za kursem „Developing Spatial Thinking" (Sorby).
+Z jego dziesięciu modułów aplikacja nie obejmuje trzech: brył obrotowych,
+łączenia brył i rozwinięć.
 Kurs buduje rozumienie po kolei, tryb Trening je potem utrwala, mieszając
 materiał. Uzasadnienie tego podziału opisuje sekcja 9 w
 [METODYKA.md](METODYKA.md).
 
 ### Trening — praktyka przeplatana
 
-Sesja to 10 zadań dobieranych przez model ucznia. **Osiem typów zadań**,
+Sesja to 10 zadań dobieranych przez model ucznia. **Jedenaście typów zadań**,
 generowanych proceduralnie, więc pule zadań się nie wyczerpują:
 
 | Zadanie | Umiejętność |
@@ -52,24 +55,39 @@ generowanych proceduralnie, więc pule zadań się nie wyczerpują:
 | Bryła → rzut | wskazanie poprawnego rzutu |
 | Obroty przestrzenne | obrót o 90° wokół wybranej osi |
 | Odbicia i symetria | odróżnienie odbicia od obrotu |
-| Przekroje brył | przekrój płaszczyzną |
+| Przekroje brył | figura przekroju (kład) |
 | Liczenie kostek | objętość wraz z kostkami zasłoniętymi |
 | Układ rzutów | metoda pierwszego i trzeciego kąta |
+| Szkic izometryczny | rysunek bryły na siatce punktowej — bez wyboru z listy |
+| Linie pochyłe | rzuty bryły ze skosem → rysunek izometryczny |
+| Okręgi w izometrii | orientacja i wymiary elipsy |
 
-### Buduj, Teoria, Postępy
+Rzuty są rysowane zgodnie z PN-EN ISO 128: krawędzie widoczne linią ciągłą
+grubą, niewidoczne kreskową cienką, a pole kładu jest kreskowane.
+
+### Szkicuj, Buduj, Teoria, Postępy
+
+**Szkicuj** to rysowanie bryły na siatce punktów izometrycznych, z planu
+kodowanego albo z trzech rzutów. Kliknięcie w punkt zaczyna odcinek,
+kliknięcie w drugi punkt na tej samej linii siatki go rysuje; z klawiatury
+strzałki przesuwają kursor, a `Enter` działa jak kliknięcie. Program porównuje
+szkic z rysunkiem bryły odcinek po odcinku, z dokładnością do przesunięcia,
+i zaznacza odcinki zbędne i brakujące. Na szkic są dwie próby.
 
 **Buduj** daje zadanie konstrukcyjne zamiast wyboru z listy: trzy rzuty
-i pusta siatka, w której trzeba postawić bryłę słupek po słupku. Sprawdzenie
-porównuje zbiory kostek, więc zgadywanie nie działa.
+i pusta siatka, w której trzeba postawić bryłę słupek po słupku. Poprawna
+jest bryła wzorcowa i każda inna o identycznych trzech rzutach.
 
-**Teoria** to dwanaście lekcji z rysunkami generowanymi tym samym silnikiem
-co zadania. **Postępy** pokazują opanowanie każdej umiejętności i termin
-najbliższej powtórki.
+**Teoria** to piętnaście lekcji z rysunkami generowanymi tym samym silnikiem
+co zadania; twierdzenia oparte na źródłach mają je podane pod lekcją.
+**Postępy** pokazują opanowanie każdej umiejętności i termin najbliższej
+powtórki.
 
-**Jak dobierany jest materiał w treningu:** typy zadań są przeplatane (ta sama umiejętność
-nie wystąpi dwa razy z rzędu), każda umiejętność ma własny harmonogram powtórek
-w rosnących odstępach, a poziom trudności podąża za skutecznością, celując
-w okolice 75–85% trafień. Błędne odpowiedzi nie są losowe — kodują typowe
+**Jak dobierany jest materiał w treningu:** typy zadań są przeplatane (ta sama
+umiejętność nie powtórzy się w ciągu trzech kolejnych zadań), każda
+umiejętność ma własny harmonogram powtórek w rosnących odstępach, a poziom
+trudności rośnie po 8 poprawnych odpowiedziach z rzędu i spada przy 2 błędach
+na 8. W symulacji z modelowym uczniem utrzymuje to skuteczność 75–85%. Błędne odpowiedzi nie są losowe — kodują typowe
 pomyłki, a informacja zwrotna nazywa popełniony błąd zamiast tylko go
 odnotować.
 
@@ -104,7 +122,9 @@ Całą aplikację da się obsłużyć z klawiatury. Opcje odpowiedzi, pola edyto
 planu, pozycje kursu i nagłówki lekcji są przyciskami, więc działają pod Tab
 i Enter. W trakcie zadania klawisze `1`–`5` wybierają odpowiedź, a `Enter`
 przechodzi dalej. W edytorze planu strzałki w górę i w dół zmieniają wysokość
-słupka. Fokus jest widoczny, a informacja zwrotna po odpowiedzi ogłaszana
+słupka. Na siatce szkicu strzałki przesuwają kursor po punktach (z `Shift` po
+drugiej przekątnej), `Enter` rysuje, `Escape` przerywa, `Backspace` cofa,
+a każdy ruch jest ogłaszany przez czytnik ekranu. Fokus jest widoczny, a informacja zwrotna po odpowiedzi ogłaszana
 przez czytnik ekranu.
 
 Ograniczenie, które warto znać: rysunki na płótnie mają opis słowny
@@ -135,6 +155,17 @@ zwykłe sprawdzenie struktury, bo konfrontują kod z niezależnym wyliczeniem:
 - **Jednoznaczność zadań PSVT** — dla każdego zadania sprawdzane są wszystkie
   24 obroty sześcianu. Kontrola ograniczona do obrotów obecnych w opcjach
   przepuszczała 7% zadań z dwiema poprawnymi interpretacjami.
+- **Linie niewidoczne kontra krawędzie 3D** — linie w rzutach są porównywane
+  z wyliczeniem z krawędzi bryły w przestrzeni, niezależnym od kodu rzutów.
+- **Szkic kontra algorytm malarza** — przypisanie ścian do trójkątów siatki
+  jest porównywane z kolejnością rysowania używaną w rysunku bryły.
+- **Elipsy kontra rozkład macierzy** — osie i obrót elips są liczone
+  z wartości osobliwych rzutu ściany i porównywane ze stałymi aplikacji.
+- **Jednoznaczność rzutów** — wyczerpujące przeszukanie brył o tych samych
+  rzutach; bez linii niewidocznych 3–30% brył miało więcej niż jedno
+  rozwiązanie.
+- **Regulator trudności** — symulacja modelowego ucznia musi dać 75–85%
+  skuteczności, bo tyle obiecuje opis.
 - **Polityki RLS na prawdziwej bazie** — migracja jest uruchamiana dwukrotnie
   na tymczasowym PostgreSQL z imitacją Supabase oraz raz na bazie bez dawnej
   tabeli `subscriptions`, a 19 sprawdzeń weryfikuje,
@@ -143,8 +174,12 @@ zwykłe sprawdzenie struktury, bo konfrontują kod z niezależnym wyliczeniem:
   politykę i nieopakowane `auth.uid()`.
 
 Test przeglądarkowy przechodzi cały kurs od pierwszego modułu po certyfikat,
-potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu, i sprawdza
-obsługę z klawiatury.
+potwierdza, że oblany sprawdzian nie otwiera kolejnego modułu, rysuje szkic
+prawdziwymi kliknięciami myszy i z klawiatury oraz sprawdza obsługę
+z klawiatury w całej aplikacji.
+
+Audyt treści i jego pomiary opisuje sekcja 11 w [METODYKA.md](METODYKA.md),
+a uzasadnienie nowych modułów — sekcja 12.
 
 ---
 
