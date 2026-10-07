@@ -1,15 +1,46 @@
-# Restaurant OS — master prompt
+# Restaurant OS
 
-- `MASTER_PROMPT.md` — kompletna specyfikacja „BUILD MODE” do wklejenia w agenta AI (Claude Code, Lovable, Replit, Cursor). Pracuje fazami 1–6, z bramkami jakości.
-- `verification/` — dowód, że SQL z sekcji 4 działa: atrapa schematu Supabase (`auth`, `storage`, role) oraz test dymny RLS/RPC.
+Aplikacja PWA po polsku do prowadzenia restauracji: **magazyn, zgłaszanie braków, lista zakupów, zakupy, zadania i dashboard**. Działa na telefonie i komputerze, instaluje się jak aplikacja, a pracownik robi większość rzeczy w 2–3 dotknięciach.
 
-Uruchomienie testu (PostgreSQL 16, pusta baza):
+> Specyfikacja i plan fazowy: [`MASTER_PROMPT.md`](MASTER_PROMPT.md). To wydanie obejmuje **FAZĘ 1 i 2**. OCR, analizę cen, receptury i raporty (FAZY 3–6) opisano w specyfikacji, ale jeszcze ich nie zbudowano.
 
-````bash
-createdb ros_test
-psql -v ON_ERROR_STOP=1 ros_test -f verification/00_supabase_mock.sql
-# wyciągnij bloki ```sql z sekcji 4 MASTER_PROMPT.md do migracji 001–005 i wykonaj je po kolei
-psql -v ON_ERROR_STOP=1 ros_test -f verification/rls_smoke.sql   # na końcu: ALL TESTS PASSED
-````
+## Co jest w środku
 
-Test nie jest powtarzalny na tej samej bazie — przed każdym uruchomieniem twórz pustą bazę.
+| Rola       | Ekrany                                                                                                                     |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Pracownik  | Dzisiaj, Zadania, Zgłoś brak, Magazyn (odczyt)                                                                             |
+| Manager    | Dashboard, Magazyn (ruchy, inwentaryzacja), Zakupy (lista, kreator, historia), Zadania, Dostawcy, Kategorie, Powiadomienia |
+| Właściciel | Wszystko powyżej + Pracownicy, Szablony zadań, Ustawienia, Historia zmian                                                  |
+
+Najważniejsze zasady: stan magazynu to suma niezmiennych ruchów, uprawnienia wymusza baza danych (RLS), tryb offline obsługuje zgłoszenia braków i odhaczanie zadań, a każda ważna zmiana zapisuje się w historii.
+
+## Szybki start
+
+1. Przeczytaj [`docs/SETUP.md`](docs/SETUP.md) — Supabase, migracje, pierwszy właściciel, e-mail, hosting.
+2. Instrukcje dla ludzi: [pracownik](docs/INSTRUKCJA_PRACOWNIK.md), [manager](docs/INSTRUKCJA_MANAGER.md), [właściciel](docs/INSTRUKCJA_WLASCICIEL.md).
+3. Lokalnie: `npm install`, ustaw `SUPABASE_URL` i `SUPABASE_ANON_KEY`, `npm run serve`.
+
+## Struktura
+
+```
+src/                 aplikacja (TypeScript, bez bibliotek uruchomieniowych)
+  api/               klient Auth/REST, pamięć podręczna, kolejka offline
+  pages/             ekrany     ui/  komponenty     lib/  formatowanie, walidacja, opisy audytu
+public/              index.html, style, manifest, service worker, ikony (wynik kompilacji trafia do public/assets/js)
+supabase/migrations  schemat, RLS, funkcje SQL    functions/  admin-users, daily-shopping-summary
+supabase/tests       testy SQL (RLS, funkcje)     cron.example.sql  harmonogram
+tests/               testy jednostkowe i bezpieczeństwa (Node)
+e2e/                 testy w Chromium + lokalny backend testowy na PostgreSQL
+docs/                instalacja, instrukcje, decyzje, lista kontrolna
+```
+
+## Testy
+
+```bash
+npm run lint      # formatowanie + typy
+npm test          # 72 testy jednostkowe, funkcji Edge i bezpieczeństwa
+npm run db:test   # migracje, RLS i funkcje na PostgreSQL 16
+npm run e2e       # 17 scenariuszy w Chromium (w tym pełny dzień restauracji, offline, PWA, 6 rozmiarów ekranu)
+```
+
+Uczciwy stan prac i znane ograniczenia: [`docs/CHECKLIST.md`](docs/CHECKLIST.md), decyzje projektowe: [`docs/DECISIONS.md`](docs/DECISIONS.md).

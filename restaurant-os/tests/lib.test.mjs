@@ -144,3 +144,164 @@ test('decodeJwt i uuid', () => {
   assert.match(a, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   assert.notEqual(a, id.uuid());
 });
+
+const pw = await import('../public/assets/js/lib/password.js');
+const au = await import('../public/assets/js/lib/audit.js');
+const st = await import('../public/assets/js/lib/shoppingText.js');
+
+test('generatePassword: długość, bez mylących znaków, zawsze cyfra + wielka + mała litera, losowe', () => {
+  const seen = new Set();
+  for (let i = 0; i < 200; i++) {
+    const p = pw.generatePassword();
+    assert.equal(p.length, 12);
+    assert.match(p, /[A-Z]/);
+    assert.match(p, /[a-z]/);
+    assert.match(p, /[0-9]/);
+    assert.doesNotMatch(p, /[0OolI1]/);
+    seen.add(p);
+  }
+  assert.ok(seen.size > 195, 'hasła są losowe');
+  assert.equal(pw.generatePassword(20).length, 20);
+});
+
+test('nextOccurrences: najbliższe dni szablonu (ISO: 1=pn … 7=nd)', () => {
+  // 7.10.2026 to środa
+  assert.deepEqual(f.nextOccurrences([1, 3, 5], '2026-10-07', 4), [
+    '2026-10-07',
+    '2026-10-09',
+    '2026-10-12',
+    '2026-10-14',
+  ]);
+  assert.deepEqual(f.nextOccurrences([7], '2026-10-07', 2), ['2026-10-11', '2026-10-18']);
+  assert.deepEqual(f.nextOccurrences([], '2026-10-07'), []);
+});
+
+test('describeAudit: opisy w stronie biernej, z nazwami produktów i bez surowego JSON', () => {
+  const L = {
+    productName: (id) => ({ p1: 'Mleko 3,2%' })[id] ?? 'produkt',
+    productUnit: () => 'l',
+    userName: (id) => ({ u1: 'Ewa' })[id] ?? '',
+  };
+  const d = (e) => au.describeAudit(e, L);
+  assert.equal(
+    d({
+      action: 'INSERT',
+      table_name: 'shortages',
+      old_data: null,
+      new_data: { product_id: 'p1', quantity: '10.000', unit: 'l', urgent: true },
+    }),
+    'Zgłoszono brak: Mleko 3,2% — 10 L (PILNE)',
+  );
+  assert.equal(
+    d({
+      action: 'INSERT',
+      table_name: 'inventory_movements',
+      old_data: null,
+      new_data: { product_id: 'p1', type: 'waste', quantity_delta: '-2.000', note: 'rozlane' },
+    }),
+    'Zapisano ruch (odpad): Mleko 3,2% -2 L — rozlane',
+  );
+  assert.equal(
+    d({
+      action: 'INSERT',
+      table_name: 'inventory_movements',
+      old_data: null,
+      new_data: { product_id: 'p1', type: 'purchase', quantity_delta: '20.000', note: null },
+    }),
+    'Zapisano ruch (zakup): Mleko 3,2% +20 L',
+  );
+  assert.equal(
+    d({
+      action: 'UPDATE',
+      table_name: 'tasks',
+      old_data: { status: 'todo', title: 'Sprzątanie' },
+      new_data: { status: 'done', title: 'Sprzątanie' },
+    }),
+    'Wykonano zadanie „Sprzątanie”',
+  );
+  assert.equal(
+    d({
+      action: 'UPDATE',
+      table_name: 'tasks',
+      old_data: { status: 'done', title: 'X' },
+      new_data: { status: 'todo', title: 'X' },
+    }),
+    'Cofnięto wykonanie zadania „X”',
+  );
+  assert.equal(
+    d({
+      action: 'UPDATE',
+      table_name: 'purchases',
+      old_data: { status: 'draft', document_number: 'FV/1' },
+      new_data: { status: 'confirmed', document_number: 'FV/1' },
+    }),
+    'Zatwierdzono zakup FV/1',
+  );
+  assert.equal(
+    d({
+      action: 'UPDATE',
+      table_name: 'profiles',
+      old_data: { id: 'u1', role: 'employee', active: true },
+      new_data: { id: 'u1', role: 'manager', active: true },
+    }),
+    'Zmieniono rolę użytkownika Ewa: pracownik → manager',
+  );
+  assert.equal(
+    d({
+      action: 'UPDATE',
+      table_name: 'profiles',
+      old_data: { id: 'u1', role: 'employee', active: true },
+      new_data: { id: 'u1', role: 'employee', active: false },
+    }),
+    'Dezaktywowano konto: Ewa',
+  );
+  assert.match(
+    d({
+      action: 'UPDATE',
+      table_name: 'products',
+      old_data: { name: 'Ser', minimum_stock: '2', active: true, category_id: null },
+      new_data: { name: 'Ser', minimum_stock: '5', active: true, category_id: null },
+    }),
+    /minimum: 2 → 5/,
+  );
+  assert.match(
+    d({ action: 'DELETE', table_name: 'tasks', old_data: { title: 'Stare' }, new_data: null }),
+    /Usunięto zadanie „Stare”/,
+  );
+  assert.ok(!d({ action: 'INSERT', table_name: 'nieznana', old_data: null, new_data: { a: 1 } }).includes('{'));
+});
+
+test('buildShoppingText: ten sam układ co e-mail (PILNE, kategorie, ilości po polsku)', () => {
+  const rows = [
+    {
+      product_name: 'Mleko',
+      category_name: 'Nabiał',
+      category_order: 1,
+      unit: 'l',
+      total_quantity: '10.000',
+      urgent: false,
+    },
+    {
+      product_name: 'Kurczak',
+      category_name: 'Mięso',
+      category_order: 3,
+      unit: 'kg',
+      total_quantity: '2.500',
+      urgent: true,
+    },
+    {
+      product_name: 'Pomidor',
+      category_name: 'Warzywa',
+      category_order: 2,
+      unit: 'kg',
+      total_quantity: '12',
+      urgent: false,
+    },
+  ];
+  const t = st.buildShoppingText(rows, '2026-10-08');
+  assert.equal(
+    t,
+    'LISTA ZAKUPÓW — 08.10.2026\n\nPILNE\n• Kurczak — 2,5 kg\n\nNABIAŁ\n• Mleko — 10 L\n\nWARZYWA\n• Pomidor — 12 kg',
+  );
+  assert.match(st.buildShoppingText([], '2026-10-08'), /lista jest pusta/);
+});

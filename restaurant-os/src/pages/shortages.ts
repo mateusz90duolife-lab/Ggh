@@ -296,7 +296,7 @@ export async function reportShortagePage(c: PageCtx): Promise<void> {
       qtyInput.value = '1';
       (urgent as HTMLInputElement).checked = false;
       note.value = '';
-      picker.input.focus();
+      picker.focusQuiet();
     });
   });
 
@@ -340,5 +340,5 @@ export async function reportShortagePage(c: PageCtx): Promise<void> {
       ),
     ),
   );
-  picker.input.focus();
+  picker.focusQuiet();
 }

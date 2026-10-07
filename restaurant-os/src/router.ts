@@ -172,6 +172,9 @@ async function render(): Promise<void> {
   }
   if (my === token) {
     window.scrollTo({ top: 0 });
-    el.focus({ preventScroll: true });
+    // Dla czytników ekranu przenosimy fokus na widok, ale nie odbieramy go polu, które strona sama ustawiła
+    // (np. wyszukiwarka produktu na ekranie „Zgłoś brak”).
+    const active = document.activeElement;
+    if (!active || active === document.body || !el.contains(active)) el.focus({ preventScroll: true });
   }
 }

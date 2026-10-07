@@ -8,6 +8,8 @@ export interface PickerHandle {
   input: HTMLInputElement;
   get(): Product | null;
   set(p: Product | null): void;
+  /** Ustawia fokus w polu bez otwierania listy (lista otworzy się po dotknięciu lub wpisaniu liter). */
+  focusQuiet(): void;
   setError(msg: string | null): void;
 }
 
@@ -28,6 +30,7 @@ export function productPicker(opts: {
   let selected: Product | null = null;
   let highlighted = 0;
   let shown: Product[] = [];
+  let quiet = false;
   const id = `pick_${Math.random().toString(36).slice(2, 8)}`;
 
   const input = h('input', {
@@ -153,7 +156,10 @@ export function productPicker(opts: {
     highlighted = 0;
     render();
   });
-  input.addEventListener('focus', render);
+  input.addEventListener('focus', () => {
+    if (!quiet) render();
+  });
+  input.addEventListener('click', render); // dotknięcie już aktywnego pola też otwiera listę
   input.addEventListener('blur', () => setTimeout(close, 120));
   input.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowDown') {
@@ -176,6 +182,11 @@ export function productPicker(opts: {
     input,
     get: () => selected,
     set: (p) => choose(p),
+    focusQuiet() {
+      quiet = true;
+      input.focus();
+      quiet = false;
+    },
     setError(msg) {
       err.textContent = msg ?? '';
       wrap.classList.toggle('has-error', !!msg);

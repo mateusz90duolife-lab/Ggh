@@ -2,7 +2,8 @@ import { callFunction, eq, gte, insert, list, remove, update } from '../api/db.j
 import { h, mount } from '../dom.js';
 import { describeAudit, AUDIT_TABLES } from '../lib/audit.js';
 import { errorMessage } from '../lib/errors.js';
-import { WEEKDAY_SHORT, formatDate, formatDateTime, plural, relativeTime } from '../lib/format.js';
+import { WEEKDAY_SHORT, formatDate, formatDateTime, nextOccurrences, plural, relativeTime } from '../lib/format.js';
+import { generatePassword } from '../lib/password.js';
 import { parseEmailList, validateEmail, validateText, validateTime, validateTimeZone } from '../lib/validate.js';
 import type { PageCtx } from '../router.js';
 import { loadCatalog, nameOf, profile, restaurant, rememberName, tz, today } from '../state.js';
@@ -21,22 +22,6 @@ import {
 } from '../ui/components.js';
 import { confirmDialog, openModal } from '../ui/modal.js';
 import { toast } from '../ui/toast.js';
-
-/** Hasło tymczasowe: 12 znaków bez mylących (0/O, 1/l/I), zawsze z cyfrą i wielką literą. */
-export function generatePassword(length = 12): string {
-  const lower = 'abcdefghijkmnpqrstuvwxyz';
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const digits = '23456789';
-  const all = lower + upper + digits;
-  const pick = (set: string) => set[crypto.getRandomValues(new Uint32Array(1))[0]! % set.length]!;
-  const chars = [pick(upper), pick(digits), pick(lower)];
-  while (chars.length < length) chars.push(pick(all));
-  for (let i = chars.length - 1; i > 0; i--) {
-    const j = crypto.getRandomValues(new Uint32Array(1))[0]! % (i + 1);
-    [chars[i], chars[j]] = [chars[j]!, chars[i]!];
-  }
-  return chars.join('');
-}
 
 // ------------------------------------------------------------------ pracownicy
 export async function usersPage(c: PageCtx): Promise<void> {
@@ -306,20 +291,6 @@ function openReset(u: TeamUser, onDone: () => void): void {
 }
 
 // ------------------------------------------------------------------ szablony zadań
-function isoWeekday(iso: string): number {
-  const d = new Date(`${iso}T00:00:00Z`).getUTCDay();
-  return d === 0 ? 7 : d;
-}
-export function nextOccurrences(days: number[], from: string, count = 4): string[] {
-  const out: string[] = [];
-  let t = Date.parse(`${from}T00:00:00Z`);
-  for (let i = 0; i < 28 && out.length < count; i++, t += 86400000) {
-    const iso = new Date(t).toISOString().slice(0, 10);
-    if (days.includes(isoWeekday(iso))) out.push(iso);
-  }
-  return out;
-}
-
 export async function templatesPage(c: PageCtx): Promise<void> {
   c.setTitle('Szablony zadań');
   const host = h('div', { class: 'page' }, skeleton(3));

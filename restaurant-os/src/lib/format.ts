@@ -113,3 +113,17 @@ export function plural(n: number, one: string, few: string, many: string): strin
 export function normalize(s: string): string {
   return s.toLowerCase().replace(/ł/g, 'l').normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 }
+
+function isoWeekday(iso: string): number {
+  const d = new Date(`${iso}T00:00:00Z`).getUTCDay();
+  return d === 0 ? 7 : d;
+}
+export function nextOccurrences(days: number[], from: string, count = 4): string[] {
+  const out: string[] = [];
+  let t = Date.parse(`${from}T00:00:00Z`);
+  for (let i = 0; i < 28 && out.length < count; i++, t += 86400000) {
+    const iso = new Date(t).toISOString().slice(0, 10);
+    if (days.includes(isoWeekday(iso))) out.push(iso);
+  }
+  return out;
+}

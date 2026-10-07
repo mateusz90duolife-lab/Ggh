@@ -1147,3 +1147,14 @@ th {
   font-size: 14px;
   color: var(--muted);
 }
+
+/* wyrównane plakietki stanu w listach (jednakowa szerokość pasków) */
+.item > .badge {
+  min-width: 112px;
+  justify-content: center;
+}
+a.muted,
+.muted a,
+a.small.muted {
+  text-decoration: none;
+}
