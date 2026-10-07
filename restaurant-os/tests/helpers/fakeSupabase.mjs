@@ -67,6 +67,11 @@ export function createFake({
       const id = state.tokens[auth];
       return id ? J(200, { id }) : J(401, { msg: 'invalid' });
     }
+    if (p === '/auth/v1/token' && url.searchParams.get('grant_type') === 'password') {
+      const u = [...state.authUsers.values()].find((x) => x.email === body.email && x.password === body.password);
+      if (!u) return J(400, { error_code: 'invalid_credentials', msg: 'Invalid login credentials' });
+      return J(200, { access_token: `at-${u.id}`, refresh_token: `rt-${u.id}`, expires_in: 3600, user: { id: u.id } });
+    }
     if (p === '/auth/v1/admin/users' && method === 'GET') {
       return J(200, { users: [...state.authUsers.values()].map(({ password: _p, ...u }) => u) });
     }
@@ -81,6 +86,7 @@ export function createFake({
     if (m) {
       const u = state.authUsers.get(m[1]);
       if (!u) return J(404, {});
+      if (method === 'GET') return J(200, { id: u.id, email: u.email });
       if (method === 'DELETE') {
         state.authUsers.delete(m[1]);
         return J(200, {});

@@ -9,6 +9,26 @@ export interface Profile {
   full_name: string;
   role: Role;
   active: boolean;
+  nick?: string | null;
+}
+
+export interface WorkShift {
+  id: string;
+  profile_id: string;
+  started_at: string;
+  ended_at: string | null;
+  note: string | null;
+  source: 'clock' | 'manual';
+}
+
+export interface StockMove {
+  id: string;
+  product_id: string;
+  type: string;
+  quantity_delta: number | string;
+  note: string | null;
+  created_by: string;
+  created_at: string;
 }
 
 export interface Restaurant {
@@ -163,6 +183,7 @@ export interface DashboardSummary {
 export interface TeamUser {
   id: string;
   email: string | null;
+  nick: string | null;
   full_name: string;
   role: Role;
   active: boolean;

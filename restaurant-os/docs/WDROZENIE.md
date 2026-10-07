@@ -4,9 +4,9 @@ Aplikacja działa na projekcie Supabase **restaurant-os** (region Frankfurt, pla
 
 | Element                    | Stan | Szczegóły                                                                                          |
 | -------------------------- | :--: | -------------------------------------------------------------------------------------------------- |
-| Baza danych (migracje 1–6) |  ✅  | Schemat, RLS na 18 tabelach, funkcje; testy SQL przeszły na tym projekcie (w transakcji wycofanej) |
+| Baza danych (migracje 1–7) |  ✅  | Schemat, RLS na 19 tabelach, funkcje; testy SQL przeszły na tym projekcie (w transakcji wycofanej) |
 | Doradca bezpieczeństwa     |  ✅  | Brak błędów; zostały ostrzeżenia o funkcjach API dla zalogowanych (zamierzone, patrz D13)          |
-| Funkcje Edge               |  ✅  | `admin-users`, `daily-shopping-summary`, `scan-receipt` — wdrożone i sprawdzone                    |
+| Funkcje Edge               |  ✅  | `admin-users`, `daily-shopping-summary`, `scan-receipt`, `pin-login` — wdrożone                    |
 | Katalog produktów          |  ✅  | ok. 110 produktów z ilustracjami (mięsa, warzywa, zupy, przyprawy, sosy) dodanych do lokalu        |
 | Skaner paragonów           |  ⚠️  | Funkcja gotowa; brakuje klucza `ANTHROPIC_API_KEY` (niżej, krok 4)                                 |
 | Konto właściciela          |  ✅  | Lokal „Moja Restauracja”, 12 kategorii startowych. Hasło tymczasowe zmień po pierwszym logowaniu   |

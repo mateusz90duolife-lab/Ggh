@@ -1,16 +1,22 @@
 import { insert, remove } from '../api/db.js';
 import { h, icon, mount } from '../dom.js';
 import { formatDate, formatTime } from '../lib/format.js';
-import { validateText, validatePurchaseDate } from '../lib/validate.js';
-import { isManager, nameOf, today, tz } from '../state.js';
+import { validateText } from '../lib/validate.js';
+import { isManager, nameOf, profile, team, today, tz } from '../state.js';
 import { loadTodayTasks, pendingTaskIds, setTaskDone, TASK_COLUMNS } from '../data.js';
-import { button, emptyState, errorState, fab, field, guarded, sectionHeader, skeleton, textInput, } from '../ui/components.js';
+import { button, emptyState, errorState, fab, field, guarded, sectionHeader, skeleton, selectInput, textInput, } from '../ui/components.js';
 import { confirmDialog, openModal } from '../ui/modal.js';
 import { toast } from '../ui/toast.js';
 import { errorMessage } from '../lib/errors.js';
 export function taskRow(t, opts) {
     const done = t.status === 'done';
-    const sub = done ? `Zrobione: ${nameOf(t.done_by)}, ${formatTime(t.done_at, tz())}` : (t.description ?? '');
+    const base = done ? `Zrobione: ${nameOf(t.done_by)}, ${formatTime(t.done_at, tz())}` : (t.description ?? '');
+    const forWhom = t.assigned_to
+        ? t.assigned_to === profile()?.id
+            ? 'dla Ciebie'
+            : `dla: ${nameOf(t.assigned_to)}`
+        : '';
+    const sub = [forWhom, base].filter(Boolean).join(' · ');
     const row = h('div', {
         class: `task${done ? ' done' : ''}${opts.pending ? ' pending-sync' : ''}`,
         role: 'checkbox',
@@ -123,7 +129,7 @@ export function createTaskBoard(opts) {
             return tasks;
         },
         set(next) {
-            tasks = next;
+            tasks = opts.filter ? next.filter(opts.filter) : next;
             render();
         },
         /** Odświeżenie z serwera bez przerywania trwającego odhaczania. */
@@ -133,7 +139,7 @@ export function createTaskBoard(opts) {
             const fresh = await loadTodayTasks(date);
             if (busy > 0)
                 return;
-            tasks = fresh;
+            tasks = opts.filter ? fresh.filter(opts.filter) : fresh;
             render();
         },
         render,
@@ -155,6 +161,7 @@ export async function tasksPage(c) {
     const progressHost = h('div');
     const board = createTaskBoard({
         canDelete: isManager(),
+        filter: visibleTask,
         onChange: () => mount(progressHost, progressCard(board.tasks.filter((t) => t.status === 'done').length, board.tasks.length)),
     });
     const head = h('div', { class: 'section-head', style: 'margin:0' }, h('p', { class: 'muted' }, formatDate(date)), isManager()
@@ -179,31 +186,49 @@ export async function tasksPage(c) {
     await load();
     c.poll(() => board.reload(date), 8000);
 }
-export function openNewTask(defaultDate, onSaved) {
+/** Termin zadania: od dziś do 90 dni naprzód. */
+function validateTaskDate(input, todayIso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input) || Number.isNaN(Date.parse(`${input}T00:00:00Z`)))
+        return { ok: false, error: 'Podaj poprawną datę.' };
+    if (input < todayIso)
+        return { ok: false, error: 'Termin nie może być w przeszłości.' };
+    if (Date.parse(`${input}T00:00:00Z`) - Date.parse(`${todayIso}T00:00:00Z`) > 90 * 86400000)
+        return { ok: false, error: 'Termin najwyżej 90 dni naprzód.' };
+    return { ok: true, value: input };
+}
+/** Pracownik widzi zadania przydzielone sobie i wspólne; manager i właściciel — wszystkie. */
+export function visibleTask(t) {
+    return isManager() || !t.assigned_to || t.assigned_to === profile()?.id;
+}
+export function openNewTask(defaultDate, onSaved, opts = {}) {
     const title = field('Co trzeba zrobić?', textInput({ maxLength: 120, required: true, placeholder: 'np. Umyć okap' }));
     const desc = field('Opis (opcjonalnie)', textInput({ maxLength: 500 }));
     const dueInput = textInput({ type: 'date', value: defaultDate });
     const due = field('Termin', dueInput);
+    const people = team().filter((t) => t.active);
+    const whoSel = selectInput([{ value: '', label: 'Dla wszystkich' }, ...people.map((t) => ({ value: t.id, label: t.full_name }))], opts.assignee ?? '');
+    const who = field('Dla kogo', whoSel);
     const m = openModal({ title: 'Nowe zadanie', body: null });
     const save = button('Dodaj zadanie', {
         type: 'submit',
         size: 'lg',
         block: true,
     });
-    const form = h('form', { class: 'form', novalidate: true }, title.el, desc.el, due.el, save);
+    const form = h('form', { class: 'form', novalidate: true }, title.el, desc.el, who.el, due.el, save);
     form.addEventListener('submit', (e) => {
         e.preventDefault();
         void guarded(save, async () => {
             const t = validateText(title.input.value, 'tytuł zadania', 1, 120);
             title.setError(t.ok ? null : t.error);
-            const d = validatePurchaseDate(dueInput.value, today());
+            const d = validateTaskDate(dueInput.value, today());
             due.setError(d.ok ? null : d.error);
             const dsc = desc.input.value.trim();
             if (!t.ok || !d.ok)
                 return;
-            await insert('tasks', { title: t.value, description: dsc || null, due_date: d.value });
+            const assigned = whoSel.value || null;
+            await insert('tasks', { title: t.value, description: dsc || null, due_date: d.value, assigned_to: assigned });
             m.close();
-            toast('Dodano zadanie.', 'ok');
+            toast(assigned ? `Przydzielono zadanie: ${nameOf(assigned)}` : 'Dodano zadanie.', 'ok');
             onSaved();
         });
     });

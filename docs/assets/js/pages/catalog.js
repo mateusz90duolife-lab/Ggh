@@ -21,6 +21,7 @@ export async function catalogPage(c) {
     const selected = new Set();
     const chipsEl = h('div', { class: 'chips chips-scroll', role: 'tablist', 'aria-label': 'Kategorie katalogu' });
     const tilesEl = h('div', { class: 'tiles', role: 'group' });
+    const hintEl = h('div', { class: 'notice notice-info', hidden: true }, 'Wszystkie produkty z tej kategorii są już w magazynie. Dotknij kafelka, aby zamówić produkt albo dodać / odjąć ze stanu — albo otwórz ', h('a', { href: '#/produkty' }, 'Produkty'), ', żeby zaznaczyć kilka naraz.');
     const countEl = h('span');
     const addBtn = button('', { size: 'lg', block: true, onClick: () => add() });
     addBtn.replaceChildren(countEl);
@@ -44,15 +45,25 @@ export async function catalogPage(c) {
     function drawTiles() {
         const have = existing();
         const group = CATALOG.find((g) => g.category === current);
-        tilesEl.replaceChildren(...(group?.items ?? []).map((it) => {
+        const idByName = new Map(products.map((p) => [normalize(p.name), p.id]));
+        const items = group?.items ?? [];
+        const allIn = items.length > 0 && items.every((it) => have.has(normalize(it.name)));
+        hintEl.hidden = !allIn;
+        tilesEl.replaceChildren(...items.map((it) => {
             const inStock = have.has(normalize(it.name));
             const on = selected.has(it);
+            // produkt już jest w magazynie: kafelek prowadzi do „Produkty” (zamów, dodaj, odejmij)
+            if (inStock)
+                return h('a', {
+                    class: 'tile tile-have',
+                    href: `#/produkty?produkt=${idByName.get(normalize(it.name)) ?? ''}`,
+                    'aria-label': `${it.name} — już w magazynie, otwórz`,
+                }, h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, it.icon), h('span', null, it.name), h('span', { class: 'tile-sub' }, '✓ w magazynie'));
             return h('button', {
                 type: 'button',
                 class: `tile${on ? ' tile-selected' : ''}`,
-                disabled: inStock,
                 'aria-pressed': String(on),
-                'aria-label': inStock ? `${it.name} — już w magazynie` : `${it.name}, ${unitLabel(it.unit)}`,
+                'aria-label': `${it.name}, ${unitLabel(it.unit)}`,
                 onclick: () => {
                     if (on)
                         selected.delete(it);
@@ -60,7 +71,7 @@ export async function catalogPage(c) {
                         selected.add(it);
                     draw();
                 },
-            }, h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, it.icon), h('span', null, it.name), h('span', { class: 'tile-sub' }, inStock ? '✓ w magazynie' : unitLabel(it.unit)));
+            }, h('span', { class: 'tile-icon', 'aria-hidden': 'true' }, it.icon), h('span', null, it.name), h('span', { class: 'tile-sub' }, unitLabel(it.unit)));
         }));
         const free = (group?.items ?? []).filter((it) => !have.has(normalize(it.name)));
         selectAllBtn.hidden = free.length === 0;
@@ -124,7 +135,7 @@ export async function catalogPage(c) {
                 return;
             products = cat.products;
             categories = cat.categories;
-            mount(host, backLink('#/magazyn', 'Magazyn'), h('p', { class: 'muted', style: 'margin:0' }, 'Dotknij kafelki, aby zaznaczyć produkty, i dodaj je jednym przyciskiem. Produkty, które już są w magazynie, są wyszarzone.'), chipsEl, h('div', { class: 'row-actions', style: 'justify-content:flex-end' }, selectAllBtn), tilesEl, h('div', { class: 'sticky-actions' }, addBtn));
+            mount(host, backLink('#/magazyn', 'Magazyn'), h('p', { class: 'muted', style: 'margin:0' }, 'Dotknij kafelki, aby zaznaczyć nowe produkty, i dodaj je jednym przyciskiem. Produkty oznaczone „✓ w magazynie” otwierają ekran Produkty (zamów, dodaj, odejmij).'), chipsEl, hintEl, h('div', { class: 'row-actions', style: 'justify-content:flex-end' }, selectAllBtn), tilesEl, h('div', { class: 'sticky-actions' }, addBtn));
             draw();
         }
         catch (e) {

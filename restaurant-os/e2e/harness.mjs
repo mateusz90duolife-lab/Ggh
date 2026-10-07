@@ -50,11 +50,24 @@ export async function setup({ db = 'ros_e2e', ttl = 3600 } = {}) {
   };
 }
 
+/** Loguje pracownika nickiem i PIN-em. */
+export async function loginWithPin(env, ctx, nick, pin) {
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => console.error('BŁĄD STRONY:', e.message));
+  await page.goto(`${env.appUrl}/#/login`);
+  await page.getByRole('tab', { name: 'Pracownik: nick i PIN' }).click();
+  await page.getByLabel('Nick').fill(nick);
+  await page.getByLabel('PIN (4 cyfry)').fill(pin);
+  await page.waitForSelector('.topbar-title', { timeout: 10000 });
+  return page;
+}
+
 /** Loguje użytkownika w danym kontekście i zwraca stronę po wejściu do aplikacji. */
 export async function loginAs(env, ctx, email, password = env.data.password) {
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.error('BŁĄD STRONY:', e.message));
   await page.goto(`${env.appUrl}/#/login`);
+  await page.getByRole('tab', { name: 'E-mail i hasło' }).click();
   await page.getByLabel('Adres e-mail').fill(email);
   await page.getByLabel('Hasło').fill(password);
   await page.getByRole('button', { name: 'Zaloguj się' }).click();

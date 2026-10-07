@@ -10,3 +10,7 @@ verify_jwt = false
 
 [functions.scan-receipt]
 verify_jwt = false
+
+# Logowanie nickiem i PIN-em: funkcja publiczna (bez tokenu), sama ogranicza liczbę prób.
+[functions.pin-login]
+verify_jwt = false

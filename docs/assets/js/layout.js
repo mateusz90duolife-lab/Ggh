@@ -13,6 +13,9 @@ const N = {
     zakupy: { path: '/zakupy', label: 'Zakupy', icon: 'cart' },
     zadania: { path: '/zadania', label: 'Zadania', icon: 'check' },
     wiecej: { path: '/wiecej', label: 'Więcej', icon: 'more' },
+    produkty: { path: '/produkty', label: 'Produkty', icon: 'box' },
+    godziny: { path: '/godziny', label: 'Godziny', icon: 'clock' },
+    zespol: { path: '/zespol', label: 'Zespół', icon: 'user' },
     skaner: { path: '/skaner', label: 'Skaner paragonów', icon: 'search' },
     katalog: { path: '/katalog', label: 'Katalog produktów', icon: 'list' },
     inwentaryzacja: { path: '/inwentaryzacja', label: 'Inwentaryzacja', icon: 'list' },
@@ -26,14 +29,25 @@ const N = {
 };
 export function bottomNav(r) {
     return r === 'employee'
-        ? [N.dzisiaj, N.magazyn, N.braki, N.zadania, N.wiecej]
+        ? [N.dzisiaj, N.produkty, N.godziny, N.zadania, N.wiecej]
         : [N.dashboard, N.magazyn, N.zakupy, N.zadania, N.wiecej];
 }
 /** Pozycje spoza dolnego paska — pokazywane w „Więcej” i w panelu bocznym na komputerze. */
 export function moreNav(r) {
     if (r === 'employee')
-        return [];
-    const base = [N.braki, N.skaner, N.katalog, N.inwentaryzacja, N.dostawcy, N.kategorie, N.powiadomienia];
+        return [N.braki, N.magazyn];
+    const base = [
+        N.zespol,
+        N.produkty,
+        N.godziny,
+        N.braki,
+        N.skaner,
+        N.katalog,
+        N.inwentaryzacja,
+        N.dostawcy,
+        N.kategorie,
+        N.powiadomienia,
+    ];
     return r === 'owner' ? [...base, N.pracownicy, N.szablony, N.ustawienia, N.audyt] : base;
 }
 export function sidebarNav(r) {

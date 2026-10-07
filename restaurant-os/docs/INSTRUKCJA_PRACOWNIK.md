@@ -4,6 +4,8 @@ Aplikacja ma cztery rzeczy do zrobienia. Wszystko jest w dolnym menu telefonu.
 
 ## 1. Zaloguj się
 
+Na ekranie logowania wybierz **Pracownik: nick i PIN**, wpisz swój nick i 4-cyfrowy PIN od szefa — aplikacja zaloguje Cię od razu po wpisaniu czterech cyfr. Po 5 błędnych PIN-ach konto blokuje się na 15 minut (albo szef ustawi nowy PIN). Telefon zapamięta Twój nick.
+
 Wpisz e-mail i hasło od właściciela. Jeśli zapomnisz hasła, dotknij „Nie pamiętasz hasła?” — dostaniesz link na e-mail.
 
 ## 2. Sprawdź zadania
@@ -35,3 +37,21 @@ Zgłoszenie braku i odhaczenie zadania zapiszą się na telefonie i wyślą same
 ## Zainstaluj aplikację
 
 **Więcej → Zainstaluj aplikację** (Android) albo w Safari **Udostępnij → Do ekranu początkowego** (iPhone). Wtedy otwiera się jak zwykła aplikacja.
+
+## Produkty: dodaj, odejmij, zamów
+
+**Produkty** (dolne menu): dotknij kafelki produktów — możesz zaznaczyć kilka naraz. Na dole pojawi się lista zaznaczonych z ilością (przyciski **−** i **+** albo wpisz liczbę). Potem wybierz:
+
+- **Na listę potrzebnych** — produkty trafią na listę zakupów pod Twoim imieniem (działa też bez internetu),
+- **Dodaj do stanu** — przyjąłeś towar,
+- **Odejmij ze stanu** — wziąłeś towar do pracy. Nie da się odjąć więcej, niż jest na stanie.
+
+Na dole ekranu widzisz swoje ostatnie zmiany.
+
+## Godziny pracy
+
+**Godziny** (dolne menu): **Zaczynam pracę** na początku zmiany i **Kończę pracę** na końcu. Zapomniałeś? **Dodaj godziny ręcznie** (dzień, od, do). Widzisz sumę godzin w tym tygodniu i miesiącu. Swój wpis z ostatnich 2 dni możesz usunąć ikoną kosza; starsze poprawki robi szef.
+
+## Zadania od szefa
+
+Zadania przydzielone Tobie mają dopisek **dla Ciebie** i są na ekranie **Dzisiaj** oraz w **Zadaniach**.

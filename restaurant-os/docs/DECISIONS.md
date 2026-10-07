@@ -83,3 +83,18 @@ Ilustracje produktów to emoji: działają offline, nie wymagają pobierania obr
 - Ceny na paragonie są brutto; do zakupu trafia cena netto = brutto / (1 + VAT). Ilość jest przeliczana na jednostkę produktu (np. 6 × „Mleko 1 L” = 6 L, 3 × 500 g = 1,5 kg).
 - Limit 60 skanów na lokal na dobę chroni przed nadużyciem i niespodziewanym kosztem. Bez klucza `ANTHROPIC_API_KEY` skaner pokazuje czytelny komunikat zamiast błędu.
 - Testy nie łączą się z API: funkcja przyjmuje wstrzyknięty obiekt klienta, a testy jednostkowe i E2E podstawiają stałą odpowiedź modelu.
+
+## D19. Konta pracowników na nick i 4-cyfrowy PIN
+
+- Pracownik loguje się **nickiem i PIN-em** (zakładka „Pracownik: nick i PIN” na ekranie logowania). Właściciel zakłada takie konto w **Pracownicy → Dodaj pracownika** i może w każdej chwili ustawić nowy PIN. Właściciel i osoby z adresem e-mail logują się jak dotąd.
+- Pod spodem to zwykłe konto Supabase Auth (z technicznym adresem `…@staff.restaurant-os.invalid`, na który nic nie jest wysyłane). Hasłem konta **nie jest PIN**, tylko HMAC(sekret serwera, id + PIN). Dzięki temu PIN-u nie da się zgadywać bezpośrednio przez API logowania — tylko przez funkcję `pin-login`, która po **5 błędnych próbach blokuje konto na 15 minut** i odpowiada tak samo na zły nick i zły PIN.
+- Sekret to `PIN_SECRET` (sekret funkcji Edge), a gdy go nie ustawiono — klucz service role. Zmiana tego sekretu unieważnia wszystkie PIN-y (właściciel ustawia je od nowa).
+- Konta PIN nie mają „Zmień hasło” (zmiana hasła rozłączyłaby PIN); nowy PIN ustawia szef.
+- Ograniczenie: Supabase ogranicza liczbę logowań z jednego adresu IP (domyślnie ok. 30 na 5 minut), a logowania PIN-em idą z serwera funkcji — dla jednego lokalu to z zapasem wystarcza.
+
+## D20. Ekran „Produkty”, godziny pracy i podgląd zespołu
+
+- **Produkty** (dla wszystkich): zaznaczanie wielu kafelków naraz, ilość dla każdego i trzy akcje — _Na listę potrzebnych_ (zgłoszenia braków, działa też offline), _Dodaj do stanu_ (przyjęcie, ruch `adjustment`) i _Odejmij ze stanu_ (wydanie, ruch `consumption`). Zmiany stanu idą przez funkcję `staff_stock_change`, zapisują się pod nazwiskiem pracownika i nie pozwalają zejść poniżej zera. Pracownik widzi swoje ruchy (nowa polityka RLS), manager — wszystkie.
+- **Godziny** (tabela `work_shifts`): „Zaczynam pracę” / „Kończę pracę” albo ręczny wpis (dzień, od, do). Pracownik wpisuje tylko swoje godziny z ostatnich 14 dni, wpisy nie mogą się nakładać ani być z przyszłości, zmiana trwa najwyżej 16 h (ręcznie) / 24 h (zegar). Poprawki i starsze wpisy robi manager.
+- **Zespół** (manager i właściciel): kto jest w pracy, godziny w tym tygodniu i miesiącu, zamówienia (zgłoszone braki), zmiany stanu i zadania każdej osoby; z karty osoby szef przydziela zadanie i dopisuje godziny. Zadania przydzielone konkretnej osobie widzi tylko ona (i szefowie); zadania „dla wszystkich” — cały zespół.
+- Kafelki w **Katalogu**, które są już w magazynie, prowadzą teraz do ekranu Produkty (wcześniej były wyszarzone i nie dało się ich zaznaczyć).

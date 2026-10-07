@@ -1,7 +1,7 @@
 // Testy E2E w prawdziwej przeglądarce (Chromium) przeciw lokalnemu backendowi na PostgreSQL z prawdziwym RLS.
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { ARTIFACTS, loginAs, setup } from './harness.mjs';
+import { ARTIFACTS, loginAs, loginWithPin, setup } from './harness.mjs';
 
 let env;
 before(async () => {
@@ -62,6 +62,7 @@ scenario('logowanie: błędne hasło, poprawne, przekierowanie wg roli i blokada
   const ctx = await mk();
   const page = await ctx.newPage();
   await page.goto(`${env.appUrl}/#/login`);
+  await page.getByRole('tab', { name: 'E-mail i hasło' }).click();
   await page.getByLabel('Adres e-mail').fill('ewa@example.com');
   await page.getByLabel('Hasło').fill('zle-haslo');
   await page.getByRole('button', { name: 'Zaloguj się' }).click();
@@ -351,6 +352,7 @@ scenario(
     await owner.getByText('Dodaj pracownika').click();
     const modal = owner.locator('.modal');
     await modal.getByLabel('Imię i nazwisko').fill('Marek Nowak');
+    await modal.getByLabel('Logowanie').selectOption('email');
     await modal.getByLabel(/Adres e-mail/).fill('marek@example.com');
     const password = await modal.getByLabel('Hasło tymczasowe').inputValue();
     assert.ok(password.length >= 8);
@@ -365,6 +367,7 @@ scenario(
     // duplikat adresu
     await owner.getByText('Dodaj pracownika').click();
     await owner.locator('.modal').getByLabel('Imię i nazwisko').fill('Drugi Marek');
+    await owner.locator('.modal').getByLabel('Logowanie').selectOption('email');
     await owner
       .locator('.modal')
       .getByLabel(/Adres e-mail/)
@@ -387,6 +390,7 @@ scenario(
     const ctx2 = await mk();
     const page2 = await ctx2.newPage();
     await page2.goto(`${env.appUrl}/#/login`);
+    await page2.getByRole('tab', { name: 'E-mail i hasło' }).click();
     await page2.getByLabel('Adres e-mail').fill('marek@example.com');
     await page2.getByLabel('Hasło').fill(password);
     await page2.getByRole('button', { name: 'Zaloguj się' }).click();
@@ -637,10 +641,10 @@ scenario('PWA: manifest, ikony, service worker i otwarcie aplikacji bez internet
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
   await page.reload();
   await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 10000 });
-  await page.getByRole('button', { name: 'Zaloguj się' }).waitFor();
+  await page.getByRole('button', { name: 'Wejdź' }).waitFor();
   await ctx.setOffline(true);
   await page.reload();
-  await page.getByRole('button', { name: 'Zaloguj się' }).waitFor({ timeout: 10000 });
+  await page.getByRole('button', { name: 'Wejdź' }).waitFor({ timeout: 10000 });
   await page.getByRole('heading', { name: 'Restaurant OS' }).waitFor();
   await ctx.setOffline(false);
 });
@@ -761,8 +765,10 @@ scenario('katalog z ilustracjami i szybki wybór kafelkami w „Zgłoś brak”'
     'produkty z ikonami; brakująca kategoria „Zupy” utworzona, istniejąca „Mięso” użyta ponownie',
   );
   await mgr.getByRole('tab', { name: /Zupy/ }).click();
-  await mgr.getByRole('button', { name: 'Rosół — już w magazynie' }).waitFor();
-  assert.ok(await mgr.getByRole('button', { name: 'Rosół — już w magazynie' }).isDisabled());
+  // produkt już w magazynie: kafelek prowadzi do ekranu Produkty z tym produktem zaznaczonym
+  await mgr.getByRole('link', { name: 'Rosół — już w magazynie, otwórz' }).click();
+  await mgr.locator('.pick-panel').getByText('Rosół').waitFor();
+  await mgr.goto(`${env.appUrl}/#/katalog`);
   // nowy produkt bez stanu i bez minimum nie jest „BRAKIEM”
   await mgr.goto(`${env.appUrl}/#/magazyn`);
   await mgr.locator('a.item', { hasText: 'Rosół' }).getByText('Bez stanu').waitFor();
@@ -943,3 +949,158 @@ scenario('skaner paragonów: zdjęcie → tabela → poprawki → zakup, magazyn
     await toast(ewa, 'Nie masz dostępu do tej sekcji.');
   }
 });
+
+scenario(
+  'zespół: konto na nick i PIN, produkty (zaznaczanie, +/−, lista potrzebnych), godziny, przydział zadań',
+  async ({ mk }) => {
+    // właściciel zakłada konto pracownika na nick + PIN
+    const owner = await loginAs(env, await mk(), email('owner'));
+    await owner.goto(`${env.appUrl}/#/pracownicy`);
+    await owner.getByText('Dodaj pracownika').click();
+    const modal = owner.locator('.modal');
+    await modal.getByLabel('Imię i nazwisko').fill('Kasia Nowak');
+    await modal.getByLabel('Nick (login)').fill('Kasia');
+    await modal.getByLabel('PIN (4 cyfry)').fill('48a');
+    await modal.getByRole('button', { name: 'Utwórz konto' }).click();
+    await toast(owner, 'PIN musi mieć dokładnie 4 cyfry.');
+    await modal.getByLabel('PIN (4 cyfry)').fill('4821');
+    await modal.getByRole('button', { name: 'Utwórz konto' }).click();
+    await modal.getByText('Konto utworzone: Kasia Nowak').waitFor();
+    await modal.getByText('kasia', { exact: true }).waitFor();
+    await modal.getByRole('button', { name: 'Gotowe' }).click();
+    await owner.getByText('nick: kasia · PIN').waitFor();
+    const kasiaId = (await env.be.sql(`select id from profiles where nick = 'kasia'`)).trim();
+    assert.ok(kasiaId);
+
+    // logowanie: zły PIN, potem dobry
+    const kctx = await mk({ viewport: { width: 360, height: 780 } });
+    const kp = await kctx.newPage();
+    await kp.goto(`${env.appUrl}/#/login`);
+    await kp.getByRole('tab', { name: 'Pracownik: nick i PIN' }).click();
+    await kp.getByLabel('Nick').fill('kasia');
+    await kp.getByLabel('PIN (4 cyfry)').fill('1111');
+    await kp.getByText('Nieprawidłowy nick lub PIN. Pozostało prób: 4.').waitFor();
+    await kp.getByLabel('PIN (4 cyfry)').fill('4821');
+    await kp.getByText('Cześć, Kasia!').waitFor();
+    assert.equal(
+      await sqlNum(`select pin_failed from profiles where id = '${kasiaId}'`),
+      0,
+      'udane logowanie zeruje licznik',
+    );
+
+    // Produkty: zaznaczenie dwóch kafelków → lista potrzebnych (pod jej imieniem)
+    await kp.getByRole('link', { name: 'Produkty' }).first().click();
+    await kp.getByRole('button', { name: /^Mleko 3,2%, na stanie/ }).click();
+    await kp.getByRole('button', { name: /^Kurczak, na stanie/ }).click();
+    await kp.locator('.pick-panel').getByText('Zaznaczone: 2 produkty').waitFor();
+    await kp.getByLabel('Więcej: Kurczak').click();
+    await kp.getByLabel('Ilość: Mleko 3,2%').fill('6');
+    await kp.getByLabel('Ilość: Mleko 3,2%').press('Tab');
+    const m = await kp.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+    assert.ok(m[0] <= m[1] + 1, `produkty: poziomy scroll ${m[0]} > ${m[1]}`);
+    await kp.screenshot({ path: `${ARTIFACTS}/produkty-360.png` });
+    await kp.getByRole('button', { name: 'Na listę potrzebnych' }).click();
+    await toast(kp, 'Dodano do listy potrzebnych');
+    assert.equal(
+      await env.be.sql(
+        `select string_agg(p.name || ':' || s.quantity::float8, ',' order by p.name) from shortages s join products p on p.id = s.product_id where s.reported_by = '${kasiaId}'`,
+      ),
+      'Kurczak:1.5,Mleko 3,2%:6',
+    );
+
+    // dodanie i odjęcie stanu; odjęcie ponad stan → czytelny błąd
+    const stock = (n) =>
+      sqlNum(`select coalesce(sum(quantity_delta),0) from inventory_movements where product_id='${pid(n)}'`);
+    const flour0 = await stock('Mąka');
+    await kp.getByRole('button', { name: /^Mąka, na stanie/ }).click();
+    await kp.getByLabel('Ilość: Mąka').fill('5');
+    await kp.getByRole('button', { name: 'Dodaj do stanu' }).click();
+    await toast(kp, 'Dodano: Mąka +5 kg');
+    assert.equal((await stock('Mąka')) - flour0, 5);
+    await kp.getByRole('button', { name: /^Mąka, na stanie/ }).click();
+    await kp.getByLabel('Ilość: Mąka').fill('9999');
+    await kp.getByRole('button', { name: 'Odejmij ze stanu' }).click();
+    await toast(kp, 'Na stanie jest tylko');
+    await kp.getByLabel('Ilość: Mąka').fill('2');
+    await kp.getByRole('button', { name: 'Odejmij ze stanu' }).click();
+    await toast(kp, 'Odjęto: Mąka −2 kg');
+    assert.equal((await stock('Mąka')) - flour0, 3);
+    await kp.getByText('Moje ostatnie zmiany stanu').waitFor();
+    await kp.locator('.item', { hasText: 'Mąka' }).filter({ hasText: '−2 kg' }).waitFor();
+    await kp.locator('.item', { hasText: 'Mąka' }).filter({ hasText: '+5 kg' }).waitFor();
+
+    // Godziny: start i koniec pracy, ręczny wpis z wczoraj
+    await kp.getByRole('link', { name: 'Godziny' }).first().click();
+    await kp.getByRole('button', { name: 'Zaczynam pracę' }).click();
+    await toast(kp, 'Rozpoczęto pracę');
+    await kp.getByText(/Pracujesz od/).waitFor();
+    await kp.getByRole('button', { name: 'Kończę pracę' }).click();
+    await toast(kp, 'Koniec pracy');
+    const y = await env.be.sql(`select ((now() at time zone 'Europe/Warsaw')::date - 1)::text`);
+    await kp.getByRole('button', { name: 'Dodaj godziny ręcznie' }).click();
+    await kp.locator('.modal').getByLabel('Dzień').fill(y.trim());
+    await kp.locator('.modal').getByLabel('Od').fill('08:00');
+    await kp.locator('.modal').getByLabel('Do').fill('14:30');
+    await kp.locator('.modal').getByRole('button', { name: 'Zapisz godziny' }).click();
+    await toast(kp, 'Zapisano: 6 h 30 min');
+    assert.equal(
+      await env.be.sql(
+        `select to_char(started_at at time zone 'Europe/Warsaw', 'HH24:MI') || '-' || to_char(ended_at at time zone 'Europe/Warsaw', 'HH24:MI') from work_shifts where profile_id = '${kasiaId}' and source = 'manual'`,
+      ),
+      '08:00-14:30',
+      'godziny lokalu zapisane poprawnie (strefa Europe/Warsaw)',
+    );
+    await kp.getByRole('button', { name: 'Dodaj godziny ręcznie' }).click();
+    await kp.locator('.modal').getByLabel('Dzień').fill(y.trim());
+    await kp.locator('.modal').getByLabel('Od').fill('12:00');
+    await kp.locator('.modal').getByLabel('Do').fill('13:00');
+    await kp.locator('.modal').getByRole('button', { name: 'Zapisz godziny' }).click();
+    await toast(kp, 'Te godziny nakładają się na inny wpis');
+    await kp.locator('.modal').getByRole('button', { name: 'Zamknij' }).click();
+    await kp.screenshot({ path: `${ARTIFACTS}/godziny-360.png`, fullPage: true });
+
+    // szef: Zespół → Kasia: godziny, zamówienia, zmiany stanu; przydział zadania
+    await owner.goto(`${env.appUrl}/#/zespol`);
+    await owner.getByRole('link', { name: /Kasia Nowak/ }).click();
+    await owner.getByRole('tab', { name: 'Godziny' }).waitFor();
+    await owner.getByRole('button', { name: 'Ten tydzień' }).waitFor();
+    await owner.getByRole('tab', { name: 'Zamówienia (2)' }).click();
+    await owner.locator('.item', { hasText: 'Mleko 3,2%' }).getByText('otwarte').waitFor();
+    await owner.getByRole('tab', { name: 'Stan' }).click();
+    await owner.locator('.item', { hasText: 'Mąka' }).first().waitFor();
+    assert.equal(await owner.locator('.item', { hasText: 'Mąka' }).count(), 2);
+    await owner.getByRole('tab', { name: 'Zadania' }).click();
+    await owner.getByRole('button', { name: 'Przydziel zadanie' }).first().click();
+    await owner.locator('.modal').getByLabel('Co trzeba zrobić?').fill('Umyć lodówkę');
+    assert.equal(await owner.locator('.modal').getByLabel('Dla kogo').inputValue(), kasiaId);
+    await owner.locator('.modal').getByRole('button', { name: 'Dodaj zadanie' }).click();
+    await toast(owner, 'Przydzielono zadanie: Kasia Nowak');
+    await owner.getByText('Umyć lodówkę').waitFor();
+    await owner.screenshot({ path: `${ARTIFACTS}/zespol-osoba-390.png`, fullPage: true });
+
+    // Kasia widzi zadanie „dla Ciebie”, Ewa go nie widzi
+    await kp.goto(`${env.appUrl}/#/zadania`);
+    await kp
+      .locator('.task', { hasText: 'Umyć lodówkę' })
+      .getByText(/dla Ciebie/)
+      .waitFor();
+    const ewa = await loginAs(env, await mk(), email('ewa'));
+    await ewa.goto(`${env.appUrl}/#/zadania`);
+    await ewa.getByText('Posprzątać chłodnię').first().waitFor();
+    assert.equal(
+      await ewa.getByText('Umyć lodówkę').count(),
+      0,
+      'zadanie Kasi nie jest widoczne dla innych pracowników',
+    );
+
+    // nowy PIN od szefa
+    await owner.goto(`${env.appUrl}/#/pracownicy`);
+    await owner.getByRole('button', { name: /Kasia Nowak/ }).click();
+    await owner.getByRole('button', { name: 'Ustaw nowy PIN' }).click();
+    await owner.locator('.modal').last().getByLabel('Nowy PIN (4 cyfry)').fill('7777');
+    await owner.locator('.modal').last().getByRole('button', { name: 'Ustaw PIN' }).click();
+    await owner.getByText('PIN zmieniony.').waitFor();
+    const k2 = await loginWithPin(env, await mk(), 'kasia', '7777');
+    await k2.getByText('Cześć, Kasia!').waitFor();
+  },
+);

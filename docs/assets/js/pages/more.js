@@ -86,12 +86,14 @@ export function morePage(c) {
         m.el.querySelector('.modal-body')?.replaceChildren(form);
         a.input.focus();
     }
-    mount(host, h('div', { class: 'card' }, h('div', { class: 'section-head', style: 'margin:0 0 8px' }, h('h2', null, p?.full_name ?? ''), h('span', { class: 'badge badge-neutral' }, r ? ROLE_LABEL[r] : '')), h('dl', { class: 'kv' }, h('dt', null, 'E-mail'), h('dd', null, getSession()?.user.email ?? '—'), h('dt', null, 'Lokal'), h('dd', null, restaurant()?.name ?? '—'))), r && moreNav(r).length
+    mount(host, h('div', { class: 'card' }, h('div', { class: 'section-head', style: 'margin:0 0 8px' }, h('h2', null, p?.full_name ?? ''), h('span', { class: 'badge badge-neutral' }, r ? ROLE_LABEL[r] : '')), h('dl', { class: 'kv' }, h('dt', null, profile()?.nick ? 'Nick' : 'E-mail'), h('dd', null, profile()?.nick ?? getSession()?.user.email ?? '—'), h('dt', null, 'Lokal'), h('dd', null, restaurant()?.name ?? '—'))), r && moreNav(r).length
         ? [
             sectionHeader('Sekcje'),
             h('div', { class: 'card card-flush' }, moreNav(r).map((i) => h('a', { class: 'item', href: `#${i.path}` }, icon(i.icon, 22), h('div', { class: 'item-main item-title' }, i.label), icon('chevron', 18)))),
         ]
-        : null, failedHost, sectionHeader('Konto i aplikacja'), h('div', { class: 'form' }, button('Zmień hasło', { variant: 'soft', block: true, onClick: openChangePassword }), installHost, button('Wyloguj się', { variant: 'ghost', icon: 'logout', block: true, onClick: () => logoutHandler() })), h('p', { class: 'muted small', style: 'text-align:center' }, `Restaurant OS ${APP_VERSION}`));
+        : null, failedHost, sectionHeader('Konto i aplikacja'), h('div', { class: 'form' }, profile()?.nick
+        ? h('p', { class: 'muted small', style: 'margin:0' }, 'Logujesz się nickiem i PIN-em. Nowy PIN ustawia szef.')
+        : button('Zmień hasło', { variant: 'soft', block: true, onClick: openChangePassword }), installHost, button('Wyloguj się', { variant: 'ghost', icon: 'logout', block: true, onClick: () => logoutHandler() })), h('p', { class: 'muted small', style: 'text-align:center' }, `Restaurant OS ${APP_VERSION}`));
     mount(c.el, host);
     drawFailed();
     drawInstall();

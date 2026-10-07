@@ -68,7 +68,7 @@ test('migracje: każda tabela w schemacie public ma włączone RLS', () => {
     .map((f) => readFileSync(join(root, 'supabase/migrations', f), 'utf8'))
     .join('\n');
   const tables = [...sql.matchAll(/create table (\w+)\s*\(/g)].map((m) => m[1]);
-  assert.equal(tables.length, 18, `znaleziono ${tables.length} tabel`);
+  assert.equal(tables.length, 19, `znaleziono ${tables.length} tabel`);
   const enabledList = [...sql.matchAll(/foreach t in array array\[([^\]]+)\]/g)].flatMap((m) =>
     [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1]),
   );

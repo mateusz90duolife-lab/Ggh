@@ -1,14 +1,13 @@
-import { handleAdminUsers } from '../_shared/adminUsers.ts';
+import { handlePinLogin } from '../_shared/pinLogin.ts';
 
 Deno.serve((req) =>
-  handleAdminUsers(
-    req,
-    {
+  handlePinLogin(req, {
+    env: {
       SUPABASE_URL: Deno.env.get('SUPABASE_URL') ?? '',
       SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       PIN_SECRET: Deno.env.get('PIN_SECRET') ?? undefined,
       ALLOWED_ORIGIN: Deno.env.get('ALLOWED_ORIGIN') ?? undefined,
     },
-    (input, init) => fetch(input, init),
-  ),
+    fetchFn: (input, init) => fetch(input, init),
+  }),
 );

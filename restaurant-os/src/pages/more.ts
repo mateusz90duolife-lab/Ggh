@@ -144,8 +144,8 @@ export function morePage(c: PageCtx): void {
       h(
         'dl',
         { class: 'kv' },
-        h('dt', null, 'E-mail'),
-        h('dd', null, getSession()?.user.email ?? '—'),
+        h('dt', null, profile()?.nick ? 'Nick' : 'E-mail'),
+        h('dd', null, profile()?.nick ?? getSession()?.user.email ?? '—'),
         h('dt', null, 'Lokal'),
         h('dd', null, restaurant()?.name ?? '—'),
       ),
@@ -173,7 +173,9 @@ export function morePage(c: PageCtx): void {
     h(
       'div',
       { class: 'form' },
-      button('Zmień hasło', { variant: 'soft', block: true, onClick: openChangePassword }),
+      profile()?.nick
+        ? h('p', { class: 'muted small', style: 'margin:0' }, 'Logujesz się nickiem i PIN-em. Nowy PIN ustawia szef.')
+        : button('Zmień hasło', { variant: 'soft', block: true, onClick: openChangePassword }),
       installHost,
       button('Wyloguj się', { variant: 'ghost', icon: 'logout', block: true, onClick: () => logoutHandler() }),
     ),

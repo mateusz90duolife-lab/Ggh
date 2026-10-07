@@ -6,11 +6,11 @@ Aplikacja PWA po polsku do prowadzenia restauracji: **magazyn, zgłaszanie brak�
 
 ## Co jest w środku
 
-| Rola       | Ekrany                                                                                                                                                |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pracownik  | Dzisiaj, Zadania, Zgłoś brak (kafelki z ilustracjami), Magazyn (odczyt)                                                                               |
-| Manager    | Dashboard, Magazyn (ruchy, inwentaryzacja, katalog), Zakupy (lista, kreator, historia, skaner paragonów), Zadania, Dostawcy, Kategorie, Powiadomienia |
-| Właściciel | Wszystko powyżej + Pracownicy, Szablony zadań, Ustawienia, Historia zmian                                                                             |
+| Rola       | Ekrany                                                                                                                                                                                               |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pracownik  | Logowanie nickiem i PIN-em; Dzisiaj, Produkty (zaznacz → dodaj / odejmij / na listę potrzebnych), Godziny pracy, Zadania, Zgłoś brak, Magazyn (odczyt)                                               |
+| Manager    | Dashboard, Zespół (godziny, zamówienia, przydział zadań), Magazyn (ruchy, inwentaryzacja, katalog), Zakupy (lista, kreator, historia, skaner paragonów), Zadania, Dostawcy, Kategorie, Powiadomienia |
+| Właściciel | Wszystko powyżej + Pracownicy, Szablony zadań, Ustawienia, Historia zmian                                                                                                                            |
 
 Najważniejsze zasady: stan magazynu to suma niezmiennych ruchów, uprawnienia wymusza baza danych (RLS), tryb offline obsługuje zgłoszenia braków i odhaczanie zadań, a każda ważna zmiana zapisuje się w historii.
 

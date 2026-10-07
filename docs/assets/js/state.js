@@ -1,18 +1,19 @@
 import { getSession } from './api/auth.js';
 import { list, one, eq } from './api/db.js';
 import { todayIn } from './lib/format.js';
-const ctx = { profile: null, restaurant: null, names: new Map() };
+const ctx = { profile: null, restaurant: null, names: new Map(), team: [] };
 export function resetContext() {
     ctx.profile = null;
     ctx.restaurant = null;
     ctx.names = new Map();
+    ctx.team = [];
 }
 export async function loadContext() {
     const s = getSession();
     if (!s)
         return 'no-profile';
     const profile = await one('profiles', {
-        select: 'id,restaurant_id,full_name,role,active',
+        select: 'id,restaurant_id,full_name,role,active,nick',
         params: { id: eq(s.user.id) },
     });
     if (!profile)
@@ -22,13 +23,22 @@ export async function loadContext() {
     ctx.profile = profile;
     const [restaurant, team] = await Promise.all([
         one('restaurants', { select: 'id,name,timezone,summary_time,summary_emails' }),
-        list('profiles', { select: 'id,full_name' }),
+        list('profiles', { select: 'id,full_name,role,active,nick', order: 'full_name.asc' }),
     ]);
     ctx.restaurant = restaurant;
+    ctx.team = team;
     ctx.names = new Map(team.map((t) => [t.id, t.full_name]));
     return 'ok';
 }
 export const profile = () => ctx.profile;
+/** Zespół lokalu (z kontekstu); reloadTeam odświeża po zmianach kont. */
+export const team = () => ctx.team;
+export async function reloadTeam() {
+    ctx.team = await list('profiles', { select: 'id,full_name,role,active,nick', order: 'full_name.asc' });
+    for (const t of ctx.team)
+        ctx.names.set(t.id, t.full_name);
+    return ctx.team;
+}
 export const restaurant = () => ctx.restaurant;
 export const role = () => ctx.profile?.role ?? null;
 export const isManager = () => role() === 'manager' || role() === 'owner';

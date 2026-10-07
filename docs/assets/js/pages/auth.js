@@ -1,4 +1,4 @@
-import { requestPasswordReset, signIn, signOut, updatePassword, getSession } from '../api/auth.js';
+import { requestPasswordReset, signIn, signInWithPin, signOut, updatePassword, getSession } from '../api/auth.js';
 import { h, mount } from '../dom.js';
 import { errorMessage } from '../lib/errors.js';
 import { storage } from '../lib/storage.js';
@@ -20,41 +20,132 @@ function takeNotice() {
 function brand(subtitle) {
     return h('div', { class: 'auth-brand' }, h('div', { class: 'logo' }, '🍽️'), h('h1', null, 'Restaurant OS'), h('p', null, subtitle));
 }
+const MODE_KEY = 'ros.loginMode';
+const NICK_KEY = 'ros.lastNick';
 export function loginPage(c) {
     c.setTitle('Logowanie');
-    const email = field('Adres e-mail', textInput({ type: 'email', autocomplete: 'username', inputMode: 'email', name: 'email', required: true }));
-    const password = field('Hasło', textInput({ type: 'password', autocomplete: 'current-password', name: 'password', required: true }));
-    const status = h('div', { 'aria-live': 'polite' });
-    const submit = button('Zaloguj się', { type: 'submit', size: 'lg', block: true });
-    const form = h('form', { class: 'form card', novalidate: true }, email.el, password.el, status, submit, h('a', { href: '#/zapomniane-haslo', class: 'muted small', style: 'text-align:center;padding:8px' }, 'Nie pamiętasz hasła?'));
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        void (async () => {
-            mount(status);
-            const em = validateEmail(email.input.value);
-            email.setError(em.ok ? null : em.error);
-            const pw = password.input.value;
-            password.setError(pw ? null : 'Podaj hasło.');
-            if (!em.ok || !pw)
+    let mode = storage.getJson(MODE_KEY, 'pin') === 'email' ? 'email' : 'pin';
+    const host = h('div');
+    const tabsEl = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Sposób logowania' });
+    function drawTabs() {
+        tabsEl.replaceChildren(...[
+            ['pin', 'Pracownik: nick i PIN'],
+            ['email', 'E-mail i hasło'],
+        ].map(([id, label]) => h('button', {
+            type: 'button',
+            role: 'tab',
+            class: `tab${mode === id ? ' tab-active' : ''}`,
+            'aria-selected': String(mode === id),
+            onclick: () => {
+                mode = id;
+                storage.setJson(MODE_KEY, id);
+                draw();
+            },
+        }, label)));
+    }
+    function busy(btn, on) {
+        btn.disabled = on;
+        btn.classList.toggle('is-busy', on);
+    }
+    function pinForm() {
+        const nick = field('Nick', textInput({
+            autocomplete: 'username',
+            name: 'nick',
+            value: storage.getJson(NICK_KEY, ''),
+            maxLength: 24,
+        }));
+        nick.input.setAttribute('autocapitalize', 'none');
+        const pinInput = h('input', {
+            class: 'input pin-input',
+            type: 'password',
+            inputMode: 'numeric',
+            autocomplete: 'current-password',
+            name: 'pin',
+            maxLength: 4,
+            pattern: '[0-9]*',
+        });
+        const pin = field('PIN (4 cyfry)', pinInput);
+        const status = h('div', { 'aria-live': 'polite' });
+        const submit = button('Wejdź', { type: 'submit', size: 'lg', block: true });
+        const form = h('form', { class: 'form card', novalidate: true }, nick.el, pin.el, status, submit);
+        let sending = false;
+        async function send() {
+            if (sending)
                 return;
-            submit.disabled = true;
-            submit.classList.add('is-busy');
+            mount(status);
+            const n = nick.input.value.trim().toLowerCase();
+            const p = pinInput.value.trim();
+            nick.setError(n ? null : 'Podaj swój nick.');
+            pin.setError(/^\d{4}$/.test(p) ? null : 'PIN to 4 cyfry.');
+            if (!n || !/^\d{4}$/.test(p))
+                return;
+            sending = true;
+            busy(submit, true);
             try {
-                await signIn(em.value, pw);
-                // dalszy ciąg (wczytanie profilu i przekierowanie) obsługuje main.ts po zmianie sesji
+                await signInWithPin(n, p);
+                storage.setJson(NICK_KEY, n);
             }
             catch (err) {
                 mount(status, h('div', { class: 'notice notice-error', role: 'alert' }, errorMessage(err)));
-                password.input.value = '';
-                password.input.focus();
+                pinInput.value = '';
+                pinInput.focus();
             }
             finally {
-                submit.disabled = false;
-                submit.classList.remove('is-busy');
+                sending = false;
+                busy(submit, false);
             }
-        })();
-    });
-    mount(c.el, h('div', { class: 'auth' }, brand('Zaloguj się, aby kontynuować'), takeNotice(), form));
+        }
+        pinInput.addEventListener('input', () => {
+            pinInput.value = pinInput.value.replace(/\D/g, '').slice(0, 4);
+            if (pinInput.value.length === 4 && nick.input.value.trim())
+                void send();
+        });
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            void send();
+        });
+        setTimeout(() => (nick.input.value ? pinInput : nick.input).focus(), 0);
+        return form;
+    }
+    function emailForm() {
+        const email = field('Adres e-mail', textInput({ type: 'email', autocomplete: 'username', inputMode: 'email', name: 'email', required: true }));
+        const password = field('Hasło', textInput({ type: 'password', autocomplete: 'current-password', name: 'password', required: true }));
+        const status = h('div', { 'aria-live': 'polite' });
+        const submit = button('Zaloguj się', { type: 'submit', size: 'lg', block: true });
+        const form = h('form', { class: 'form card', novalidate: true }, email.el, password.el, status, submit, h('a', { href: '#/zapomniane-haslo', class: 'muted small', style: 'text-align:center;padding:8px' }, 'Nie pamiętasz hasła?'));
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            void (async () => {
+                mount(status);
+                const em = validateEmail(email.input.value);
+                email.setError(em.ok ? null : em.error);
+                const pw = password.input.value;
+                password.setError(pw ? null : 'Podaj hasło.');
+                if (!em.ok || !pw)
+                    return;
+                busy(submit, true);
+                try {
+                    await signIn(em.value, pw);
+                    // dalszy ciąg (wczytanie profilu i przekierowanie) obsługuje main.ts po zmianie sesji
+                }
+                catch (err) {
+                    mount(status, h('div', { class: 'notice notice-error', role: 'alert' }, errorMessage(err)));
+                    password.input.value = '';
+                    password.input.focus();
+                }
+                finally {
+                    busy(submit, false);
+                }
+            })();
+        });
+        return form;
+    }
+    function draw() {
+        drawTabs();
+        mount(host, mode === 'pin' ? pinForm() : emailForm());
+    }
+    mount(c.el, h('div', { class: 'auth' }, brand('Zaloguj się, aby kontynuować'), takeNotice(), tabsEl, host));
+    draw();
 }
 export function forgotPage(c) {
     c.setTitle('Reset hasła');

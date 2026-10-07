@@ -49,6 +49,17 @@ Ruchy w karcie produktu:
 
 Lista **Ostatnie paragony** pozwala wrócić do skanu i zapisać go później.
 
+## 6. Zespół: godziny, zamówienia, zadania
+
+**Więcej → Zespół** pokazuje, kto jest teraz w pracy, ile godzin przepracował w tym tygodniu i miesiącu oraz ile zamówień (zgłoszonych braków) zrobił. Dotknij osoby:
+
+- **Godziny** — lista zmian (ten tydzień, ten miesiąc, poprzedni miesiąc) z sumą; możesz usunąć błędny wpis albo **Dodaj godziny** za pracownika,
+- **Zamówienia** — co dopisał do listy potrzebnych i czy zostało kupione,
+- **Stan** — co dodał lub odjął z magazynu,
+- **Zadania** — **Przydziel zadanie** tej osobie i sprawdź, co zrobiła.
+
+Przy dodawaniu zadania (Zadania → Zadanie) w polu **Dla kogo** wybierasz osobę albo „Dla wszystkich”.
+
 ## Pozostałe
 
 **Więcej** zawiera: **Skaner paragonów**, **Katalog produktów**, **Dostawcy**, **Kategorie**, **Powiadomienia** (alerty niskiego stanu), zmianę hasła i wylogowanie.

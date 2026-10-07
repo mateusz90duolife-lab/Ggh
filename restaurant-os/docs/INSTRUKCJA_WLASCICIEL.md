@@ -42,3 +42,7 @@ Pełna historia ruchów każdego produktu: kto, kiedy, ile i dlaczego.
 ## 8. Historia zmian
 
 **Więcej → Historia zmian** pokazuje, kto, co i kiedy zmienił, np. „Zgłoszono brak: Mleko 3,2% — 10 L · Ewa Pracownik · 07.10.2026 12:30”. Można filtrować po rodzaju zmiany, osobie i okresie. Nikt nie może zmienić historii bez śladu.
+
+## Konta pracowników na nick i PIN
+
+**Więcej → Pracownicy → Dodaj pracownika**: wpisz imię, wybierz **Logowanie: Nick i 4-cyfrowy PIN**, podaj nick (np. `kasia`) i PIN (przycisk **Losuj** wybiera przypadkowy). Przekaż nick i PIN pracownikowi osobiście. W karcie pracownika: **Ustaw nowy PIN** (zdejmuje też blokadę po błędnych próbach), zmiana nicka, dezaktywacja oraz **Godziny, zamówienia i zadania**.

@@ -1,4 +1,6 @@
 import { authenticate, json, corsHeaders, serviceHeaders } from './http.ts';
+import { NICK_RE, PIN_RE, normalizeNick, pinPassword, staffEmail } from './pin.ts';
+import { pinSecret } from './pinLogin.ts';
 import type { Caller, Env, FetchFn } from './types.ts';
 
 const ROLES = ['owner', 'manager', 'employee'] as const;
@@ -14,7 +16,9 @@ interface ProfileRow {
   role: Role;
   active: boolean;
   created_at: string;
+  nick: string | null;
 }
+const PROFILE_COLS = 'id,restaurant_id,full_name,role,active,created_at,nick';
 interface AuthUser {
   id: string;
   email?: string;
@@ -39,7 +43,7 @@ function validPassword(p: unknown): string {
 /**
  * Zarządzanie kontami (tylko właściciel). Operacje na auth.users wymagają klucza service role,
  * dlatego wykonujemy je wyłącznie tutaj — nigdy z frontendu.
- * Akcje: list | create | update | reset_password
+ * Akcje: list | create (e-mail+hasło albo nick+PIN) | update | reset_password | set_pin
  */
 export async function handleAdminUsers(req: Request, env: Env, fetchFn: FetchFn): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(req, env) });
@@ -66,6 +70,9 @@ export async function handleAdminUsers(req: Request, env: Env, fetchFn: FetchFn)
         return json(req, env, 200, { user: await updateUser(env, fetchFn, caller, body) });
       case 'reset_password':
         await resetPassword(env, fetchFn, caller, body);
+        return json(req, env, 200, { ok: true });
+      case 'set_pin':
+        await setPin(env, fetchFn, caller, body);
         return json(req, env, 200, { ok: true });
       default:
         return json(req, env, 400, { error: 'Nieznana akcja.' });
@@ -94,7 +101,7 @@ async function listUsers(env: Env, fetchFn: FetchFn, caller: Caller) {
   const profiles = await rest<ProfileRow[]>(
     env,
     fetchFn,
-    `profiles?restaurant_id=eq.${caller.restaurant_id}&select=id,restaurant_id,full_name,role,active,created_at&order=created_at.asc`,
+    `profiles?restaurant_id=eq.${caller.restaurant_id}&select=${PROFILE_COLS}&order=created_at.asc`,
     { method: 'GET' },
   );
   const r = await authAdmin(env, fetchFn, 'users?per_page=1000');
@@ -105,15 +112,92 @@ async function listUsers(env: Env, fetchFn: FetchFn, caller: Caller) {
   return profiles.map((p) => ({
     id: p.id,
     full_name: p.full_name,
+    nick: p.nick,
     role: p.role,
     active: p.active,
     created_at: p.created_at,
-    email: byId.get(p.id)?.email ?? null,
+    email: p.nick ? null : (byId.get(p.id)?.email ?? null),
     last_sign_in_at: byId.get(p.id)?.last_sign_in_at ?? null,
   }));
 }
 
+function validPin(p: unknown): string {
+  if (typeof p !== 'string' || !PIN_RE.test(p)) throw new HttpError(400, 'PIN musi mieć dokładnie 4 cyfry.');
+  return p;
+}
+
+async function validNick(env: Env, fetchFn: FetchFn, raw: unknown, exceptId?: string): Promise<string> {
+  const nick = normalizeNick(raw);
+  if (!NICK_RE.test(nick))
+    throw new HttpError(400, 'Nick: od 2 do 24 znaków — małe litery, cyfry, kropka, myślnik lub podkreślnik.');
+  const taken = await rest<{ id: string }[]>(env, fetchFn, `profiles?nick=eq.${encodeURIComponent(nick)}&select=id`, {
+    method: 'GET',
+  });
+  if (taken.some((t) => t.id !== exceptId)) throw new HttpError(409, 'Ten nick jest już zajęty.');
+  return nick;
+}
+
+function randomSecret(): string {
+  const b = new Uint8Array(24);
+  crypto.getRandomValues(b);
+  return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+/** Konto pracownika logującego się nickiem i PIN-em (bez adresu e-mail). */
+async function createPinUser(env: Env, fetchFn: FetchFn, caller: Caller, body: Record<string, unknown>) {
+  const fullName = typeof body.full_name === 'string' ? body.full_name.trim() : '';
+  if (fullName.length < 2 || fullName.length > 80) throw new HttpError(400, 'Imię: od 2 do 80 znaków.');
+  const role = (body.role ?? 'employee') as Role;
+  if (role !== 'employee' && role !== 'manager') throw new HttpError(400, 'Logowanie PIN-em: pracownik lub manager.');
+  const nick = await validNick(env, fetchFn, body.nick);
+  const pin = validPin(body.pin);
+
+  const created = await authAdmin(env, fetchFn, 'users', {
+    method: 'POST',
+    body: JSON.stringify({ email: staffEmail(), password: randomSecret(), email_confirm: true }),
+  });
+  if (!created.ok) throw new HttpError(500, 'Nie udało się utworzyć konta.');
+  const user = (await created.json()) as AuthUser;
+  const undo = () => authAdmin(env, fetchFn, `users/${user.id}`, { method: 'DELETE' });
+
+  const pw = await authAdmin(env, fetchFn, `users/${user.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ password: await pinPassword(pinSecret(env), user.id, pin) }),
+  });
+  if (!pw.ok) {
+    await undo();
+    throw new HttpError(500, 'Nie udało się ustawić PIN-u.');
+  }
+  const ins = await fetchFn(`${env.SUPABASE_URL}/rest/v1/profiles`, {
+    method: 'POST',
+    headers: serviceHeaders(env, { prefer: 'return=representation' }),
+    body: JSON.stringify({ id: user.id, restaurant_id: caller.restaurant_id, full_name: fullName, role, nick }),
+  });
+  if (!ins.ok) {
+    await undo();
+    if (ins.status === 409) throw new HttpError(409, 'Ten nick jest już zajęty.');
+    throw new HttpError(500, 'Nie udało się zapisać profilu użytkownika.');
+  }
+  return { id: user.id, nick, email: null, full_name: fullName, role, active: true };
+}
+
+async function setPin(env: Env, fetchFn: FetchFn, caller: Caller, body: Record<string, unknown>) {
+  const target = await loadTarget(env, fetchFn, caller, body.id);
+  if (!target.nick) throw new HttpError(400, 'To konto loguje się e-mailem i hasłem.');
+  const pin = validPin(body.pin);
+  const r = await authAdmin(env, fetchFn, `users/${target.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ password: await pinPassword(pinSecret(env), target.id, pin) }),
+  });
+  if (!r.ok) throw new HttpError(500, 'Nie udało się zmienić PIN-u.');
+  await rest(env, fetchFn, `profiles?id=eq.${target.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ pin_failed: 0, pin_locked_until: null }),
+  });
+}
+
 async function createUser(env: Env, fetchFn: FetchFn, caller: Caller, body: Record<string, unknown>) {
+  if (body.nick !== undefined) return createPinUser(env, fetchFn, caller, body);
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   const fullName = typeof body.full_name === 'string' ? body.full_name.trim() : '';
   const role = body.role as Role;
@@ -153,7 +237,7 @@ async function loadTarget(env: Env, fetchFn: FetchFn, caller: Caller, id: unknow
   const rows = await rest<ProfileRow[]>(
     env,
     fetchFn,
-    `profiles?id=eq.${id}&restaurant_id=eq.${caller.restaurant_id}&select=id,restaurant_id,full_name,role,active,created_at`,
+    `profiles?id=eq.${id}&restaurant_id=eq.${caller.restaurant_id}&select=${PROFILE_COLS}`,
     { method: 'GET' },
   );
   const t = rows[0];
@@ -170,8 +254,13 @@ async function updateUser(env: Env, fetchFn: FetchFn, caller: Caller, body: Reco
     if (n.length < 2 || n.length > 80) throw new HttpError(400, 'Imię i nazwisko: od 2 do 80 znaków.');
     patch.full_name = n;
   }
+  if (body.nick !== undefined) {
+    if (!target.nick) throw new HttpError(400, 'To konto loguje się e-mailem i hasłem.');
+    patch.nick = await validNick(env, fetchFn, body.nick, target.id);
+  }
   if (body.role !== undefined) {
     if (!ROLES.includes(body.role as Role)) throw new HttpError(400, 'Nieprawidłowa rola.');
+    if (target.nick && body.role === 'owner') throw new HttpError(400, 'Właściciel loguje się e-mailem i hasłem.');
     if (target.id === caller.id && body.role !== target.role) {
       throw new HttpError(400, 'Nie możesz zmienić własnej roli.');
     }
@@ -200,11 +289,18 @@ async function updateUser(env: Env, fetchFn: FetchFn, caller: Caller, body: Reco
     });
     if (!r.ok) throw new HttpError(500, 'Zapisano profil, ale nie udało się zmienić blokady logowania.');
   }
-  return { id: updated.id, full_name: updated.full_name, role: updated.role, active: updated.active };
+  return {
+    id: updated.id,
+    full_name: updated.full_name,
+    nick: updated.nick,
+    role: updated.role,
+    active: updated.active,
+  };
 }
 
 async function resetPassword(env: Env, fetchFn: FetchFn, caller: Caller, body: Record<string, unknown>) {
   const target = await loadTarget(env, fetchFn, caller, body.id);
+  if (target.nick) throw new HttpError(400, 'To konto loguje się PIN-em — ustaw nowy PIN.');
   const password = validPassword(body.password);
   const r = await authAdmin(env, fetchFn, `users/${target.id}`, { method: 'PUT', body: JSON.stringify({ password }) });
   if (!r.ok) throw new HttpError(500, 'Nie udało się zmienić hasła.');
