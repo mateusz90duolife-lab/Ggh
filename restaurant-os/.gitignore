@@ -7,3 +7,4 @@ public/config.js
 *.log
 .DS_Store
 e2e/.artifacts/
+public/sw-assets.js

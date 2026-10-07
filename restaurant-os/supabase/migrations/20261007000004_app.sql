@@ -59,6 +59,25 @@ begin
   return res;
 end $$;
 
+-- ---------- „Nie ma na liście?”: pracownik prosi o dodanie produktu → zadanie dla managera ----------
+create or replace function request_new_product(p_name text) returns tasks
+language plpgsql security definer set search_path = public as $$
+declare rid uuid := app_restaurant_id(); nm text := regexp_replace(trim(coalesce(p_name, '')), '\s+', ' ', 'g');
+        t text; row tasks; who text;
+begin
+  if rid is null then raise exception 'Brak uprawnień'; end if;
+  if length(nm) < 1 or length(nm) > 80 then raise exception 'Nazwa produktu: od 1 do 80 znaków'; end if;
+  t := 'Dodać produkt: ' || nm;
+  select * into row from tasks
+   where restaurant_id = rid and title = t and status = 'todo' and due_date >= app_today() - 7 limit 1;
+  if found then return row; end if;                         -- nie mnożymy identycznych próśb
+  select full_name into who from profiles where id = auth.uid();
+  insert into tasks (restaurant_id, title, description, due_date)
+  values (rid, t, 'Zgłosił(a): ' || coalesce(who, 'pracownik'), app_today())
+  returning * into row;
+  return row;
+end $$;
+
 -- ---------- zakup atomowo: szkic + pozycje (+ zatwierdzenie) ----------
 -- p_items: [{"product_id":"…","quantity":20,"unit_price_net":5.4,"vat_rate":5}, …]
 create or replace function create_purchase(
@@ -107,4 +126,4 @@ group by p.id, s.name;
 
 grant select on purchases_overview to authenticated;
 grant execute on function app_today(), ensure_today_tasks(), dashboard_summary(),
-  create_purchase(uuid, date, text, text, jsonb, boolean) to authenticated;
+  create_purchase(uuid, date, text, text, jsonb, boolean), request_new_product(text) to authenticated;

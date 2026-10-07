@@ -15,9 +15,18 @@ let handler;
 
 function tokenResponse(userId = 'user-1', ttl = 3600, refresh = 'r1') {
   const exp = now() + ttl;
-  return { access_token: fakeJwt({ sub: userId, exp }), refresh_token: refresh, expires_in: ttl, user: { id: userId, email: 'a@b.pl' } };
+  return {
+    access_token: fakeJwt({ sub: userId, exp }),
+    refresh_token: refresh,
+    expires_in: ttl,
+    user: { id: userId, email: 'a@b.pl' },
+  };
 }
-const J = (status, body) => new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+const J = (status, body) =>
+  new Response(body === undefined ? null : JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
 
 beforeEach(async () => {
   await auth.signOut().catch(() => {});
@@ -28,7 +37,13 @@ beforeEach(async () => {
   handler = () => J(404, { message: 'nieobsłużone' });
   globalThis.fetch = async (input, init = {}) => {
     const u = new URL(input);
-    const rec = { method: (init.method ?? 'GET').toUpperCase(), path: u.pathname, query: u.search, headers: init.headers ?? {}, body: init.body ? JSON.parse(init.body) : undefined };
+    const rec = {
+      method: (init.method ?? 'GET').toUpperCase(),
+      path: u.pathname,
+      query: u.search,
+      headers: init.headers ?? {},
+      body: init.body ? JSON.parse(init.body) : undefined,
+    };
     calls.push(rec);
     return handler(rec);
   };
@@ -173,7 +188,9 @@ test('401 → jedno odświeżenie tokenu i ponowienie zapytania', async () => {
 test('błędy PostgREST są tłumaczone; RPC z komunikatem po polsku przechodzi wprost', async () => {
   await loginAs();
   handler = () => J(400, { code: 'P0001', message: 'Zakup został już przetworzony' });
-  await assert.rejects(db.rpc('confirm_purchase', { p_purchase_id: 'x' }), { message: 'Zakup został już przetworzony' });
+  await assert.rejects(db.rpc('confirm_purchase', { p_purchase_id: 'x' }), {
+    message: 'Zakup został już przetworzony',
+  });
   handler = () => J(403, { code: '42501', message: 'new row violates row-level security policy for table "products"' });
   await assert.rejects(db.insert('products', { name: 'x' }), { message: 'Brak uprawnień do tej operacji.' });
 });
@@ -199,7 +216,9 @@ test('insert/update/remove/rpc/callFunction: poprawne metody, nagłówki i ciał
   await db.callFunction('admin-users', { action: 'list' });
   assert.equal(calls.at(-1).path, '/functions/v1/admin-users');
   handler = () => J(403, { error: 'Tylko właściciel może zarządzać kontami.' });
-  await assert.rejects(db.callFunction('admin-users', { action: 'list' }), { message: 'Tylko właściciel może zarządzać kontami.' });
+  await assert.rejects(db.callFunction('admin-users', { action: 'list' }), {
+    message: 'Tylko właściciel może zarządzać kontami.',
+  });
 });
 
 test('update/remove bez filtra są zablokowane (ochrona przed masową zmianą)', async () => {
@@ -210,7 +229,11 @@ test('update/remove bez filtra są zablokowane (ochrona przed masową zmianą)',
 
 test('kolejka offline: wysyła po kolei z client_id, usuwa wysłane', async () => {
   await loginAs();
-  queue.enqueue({ kind: 'report_shortage', label: 'Mleko — 10 L', args: { p_product_id: 'p1', p_quantity: 10, p_urgent: false, p_note: null } });
+  queue.enqueue({
+    kind: 'report_shortage',
+    label: 'Mleko — 10 L',
+    args: { p_product_id: 'p1', p_quantity: 10, p_urgent: false, p_note: null },
+  });
   queue.enqueue({ kind: 'complete_task', label: 'Sprzątanie', args: { p_task_id: 't1', p_done: true } });
   const ids = queue.listQueue().map((i) => i.id);
   assert.equal(queue.pendingCount(), 2);
@@ -226,8 +249,16 @@ test('kolejka offline: wysyła po kolei z client_id, usuwa wysłane', async () =
 
 test('kolejka offline: brak sieci zatrzymuje wysyłkę, elementy zostają', async () => {
   await loginAs();
-  queue.enqueue({ kind: 'report_shortage', label: 'a', args: { p_product_id: 'p1', p_quantity: 1, p_urgent: false, p_note: null } });
-  queue.enqueue({ kind: 'report_shortage', label: 'b', args: { p_product_id: 'p2', p_quantity: 2, p_urgent: false, p_note: null } });
+  queue.enqueue({
+    kind: 'report_shortage',
+    label: 'a',
+    args: { p_product_id: 'p1', p_quantity: 1, p_urgent: false, p_note: null },
+  });
+  queue.enqueue({
+    kind: 'report_shortage',
+    label: 'b',
+    args: { p_product_id: 'p2', p_quantity: 2, p_urgent: false, p_note: null },
+  });
   globalThis.fetch = async () => {
     throw new TypeError('network');
   };
@@ -238,9 +269,20 @@ test('kolejka offline: brak sieci zatrzymuje wysyłkę, elementy zostają', asyn
 
 test('kolejka offline: błąd 4xx oznacza element jako nieudany (widoczny), pozostałe są wysyłane; 5xx zatrzymuje', async () => {
   await loginAs();
-  queue.enqueue({ kind: 'report_shortage', label: 'zły', args: { p_product_id: 'x', p_quantity: 1, p_urgent: false, p_note: null } });
-  queue.enqueue({ kind: 'report_shortage', label: 'dobry', args: { p_product_id: 'p2', p_quantity: 2, p_urgent: false, p_note: null } });
-  handler = (r) => (r.body.p_product_id === 'x' ? J(400, { code: 'P0001', message: 'Produkt nie istnieje lub jest nieaktywny' }) : J(200, {}));
+  queue.enqueue({
+    kind: 'report_shortage',
+    label: 'zły',
+    args: { p_product_id: 'x', p_quantity: 1, p_urgent: false, p_note: null },
+  });
+  queue.enqueue({
+    kind: 'report_shortage',
+    label: 'dobry',
+    args: { p_product_id: 'p2', p_quantity: 2, p_urgent: false, p_note: null },
+  });
+  handler = (r) =>
+    r.body.p_product_id === 'x'
+      ? J(400, { code: 'P0001', message: 'Produkt nie istnieje lub jest nieaktywny' })
+      : J(200, {});
   const r = await queue.flushQueue();
   assert.deepEqual(r, { sent: 1, failed: 1, remaining: 0 });
   const failed = queue.failedItems();
@@ -249,7 +291,11 @@ test('kolejka offline: błąd 4xx oznacza element jako nieudany (widoczny), pozo
   queue.removeFromQueue(failed[0].id);
   assert.equal(queue.listQueue().length, 0);
 
-  queue.enqueue({ kind: 'report_shortage', label: 'a', args: { p_product_id: 'p1', p_quantity: 1, p_urgent: false, p_note: null } });
+  queue.enqueue({
+    kind: 'report_shortage',
+    label: 'a',
+    args: { p_product_id: 'p1', p_quantity: 1, p_urgent: false, p_note: null },
+  });
   handler = () => J(503, {});
   const r2 = await queue.flushQueue();
   assert.equal(r2.remaining, 1, 'błąd serwera 5xx: element zostaje do ponowienia');

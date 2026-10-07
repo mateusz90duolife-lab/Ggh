@@ -4,9 +4,11 @@
   "private": true,
   "description": "Restaurant OS — aplikacja PWA do zarządzania magazynem, brakami i zadaniami w restauracji (po polsku).",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "build": "node scripts/write-config.mjs && tsc -p tsconfig.json",
+    "build": "node scripts/write-config.mjs && tsc -p tsconfig.json && node scripts/write-sw-assets.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.functions.json --noEmit",
     "lint": "prettier --check . && npm run typecheck",
     "format": "prettier --write .",

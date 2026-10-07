@@ -110,7 +110,8 @@ export function buildSummary(input: SummaryInput): BuiltMail {
       urgent: true,
     });
   }
-  for (const g of groupByCategory(normal)) sections.push({ title: g.name.toUpperCase(), items: g.items, urgent: false });
+  for (const g of groupByCategory(normal))
+    sections.push({ title: g.name.toUpperCase(), items: g.items, urgent: false });
 
   const text = [
     'Dzień dobry,',

@@ -1,5 +1,12 @@
 // Prosta atrapa Supabase (GoTrue + PostgREST + Resend) dla testów funkcji Edge. Tylko to, czego używają funkcje.
-export function createFake({ restaurants = [], profiles = [], shopping = [], tokens = {}, emails = [], clock = () => new Date() } = {}) {
+export function createFake({
+  restaurants = [],
+  profiles = [],
+  shopping = [],
+  tokens = {},
+  emails = [],
+  clock = () => new Date(),
+} = {}) {
   const state = {
     restaurants,
     profiles,
@@ -60,7 +67,8 @@ export function createFake({ restaurants = [], profiles = [], shopping = [], tok
       return J(200, { users: [...state.authUsers.values()].map(({ password: _p, ...u }) => u) });
     }
     if (p === '/auth/v1/admin/users' && method === 'POST') {
-      if ([...state.authUsers.values()].some((u) => u.email === body.email)) return J(422, { msg: 'already registered' });
+      if ([...state.authUsers.values()].some((u) => u.email === body.email))
+        return J(422, { msg: 'already registered' });
       const id = `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`;
       state.authUsers.set(id, { id, email: body.email, password: body.password });
       return J(200, { id, email: body.email });
@@ -131,12 +139,31 @@ export const U = {
 export function baseProfiles() {
   return [
     { id: U.owner, restaurant_id: R_A, full_name: 'Właściciel', role: 'owner', active: true, created_at: '2026-01-01' },
-    { id: U.manager, restaurant_id: R_A, full_name: 'Manager', role: 'manager', active: true, created_at: '2026-01-02' },
-    { id: U.employee, restaurant_id: R_A, full_name: 'Pracownik', role: 'employee', active: true, created_at: '2026-01-03' },
+    {
+      id: U.manager,
+      restaurant_id: R_A,
+      full_name: 'Manager',
+      role: 'manager',
+      active: true,
+      created_at: '2026-01-02',
+    },
+    {
+      id: U.employee,
+      restaurant_id: R_A,
+      full_name: 'Pracownik',
+      role: 'employee',
+      active: true,
+      created_at: '2026-01-03',
+    },
     { id: U.otherOwner, restaurant_id: R_B, full_name: 'Obcy', role: 'owner', active: true, created_at: '2026-01-04' },
   ];
 }
-export const baseTokens = { 't-owner': U.owner, 't-manager': U.manager, 't-employee': U.employee, 't-other': U.otherOwner };
+export const baseTokens = {
+  't-owner': U.owner,
+  't-manager': U.manager,
+  't-employee': U.employee,
+  't-other': U.otherOwner,
+};
 export const baseEnv = {
   SUPABASE_URL: 'https://x.supabase.co',
   SUPABASE_SERVICE_ROLE_KEY: 'service-key',

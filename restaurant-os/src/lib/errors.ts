@@ -37,7 +37,8 @@ export function fromPostgrest(status: number, body: PgErrorBody | null): ApiErro
     return new ApiError(403, code, 'Brak uprawnień do tej operacji.');
   }
   if (code === '23505') return new ApiError(409, code, 'Taki rekord już istnieje.');
-  if (code === '23503') return new ApiError(409, code, 'Ten rekord jest używany w innym miejscu i nie można go zmienić.');
+  if (code === '23503')
+    return new ApiError(409, code, 'Ten rekord jest używany w innym miejscu i nie można go zmienić.');
   if (code === '23514') return new ApiError(400, code, 'Wprowadzona wartość jest nieprawidłowa.');
   if (code === 'P0001' && msg) return new ApiError(400, code, msg);
   if (status >= 500) return new ApiError(status, code, 'Błąd serwera. Spróbuj ponownie za chwilę.');

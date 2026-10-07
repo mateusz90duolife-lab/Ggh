@@ -45,6 +45,11 @@ select t_fails($$select create_purchase(null, current_date, null, null, '[{"prod
 select t_ok((select count(*) from purchases_overview) = 0, 'pracownik nie widzi zakupów');
 select ensure_today_tasks();
 select t_ok(app_today() is not null, 'app_today zwraca datę lokalu');
+select request_new_product('  Szafran   górski ');
+select request_new_product('Szafran górski');
+select t_ok((select count(*) from tasks where title = 'Dodać produkt: Szafran górski') = 1, 'request_new_product: prośba tworzy jedno zadanie (bez duplikatów)');
+select t_fails($$select request_new_product('   ')$$, 'request_new_product: pusta nazwa');
+select t_fails($$select request_new_product(repeat('x', 81))$$, 'request_new_product: zbyt długa nazwa');
 reset role;
 
 -- tenant B nie widzi niczego z A

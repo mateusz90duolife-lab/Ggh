@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleDailySummary, localParts } from '../supabase/functions/_shared/dailySummary.ts';
-import { buildSummary, formatQty, addDays, escapeHtml, formatDatePl } from '../supabase/functions/_shared/summaryMail.ts';
+import {
+  buildSummary,
+  formatQty,
+  addDays,
+  escapeHtml,
+  formatDatePl,
+} from '../supabase/functions/_shared/summaryMail.ts';
 import { createFake, baseProfiles, baseTokens, baseEnv, post, R_A } from './helpers/fakeSupabase.mjs';
 
 const row = (name, cat, order, unit, qty, urgent = false, reports = 1) => ({
@@ -20,7 +26,12 @@ const SHOP = [
   row('Kurczak', 'Mięso', 4, 'kg', '2.500', true),
 ];
 
-function setup({ shopping = SHOP, emails = ['wlasciciel@example.com'], summaryTime = '21:00:00', tz = 'Europe/Warsaw' } = {}) {
+function setup({
+  shopping = SHOP,
+  emails = ['wlasciciel@example.com'],
+  summaryTime = '21:00:00',
+  tz = 'Europe/Warsaw',
+} = {}) {
   // 7 paź 2026, 19:30 UTC = 21:30 w Warszawie (CEST)
   let nowIso = '2026-10-07T19:30:00Z';
   const fake = createFake({
@@ -36,9 +47,18 @@ function setup({ shopping = SHOP, emails = ['wlasciciel@example.com'], summaryTi
 }
 
 test('localParts: strefa Europe/Warsaw (CEST i CET)', () => {
-  assert.deepEqual(localParts(new Date('2026-10-07T19:30:00Z'), 'Europe/Warsaw'), { date: '2026-10-07', time: '21:30' });
-  assert.deepEqual(localParts(new Date('2026-10-07T22:30:00Z'), 'Europe/Warsaw'), { date: '2026-10-08', time: '00:30' });
-  assert.deepEqual(localParts(new Date('2026-12-01T20:00:00Z'), 'Europe/Warsaw'), { date: '2026-12-01', time: '21:00' });
+  assert.deepEqual(localParts(new Date('2026-10-07T19:30:00Z'), 'Europe/Warsaw'), {
+    date: '2026-10-07',
+    time: '21:30',
+  });
+  assert.deepEqual(localParts(new Date('2026-10-07T22:30:00Z'), 'Europe/Warsaw'), {
+    date: '2026-10-08',
+    time: '00:30',
+  });
+  assert.deepEqual(localParts(new Date('2026-12-01T20:00:00Z'), 'Europe/Warsaw'), {
+    date: '2026-12-01',
+    time: '21:00',
+  });
 });
 
 test('cron: przed godziną podsumowania nic nie wysyła', async () => {
@@ -108,7 +128,14 @@ test('cron: błąd Resend zapisuje failed, a kolejne wywołanie ponawia i wysył
 
 test('cron: „zawieszone” wysyłanie (>10 min) jest przejmowane, świeże — nie', async () => {
   const { fake, cron } = setup();
-  fake.state.emailLog.push({ id: 'x', restaurant_id: R_A, kind: 'shopping_summary', local_date: '2026-10-07', status: 'sending', claimed_at: '2026-10-07T19:25:00.000Z' });
+  fake.state.emailLog.push({
+    id: 'x',
+    restaurant_id: R_A,
+    kind: 'shopping_summary',
+    local_date: '2026-10-07',
+    status: 'sending',
+    claimed_at: '2026-10-07T19:25:00.000Z',
+  });
   await cron();
   assert.equal(fake.state.sent.length, 0, 'świeży wpis (5 min) nie jest przejmowany');
   fake.state.emailLog[0].claimed_at = '2026-10-07T19:10:00.000Z';
@@ -180,7 +207,10 @@ test('buildSummary: PILNE na górze, kategorie wg kolejności, ilości po polsku
   assert.ok(lines.indexOf('PILNE') < lines.indexOf('NABIAŁ'));
   assert.ok(lines.indexOf('NABIAŁ') < lines.indexOf('WARZYWA'));
   assert.ok(m.text.includes('• Kurczak — 2,5 kg'));
-  assert.ok(!lines.slice(lines.indexOf('NABIAŁ')).includes('• Kurczak — 2,5 kg'), 'pilna pozycja nie powtarza się w kategorii');
+  assert.ok(
+    !lines.slice(lines.indexOf('NABIAŁ')).includes('• Kurczak — 2,5 kg'),
+    'pilna pozycja nie powtarza się w kategorii',
+  );
   assert.ok(m.text.includes('0,125 kg'));
   assert.ok(!m.html.includes('<b>Ser</b>'));
   assert.ok(m.html.includes('&lt;b&gt;Ser&lt;/b&gt; &amp; &quot;żółty&quot;'));

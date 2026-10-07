@@ -52,7 +52,13 @@ test('list: tylko własna restauracja, z adresami e-mail', async () => {
 
 test('create: walidacja wejścia', async () => {
   const { call } = setup();
-  const ok = { action: 'create', email: 'nowy@example.com', full_name: 'Anna Nowak', role: 'employee', password: 'haslo1234' };
+  const ok = {
+    action: 'create',
+    email: 'nowy@example.com',
+    full_name: 'Anna Nowak',
+    role: 'employee',
+    password: 'haslo1234',
+  };
   for (const bad of [
     { email: 'bez-malpy' },
     { full_name: 'A' },
@@ -67,7 +73,13 @@ test('create: walidacja wejścia', async () => {
 
 test('create: tworzy konto i profil w restauracji właściciela; duplikat → 409', async () => {
   const { fake, call } = setup();
-  const body = { action: 'create', email: ' Nowy@Example.com ', full_name: ' Anna Nowak ', role: 'manager', password: 'haslo1234' };
+  const body = {
+    action: 'create',
+    email: ' Nowy@Example.com ',
+    full_name: ' Anna Nowak ',
+    role: 'manager',
+    password: 'haslo1234',
+  };
   const r = await call(body, 't-owner');
   assert.equal(r.status, 200);
   const { user } = await r.json();
@@ -84,7 +96,10 @@ test('create: gdy zapis profilu zawiedzie, konto w Auth jest wycofywane', async 
   const { fake, call } = setup();
   fake.state.profileInsertFail = true;
   const before = fake.state.authUsers.size;
-  const r = await call({ action: 'create', email: 'x@example.com', full_name: 'Jan Kowalski', role: 'employee', password: 'haslo1234' }, 't-owner');
+  const r = await call(
+    { action: 'create', email: 'x@example.com', full_name: 'Jan Kowalski', role: 'employee', password: 'haslo1234' },
+    't-owner',
+  );
   assert.equal(r.status, 500);
   assert.equal(fake.state.authUsers.size, before);
 });
@@ -111,14 +126,20 @@ test('update: zmiana roli i dezaktywacja blokuje logowanie w Auth; reaktywacja o
 test('update/reset: cudzy użytkownik z innej restauracji → 404; zły id → 400', async () => {
   const { call } = setup();
   assert.equal((await call({ action: 'update', id: U.otherOwner, role: 'employee' }, 't-owner')).status, 404);
-  assert.equal((await call({ action: 'reset_password', id: U.otherOwner, password: 'haslo1234' }, 't-owner')).status, 404);
+  assert.equal(
+    (await call({ action: 'reset_password', id: U.otherOwner, password: 'haslo1234' }, 't-owner')).status,
+    404,
+  );
   assert.equal((await call({ action: 'update', id: 'abc', role: 'employee' }, 't-owner')).status, 400);
 });
 
 test('reset_password: wymaga min. 8 znaków i zmienia hasło', async () => {
   const { fake, call } = setup();
   assert.equal((await call({ action: 'reset_password', id: U.employee, password: '1234567' }, 't-owner')).status, 400);
-  assert.equal((await call({ action: 'reset_password', id: U.employee, password: 'nowehaslo1' }, 't-owner')).status, 200);
+  assert.equal(
+    (await call({ action: 'reset_password', id: U.employee, password: 'nowehaslo1' }, 't-owner')).status,
+    200,
+  );
   assert.equal(fake.state.authUsers.get(U.employee).password, 'nowehaslo1');
 });
 
@@ -132,8 +153,16 @@ test('nieznana akcja → 400; odpowiedzi nie ujawniają klucza service role', as
 test('CORS: z ALLOWED_ORIGIN odpowiada tylko dla tej domeny', async () => {
   const { fake } = setup();
   const env = { ...baseEnv, ALLOWED_ORIGIN: 'https://app.example.com' };
-  const good = await handleAdminUsers(post({ action: 'list' }, 't-owner', { origin: 'https://app.example.com' }), env, fake.fetchFn);
+  const good = await handleAdminUsers(
+    post({ action: 'list' }, 't-owner', { origin: 'https://app.example.com' }),
+    env,
+    fake.fetchFn,
+  );
   assert.equal(good.headers.get('access-control-allow-origin'), 'https://app.example.com');
-  const bad = await handleAdminUsers(post({ action: 'list' }, 't-owner', { origin: 'https://zly.example.com' }), env, fake.fetchFn);
+  const bad = await handleAdminUsers(
+    post({ action: 'list' }, 't-owner', { origin: 'https://zly.example.com' }),
+    env,
+    fake.fetchFn,
+  );
   assert.equal(bad.headers.get('access-control-allow-origin'), null);
 });

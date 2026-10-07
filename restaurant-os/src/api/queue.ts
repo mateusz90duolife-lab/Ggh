@@ -25,8 +25,13 @@ export type QueueItem =
     };
 
 type NewItem =
-  | { kind: 'report_shortage'; label: string; args: Extract<QueueItem, { kind: 'report_shortage' }>['args'] }
-  | { kind: 'complete_task'; label: string; args: Extract<QueueItem, { kind: 'complete_task' }>['args'] };
+  | {
+      id?: string;
+      kind: 'report_shortage';
+      label: string;
+      args: Extract<QueueItem, { kind: 'report_shortage' }>['args'];
+    }
+  | { id?: string; kind: 'complete_task'; label: string; args: Extract<QueueItem, { kind: 'complete_task' }>['args'] };
 
 const listeners = new Set<() => void>();
 export function onQueueChange(fn: () => void): () => void {
@@ -54,7 +59,7 @@ function save(items: QueueItem[]): void {
 }
 
 export function enqueue(item: NewItem): QueueItem {
-  const full = { ...item, id: uuid(), createdAt: Date.now() } as QueueItem;
+  const full = { ...item, id: item.id ?? uuid(), createdAt: Date.now() } as QueueItem;
   let items = listQueue();
   // wielokrotne odhaczenie/cofnięcie tego samego zadania offline: zostaje tylko ostatnia decyzja
   if (full.kind === 'complete_task') {
@@ -108,7 +113,8 @@ export function flushQueue(): Promise<FlushResult> {
         sent++;
       } catch (e) {
         if (e instanceof NetworkError) break;
-        if (e instanceof ApiError && (e.status >= 500 || e.status === 401 || e.status === 408 || e.status === 429)) break;
+        if (e instanceof ApiError && (e.status >= 500 || e.status === 401 || e.status === 408 || e.status === 429))
+          break;
         const msg = e instanceof ApiError ? e.message : 'Nie udało się wysłać.';
         save(listQueue().map((i) => (i.id === item.id ? { ...i, error: msg } : i)));
         failed++;

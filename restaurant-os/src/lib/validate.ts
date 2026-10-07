@@ -84,7 +84,9 @@ export function parseEmailList(input: string): Result<string[]> {
 }
 
 export function validateTime(input: string): Result<string> {
-  return /^([01]\d|2[0-3]):[0-5]\d$/.test(input) ? { ok: true, value: input } : { ok: false, error: 'Podaj godzinę w formacie GG:MM.' };
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(input)
+    ? { ok: true, value: input }
+    : { ok: false, error: 'Podaj godzinę w formacie GG:MM.' };
 }
 
 export function validateTimeZone(tz: string): Result<string> {

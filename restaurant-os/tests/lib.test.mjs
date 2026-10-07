@@ -112,10 +112,16 @@ test('validatePurchaseDate: nie z przyszłości', () => {
 });
 
 test('fromPostgrest: komunikaty po polsku', () => {
-  assert.equal(e.fromPostgrest(403, { code: '42501', message: 'new row violates row-level security policy' }).message, 'Brak uprawnień do tej operacji.');
+  assert.equal(
+    e.fromPostgrest(403, { code: '42501', message: 'new row violates row-level security policy' }).message,
+    'Brak uprawnień do tej operacji.',
+  );
   assert.equal(e.fromPostgrest(401, { message: 'JWT expired' }).status, 401);
   assert.equal(e.fromPostgrest(409, { code: '23505', message: 'dup' }).message, 'Taki rekord już istnieje.');
-  assert.equal(e.fromPostgrest(400, { code: 'P0001', message: 'Zakup został już przetworzony' }).message, 'Zakup został już przetworzony');
+  assert.equal(
+    e.fromPostgrest(400, { code: 'P0001', message: 'Zakup został już przetworzony' }).message,
+    'Zakup został już przetworzony',
+  );
   assert.match(e.fromPostgrest(400, { code: '23514', message: 'check' }).message, /nieprawidłowa/);
   assert.match(e.fromPostgrest(503, null).message, /Błąd serwera/);
   assert.equal(e.errorMessage(new e.NetworkError()), 'Brak połączenia z internetem.');

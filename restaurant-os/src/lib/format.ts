@@ -111,10 +111,5 @@ export function plural(n: number, one: string, few: string, many: string): strin
 
 /** Normalizacja do wyszukiwania: małe litery, bez polskich znaków diakrytycznych. */
 export function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/ł/g, 'l')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .trim();
+  return s.toLowerCase().replace(/ł/g, 'l').normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 }

@@ -175,7 +175,8 @@ export async function updatePassword(password: string): Promise<void> {
     if (/different from the old password|same_password/i.test(msg)) {
       throw new ApiError(422, 'SAME', 'Nowe hasło musi różnić się od poprzedniego.');
     }
-    if (/weak|short|at least/i.test(msg)) throw new ApiError(422, 'WEAK', 'Hasło jest zbyt słabe. Użyj co najmniej 8 znaków.');
+    if (/weak|short|at least/i.test(msg))
+      throw new ApiError(422, 'WEAK', 'Hasło jest zbyt słabe. Użyj co najmniej 8 znaków.');
     throw new ApiError(res.status, 'AUTH', 'Nie udało się zmienić hasła.');
   }
 }

@@ -156,7 +156,11 @@ async function claim(deps: SummaryDeps, r: Restaurant, date: string): Promise<bo
     {
       method: 'PATCH',
       headers: serviceHeaders(env, { prefer: 'return=representation' }),
-      body: JSON.stringify({ status: 'sending', claimed_at: (deps.now ?? (() => new Date()))().toISOString(), error: null }),
+      body: JSON.stringify({
+        status: 'sending',
+        claimed_at: (deps.now ?? (() => new Date()))().toISOString(),
+        error: null,
+      }),
     },
   );
   if (!upd.ok) throw new Error('Nie udało się przejąć wpisu w email_log.');
@@ -181,7 +185,10 @@ async function runScheduled(deps: SummaryDeps, r: Restaurant, localDate: string)
     await patchLog(deps, r, localDate, { status: 'sent', provider_id: providerId, error: null });
     return 'wysłano';
   } catch (e) {
-    await patchLog(deps, r, localDate, { status: 'failed', error: e instanceof Error ? e.message.slice(0, 300) : 'błąd' });
+    await patchLog(deps, r, localDate, {
+      status: 'failed',
+      error: e instanceof Error ? e.message.slice(0, 300) : 'błąd',
+    });
     return 'błąd wysyłki';
   }
 }
