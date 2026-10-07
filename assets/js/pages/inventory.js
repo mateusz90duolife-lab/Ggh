@@ -4,6 +4,7 @@ import { h, icon, mount } from '../dom.js';
 import { ApiError, errorMessage } from '../lib/errors.js';
 import { formatDateTime, formatPLN, formatQty, normalize, plural } from '../lib/format.js';
 import { storage } from '../lib/storage.js';
+import { ICON_CHOICES, guessIcon, productIcon } from '../lib/catalog.js';
 import { UNITS, unitLabel } from '../lib/units.js';
 import { parseQuantity, parseSignedQuantity, validateText } from '../lib/validate.js';
 import { navigate } from '../router.js';
@@ -11,7 +12,7 @@ import { isManager, loadCatalog, nameOf, tz } from '../state.js';
 import { backLink, button, chip, emptyState, errorState, fab, field, guarded, numberInput, qtyText, sectionHeader, selectInput, skeleton, stockBadge, stockBar, textInput, } from '../ui/components.js';
 import { confirmDialog, openModal } from '../ui/modal.js';
 import { toast } from '../ui/toast.js';
-const STOCK_COLS = 'product_id,name,unit,category_id,minimum_stock,active,stock,status';
+const STOCK_COLS = 'product_id,name,unit,category_id,minimum_stock,active,stock,status,icon';
 const num = (v) => Number(v);
 function groupByCategory(rows, categories) {
     const names = new Map(categories.map((c) => [c.id, c]));
@@ -48,6 +49,8 @@ export async function inventoryPage(c) {
             variant: 'soft',
             onClick: () => openProductForm(null, categories, () => void load()),
         })
+        : null, isManager()
+        ? h('a', { class: 'btn btn-soft', href: '#/katalog' }, icon('list', 20), h('span', null, 'Katalog'))
         : null), chipsHost, listHost);
     mount(c.el, head, fab('ZGŁOŚ BRAK', '#/braki/nowy'));
     mount(listHost, skeleton(6));
@@ -87,10 +90,12 @@ export async function inventoryPage(c) {
         if (n)
             rows = rows.filter((s) => normalize(s.name).includes(n));
         if (filter === 'problems')
-            rows = rows.filter((s) => s.status !== 'ok');
+            rows = rows.filter((s) => s.status === 'low' || s.status === 'out');
         if (rows.length === 0) {
             mount(listHost, stock.length === 0
-                ? emptyState('Magazyn jest pusty', isManager() ? 'Dodaj pierwszy produkt przyciskiem „Produkt”.' : 'Manager musi najpierw dodać produkty.')
+                ? emptyState('Magazyn jest pusty', isManager()
+                    ? 'Dodaj produkty z gotowego katalogu (przycisk „Katalog”) albo pojedynczo przyciskiem „Produkt”.'
+                    : 'Manager musi najpierw dodać produkty.')
                 : emptyState('Nic nie znaleziono', filter === 'problems' ? 'Brak produktów poniżej minimum.' : 'Zmień wyszukiwanie.'));
             return;
         }
@@ -98,7 +103,7 @@ export async function inventoryPage(c) {
             h('div', { class: 'group-title' }, g.name),
             ...g.rows
                 .sort((a, b) => a.name.localeCompare(b.name, 'pl'))
-                .map((s) => h('a', { class: 'item', href: `#/magazyn/${s.product_id}` }, h('div', { class: 'item-main stock-row' }, h('div', null, h('div', { class: 'item-title' }, s.name, s.active
+                .map((s) => h('a', { class: 'item', href: `#/magazyn/${s.product_id}` }, h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(s, g.name)), h('div', { class: 'item-main stock-row' }, h('div', null, h('div', { class: 'item-title' }, s.name, s.active
                 ? null
                 : h('span', { class: 'badge badge-neutral', style: 'margin-left:8px' }, 'nieaktywny')), h('div', { class: 'item-sub' }, `minimum: ${qtyText(s.minimum_stock, s.unit)}`)), h('div', { class: 'stock-qty' }, qtyText(s.stock, s.unit)), stockBar(num(s.stock), num(s.minimum_stock), s.status)), stockBadge(s.status))),
         ])));
@@ -135,10 +140,37 @@ export function openProductForm(existing, categories, onSaved) {
         hint: existing ? 'Jednostki nie można zmienić po utworzeniu produktu.' : undefined,
     });
     const min = field('Minimalny stan (alert poniżej)', numberInput({ value: existing ? formatQty(existing.minimum_stock) : '0' }));
+    let chosenIcon = existing?.icon ?? null;
+    const iconHost = h('div', { class: 'icon-choices', role: 'radiogroup', 'aria-label': 'Ilustracja' });
+    function drawIcons() {
+        const auto = guessIcon(name.input.value);
+        iconHost.replaceChildren(h('button', {
+            type: 'button',
+            class: `chip${chosenIcon ? '' : ' chip-active'}`,
+            role: 'radio',
+            'aria-checked': String(!chosenIcon),
+            onclick: () => {
+                chosenIcon = null;
+                drawIcons();
+            },
+        }, `Auto ${auto ?? ''}`.trim()), ...ICON_CHOICES.map((ic) => h('button', {
+            type: 'button',
+            class: `icon-choice${chosenIcon === ic ? ' tile-selected' : ''}`,
+            role: 'radio',
+            'aria-checked': String(chosenIcon === ic),
+            'aria-label': `Ikona ${ic}`,
+            onclick: () => {
+                chosenIcon = ic;
+                drawIcons();
+            },
+        }, ic)));
+    }
+    drawIcons();
+    name.input.addEventListener('change', drawIcons);
     const activeBox = h('input', { type: 'checkbox', id: 'p_active', checked: existing?.active ?? true });
     const m = openModal({ title: existing ? 'Edytuj produkt' : 'Nowy produkt', body: null });
     const save = button(existing ? 'Zapisz zmiany' : 'Dodaj produkt', { type: 'submit', size: 'lg', block: true });
-    const form = h('form', { class: 'form', novalidate: true }, name.el, category.el, h('div', { class: 'form-row' }, unit.el, min.el), existing
+    const form = h('form', { class: 'form', novalidate: true }, name.el, category.el, h('div', { class: 'form-row' }, unit.el, min.el), h('details', { class: 'field' }, h('summary', { class: 'muted', style: 'cursor:pointer;padding:6px 0' }, 'Ilustracja (ikona)'), iconHost), existing
         ? h('label', { class: 'check', for: 'p_active', style: '--x:1' }, activeBox, h('span', null, 'Produkt aktywny (widoczny w zgłoszeniach)'))
         : null, save);
     form.addEventListener('submit', (e) => {
@@ -154,6 +186,7 @@ export function openProductForm(existing, categories, onSaved) {
                 name: n.value,
                 category_id: category.input.value || null,
                 minimum_stock: q.value,
+                icon: chosenIcon,
                 ...(existing
                     ? { active: activeBox.checked }
                     : { unit: unitSel.value }),

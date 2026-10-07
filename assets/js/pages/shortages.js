@@ -13,6 +13,7 @@ import { shortageItem } from './today.js';
 import { button, emptyState, errorState, field, guarded, numberInput, qtyText, sectionHeader, skeleton, textInput, } from '../ui/components.js';
 import { confirmDialog, openModal } from '../ui/modal.js';
 import { productPicker } from '../ui/picker.js';
+import { quickPick } from '../ui/quickPick.js';
 import { toast } from '../ui/toast.js';
 export async function shortagesPage(c) {
     c.setTitle('Braki');
@@ -198,6 +199,16 @@ export async function reportShortagePage(c) {
         m.el.querySelector('.modal-body')?.replaceChildren(f);
         name.input.focus();
     }
-    mount(c.el, h('div', { class: 'page' }, form, addedHost, h('div', { class: 'row-actions' }, button('Gotowe', { variant: 'ghost', onClick: () => navigate(homePath(role())) }))));
+    mount(c.el, h('div', { class: 'page' }, form, addedHost, quickPick({
+        products,
+        categories,
+        frequency: freq,
+        onPick: (p) => {
+            picker.set(p);
+            form.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            qtyInput.focus({ preventScroll: true });
+            qtyInput.select();
+        },
+    }), h('div', { class: 'row-actions' }, button('Gotowe', { variant: 'ghost', onClick: () => navigate(homePath(role())) }))));
     picker.focusQuiet();
 }

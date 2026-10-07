@@ -93,15 +93,15 @@ export function selectInput(options, value = '') {
     s.value = value;
     return s;
 }
-const STATUS_TEXT = { ok: 'Stan OK', low: 'Niski stan', out: 'BRAK' };
-const STATUS_ICON = { ok: 'check', low: 'alert', out: 'alert' };
+const STATUS_TEXT = { ok: 'Stan OK', low: 'Niski stan', out: 'BRAK', none: 'Bez stanu' };
+const STATUS_ICON = { ok: 'check', low: 'alert', out: 'alert', none: 'minus' };
 /** Kolor ZAWSZE z ikoną i tekstem (czytelne także dla osób z zaburzeniami widzenia barw). */
 export function stockBadge(status) {
     return h('span', { class: `badge badge-${status}` }, icon(STATUS_ICON[status], 14), STATUS_TEXT[status]);
 }
 export function stockBar(stock, minimum, status) {
     const target = Math.max(minimum * 2, 1);
-    const pct = status === 'out' ? 0 : Math.max(4, Math.min(100, (stock / target) * 100));
+    const pct = status === 'out' || status === 'none' ? 0 : Math.max(4, Math.min(100, (stock / target) * 100));
     return h('div', { class: `bar bar-${status}`, role: 'img', 'aria-label': `${STATUS_TEXT[status]}` }, h('div', { class: 'bar-fill', style: `width:${pct.toFixed(0)}%` }));
 }
 export function qtyText(value, unit) {
