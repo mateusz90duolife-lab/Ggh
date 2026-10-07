@@ -1,4 +1,5 @@
 import { h } from '../dom.js';
+import { productIcon } from '../lib/catalog.js';
 import { normalize } from '../lib/format.js';
 import { unitLabel } from '../lib/units.js';
 import type { Category, Product } from '../types.js';
@@ -92,7 +93,12 @@ export function productPicker(opts: {
               },
               h(
                 'span',
-                null,
+                { class: 'prod-icon', 'aria-hidden': 'true' },
+                productIcon(p, catName.get(p.category_id ?? '')),
+              ),
+              h(
+                'span',
+                { style: 'flex:1' },
                 h('strong', null, p.name),
                 h('div', { class: 'item-sub' }, catName.get(p.category_id ?? '') ?? 'Inne'),
               ),
@@ -117,6 +123,7 @@ export function productPicker(opts: {
         h(
           'div',
           { class: 'item', style: 'padding:0;min-height:0;border:0;background:transparent' },
+          h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(p, catName.get(p.category_id ?? ''))),
           h(
             'div',
             { class: 'item-main' },

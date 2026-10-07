@@ -10,7 +10,8 @@ Przyciski: **Kopiuj listę**, **Udostępnij** i **Wyślij mailem** (wysyła list
 ## 2. Sprawdź magazyn
 
 **Magazyn** pokazuje stany z paskami. Filtr **Niski stan i braki** pokazuje tylko to, co trzeba dokupić. Dotknij produktu, aby zobaczyć historię ruchów, ostatnią cenę i zmienić dane (**Edytuj**).
-**+ Produkt** dodaje nowy produkt (nazwa, kategoria, jednostka, minimalny stan). Jednostki nie da się później zmienić.
+**+ Produkt** dodaje nowy produkt (nazwa, kategoria, jednostka, minimalny stan, ilustracja). Jednostki nie da się później zmienić.
+**Katalog** to gotowa lista produktów z ilustracjami (mięsa, warzywa, zupy, przyprawy, sosy): dotknij kafelki i **Dodaj … do magazynu**. Produkty, które już masz, są wyszarzone. Minimalny stan ustawisz potem w karcie produktu — do tego czasu produkt bez zapasu ma status **Bez stanu**, a nie BRAK.
 
 Ruchy w karcie produktu:
 
@@ -33,6 +34,21 @@ Ruchy w karcie produktu:
    **Szkic** zapisuje zakup bez zmiany magazynu; można go później zatwierdzić albo anulować.
    Zatwierdzonego zakupu nie można edytować; pomyłkę popraw korektą stanu.
 
+## 5. Skanuj paragon
+
+**Zakupy → Skanuj paragon** (albo **Więcej → Skaner paragonów**):
+
+1. **Zrób zdjęcie** paragonu (na płasko, w dobrym świetle). Długi paragon sfotografuj w częściach — do 4 zdjęć.
+2. **Odczytaj paragon** — po 10–40 sekundach zobaczysz tabelę: co kupiono, ilość, cena jednostkowa i wartość.
+3. Sprawdź tabelę. Pozycje oznaczone **sprawdź** były słabo czytelne. Możesz poprawić ilość, cenę i wartość, a w kolumnie
+   **Produkt** wybrać produkt z magazynu albo **➕ Nowy produkt**. Rzeczy spoza magazynu (np. reklamówka) oznacz **Pomiń**.
+   Aplikacja porównuje sumę pozycji z sumą na paragonie i ostrzeże, gdy się różnią.
+4. **Kopiuj tabelę** (wklejasz do Excela/Arkuszy) albo **Pobierz CSV**.
+5. **Zapisz jako zakup** — towar trafi do magazynu, cena netto do historii cen. Aplikacja zapamięta, który produkt
+   odpowiada której nazwie z paragonu, więc następnym razem dopasuje je sama.
+
+Lista **Ostatnie paragony** pozwala wrócić do skanu i zapisać go później.
+
 ## Pozostałe
 
-**Więcej** zawiera: **Dostawcy**, **Kategorie**, **Powiadomienia** (alerty niskiego stanu), zmianę hasła i wylogowanie.
+**Więcej** zawiera: **Skaner paragonów**, **Katalog produktów**, **Dostawcy**, **Kategorie**, **Powiadomienia** (alerty niskiego stanu), zmianę hasła i wylogowanie.

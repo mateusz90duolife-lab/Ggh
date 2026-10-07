@@ -7,3 +7,6 @@ verify_jwt = false
 
 [functions.daily-shopping-summary]
 verify_jwt = false
+
+[functions.scan-receipt]
+verify_jwt = false

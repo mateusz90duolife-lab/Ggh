@@ -1,7 +1,7 @@
 import type { Unit } from './lib/units.js';
 
 export type Role = 'owner' | 'manager' | 'employee';
-export type StockStatus = 'ok' | 'low' | 'out';
+export type StockStatus = 'ok' | 'low' | 'out' | 'none';
 
 export interface Profile {
   id: string;
@@ -32,6 +32,7 @@ export interface Product {
   minimum_stock: number | string;
   active: boolean;
   category_id: string | null;
+  icon?: string | null;
 }
 
 export interface ProductStock {
@@ -43,6 +44,7 @@ export interface ProductStock {
   active: boolean;
   stock: number | string;
   status: StockStatus;
+  icon?: string | null;
 }
 
 export interface Shortage {

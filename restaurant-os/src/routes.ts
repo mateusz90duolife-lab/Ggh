@@ -3,9 +3,11 @@ import { forgotPage, loginPage, newPasswordPage } from './pages/auth.js';
 import { dashboardPage } from './pages/dashboard.js';
 import { auditPage, settingsPage, templatesPage, usersPage } from './pages/admin.js';
 import { countPage, inventoryPage, productPage } from './pages/inventory.js';
+import { catalogPage } from './pages/catalog.js';
 import { categoriesPage, notificationsPage, suppliersPage } from './pages/manage.js';
 import { morePage } from './pages/more.js';
 import { newPurchasePage, purchasePage, shoppingPage } from './pages/shopping.js';
+import { scannerPage } from './pages/scanner.js';
 import { reportShortagePage, shortagesPage } from './pages/shortages.js';
 import { tasksPage } from './pages/tasks.js';
 import { todayPage } from './pages/today.js';
@@ -32,6 +34,8 @@ export const routes: RouteDef[] = [
   { pattern: '/zakupy', title: 'Zakupy', page: shoppingPage, roles: [...MGR] },
   { pattern: '/zakupy/nowy', title: 'Nowy zakup', page: newPurchasePage, roles: [...MGR] },
   { pattern: '/zakupy/:id', title: 'Zakup', page: purchasePage, roles: [...MGR] },
+  { pattern: '/skaner', title: 'Skaner paragonów', page: scannerPage, roles: [...MGR] },
+  { pattern: '/katalog', title: 'Katalog produktów', page: catalogPage, roles: [...MGR] },
   { pattern: '/inwentaryzacja', title: 'Inwentaryzacja', page: countPage, roles: [...MGR] },
   { pattern: '/dostawcy', title: 'Dostawcy', page: suppliersPage, roles: [...MGR] },
   { pattern: '/kategorie', title: 'Kategorie', page: categoriesPage, roles: [...MGR] },

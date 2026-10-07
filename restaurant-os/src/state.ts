@@ -61,7 +61,7 @@ export function homePath(r: Role | null): string {
 
 export async function loadCatalog(): Promise<{ products: Product[]; categories: Category[] }> {
   const [products, categories] = await Promise.all([
-    list<Product>('products', { select: 'id,name,unit,minimum_stock,active,category_id', order: 'name.asc' }),
+    list<Product>('products', { select: 'id,name,unit,minimum_stock,active,category_id,icon', order: 'name.asc' }),
     list<Category>('product_categories', { select: 'id,name,sort_order', order: 'sort_order.asc,name.asc' }),
   ]);
   return { products, categories };

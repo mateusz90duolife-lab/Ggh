@@ -5,12 +5,16 @@ export function createFake({
   shopping = [],
   tokens = {},
   emails = [],
+  products = [],
+  scans = [],
   clock = () => new Date(),
 } = {}) {
   const state = {
     restaurants,
     profiles,
     shopping,
+    products,
+    scans,
     emailLog: [],
     authUsers: new Map(), // id -> {id,email,banned,password}
     sent: [], // wysłane maile (Resend)
@@ -100,7 +104,11 @@ export function createFake({
               ? state.shopping
               : table === 'email_log'
                 ? state.emailLog
-                : null;
+                : table === 'products'
+                  ? state.products
+                  : table === 'receipt_scans'
+                    ? state.scans
+                    : null;
       if (!rows) return J(404, { message: 'no table ' + table });
       if (method === 'GET') return J(200, filterRows(rows, url.searchParams));
       if (method === 'POST') {
@@ -112,7 +120,7 @@ export function createFake({
           rows.push(row);
           return J(201, [row]);
         }
-        const row = { created_at: new Date().toISOString(), active: true, ...body };
+        const row = { id: `row${++seq}`, created_at: new Date().toISOString(), active: true, ...body };
         rows.push(row);
         return J(201, [row]);
       }

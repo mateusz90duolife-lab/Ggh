@@ -733,3 +733,213 @@ scenario('zakupy: szkic nie rusza magazynu, walidacja pozycji, anulowanie szkicu
   await mgr.getByText('Zatwierdzony', { exact: true }).first().waitFor();
   await mgr.getByText('Anulowany', { exact: true }).first().waitFor();
 });
+
+scenario('katalog z ilustracjami i szybki wybór kafelkami w „Zgłoś brak”', async ({ mk }) => {
+  const mgr = await loginAs(env, await mk({ viewport: { width: 360, height: 780 } }), email('manager'));
+  await mgr.goto(`${env.appUrl}/#/magazyn`);
+  await mgr.getByRole('link', { name: 'Katalog' }).click();
+  await mgr.getByRole('tab', { name: /Mięso/ }).waitFor();
+  // brak zaznaczenia → podpowiedź, nic nie zapisujemy
+  await mgr.getByRole('button', { name: 'Zaznacz produkty do dodania' }).click();
+  await toast(mgr, 'Najpierw zaznacz produkty');
+  await mgr.getByRole('tab', { name: /Zupy/ }).click();
+  await mgr.getByRole('button', { name: /^Rosół/ }).click();
+  await mgr.getByRole('button', { name: /^Żurek/ }).click();
+  await mgr.getByRole('tab', { name: /Mięso/ }).click();
+  await mgr.getByRole('button', { name: /^Boczek/ }).click();
+  await mgr.getByRole('tab', { name: /Zupy \(2\)/ }).waitFor();
+  await mgr.screenshot({ path: `${ARTIFACTS}/katalog-360.png` });
+  const m = await mgr.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+  assert.ok(m[0] <= m[1] + 1, `katalog: poziomy scroll ${m[0]} > ${m[1]}`);
+  await mgr.getByRole('button', { name: 'Dodaj 3 produkty do magazynu' }).click();
+  await toast(mgr, 'Dodano 3 produkty');
+  assert.equal(
+    await env.be.sql(
+      `select string_agg(p.name || ':' || p.icon || ':' || coalesce(c.name, '-'), ',' order by p.name) from products p left join product_categories c on c.id = p.category_id where p.name in ('Rosół','Żurek','Boczek')`,
+    ),
+    'Boczek:🥓:Mięso,Rosół:🍲:Zupy,Żurek:🥣:Zupy',
+    'produkty z ikonami; brakująca kategoria „Zupy” utworzona, istniejąca „Mięso” użyta ponownie',
+  );
+  await mgr.getByRole('tab', { name: /Zupy/ }).click();
+  await mgr.getByRole('button', { name: 'Rosół — już w magazynie' }).waitFor();
+  assert.ok(await mgr.getByRole('button', { name: 'Rosół — już w magazynie' }).isDisabled());
+  // nowy produkt bez stanu i bez minimum nie jest „BRAKIEM”
+  await mgr.goto(`${env.appUrl}/#/magazyn`);
+  await mgr.locator('a.item', { hasText: 'Rosół' }).getByText('Bez stanu').waitFor();
+
+  // pracownik: kafelki → produkt wybrany bez pisania
+  const ewa = await loginAs(env, await mk({ viewport: { width: 360, height: 780 } }), email('ewa'));
+  await ewa.goto(`${env.appUrl}/#/braki/nowy`);
+  await ewa.getByRole('tab', { name: /Zupy/ }).click();
+  await ewa.getByRole('listitem', { name: 'Wybierz: Rosół' }).click();
+  await ewa.locator('.picker .item-title', { hasText: 'Rosół' }).waitFor();
+  await ewa.screenshot({ path: `${ARTIFACTS}/szybki-wybor-360.png`, fullPage: true });
+  await ewa.getByLabel('Ilość', { exact: true }).fill('5');
+  await ewa.getByRole('button', { name: 'DODAJ' }).click();
+  await toast(ewa, 'Dodano: Rosół — 5 L');
+  const e = await ewa.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+  assert.ok(e[0] <= e[1] + 1, `zgłoś brak: poziomy scroll ${e[0]} > ${e[1]}`);
+  assert.equal(
+    await sqlNum(
+      `select count(*) from shortages s join products p on p.id = s.product_id where p.name = 'Rosół' and s.status = 'open' and s.quantity = 5`,
+    ),
+    1,
+  );
+});
+
+scenario('skaner paragonów: zdjęcie → tabela → poprawki → zakup, magazyn i zapamiętane dopasowania', async ({ mk }) => {
+  const mgr = await loginAs(env, await mk(), email('manager'));
+  // bez klucza API: czytelny komunikat
+  env.be.state.scanReply = null;
+  await mgr.goto(`${env.appUrl}/#/zakupy`);
+  await mgr.getByRole('link', { name: 'Skanuj paragon' }).click();
+  await mgr.getByText('Zrób zdjęcie paragonu').first().waitFor();
+  const photo = 'public/icons/icon-512.png';
+  await mgr.getByLabel('Wybierz zdjęcia').setInputFiles(photo);
+  await mgr.getByRole('img', { name: 'Zdjęcie 1' }).waitFor();
+  await mgr.getByRole('button', { name: 'Odczytaj paragon' }).click();
+  await toast(mgr, 'ANTHROPIC_API_KEY');
+
+  env.be.state.scanReply = {
+    readable: true,
+    store: 'Makro',
+    date: new Date().toISOString().slice(0, 10),
+    document_number: '0815/2026',
+    total: 60.59,
+    notes: '',
+    items: [
+      {
+        name: 'MLEKO 3,2% 1L',
+        name_guess: 'Mleko 3,2%',
+        quantity: 6,
+        unit: 'szt',
+        unit_price: 4.1,
+        total: 24.6,
+        vat_rate: 5,
+        package_size: 1,
+        package_unit: 'l',
+        match: 'Mleko 3,2%',
+        uncertain: false,
+      },
+      {
+        name: 'POMIDORY MALINOWE',
+        name_guess: 'Pomidory malinowe',
+        quantity: 2.5,
+        unit: 'kg',
+        unit_price: 12,
+        total: 30,
+        vat_rate: 5,
+        package_size: null,
+        package_unit: null,
+        match: '',
+        uncertain: true,
+      },
+      {
+        name: 'BATON PROTEIN',
+        name_guess: 'Baton proteinowy',
+        quantity: 1,
+        unit: 'szt',
+        unit_price: 5.99,
+        total: 5.99,
+        vat_rate: 23,
+        package_size: null,
+        package_unit: null,
+        match: '',
+        uncertain: false,
+      },
+    ],
+  };
+  await mgr.getByRole('button', { name: 'Odczytaj paragon' }).click();
+  const table = mgr.locator('.receipt-table');
+  await table.waitFor();
+  const req = env.be.state.scanRequests.at(-1);
+  assert.equal(req.messages[0].content[0].type, 'image');
+  assert.equal(req.messages[0].content[0].source.media_type, 'image/jpeg', 'zdjęcie skompresowane do JPEG');
+  assert.match(req.messages[0].content.at(-1).text, /Mleko 3,2%/);
+  const rows = table.locator('tbody tr');
+  assert.equal(await rows.count(), 3);
+  assert.equal(
+    await rows.nth(0).locator('select').first().inputValue(),
+    pid('Mleko 3,2%'),
+    'dopasowanie z podpowiedzi modelu',
+  );
+  assert.equal(
+    await rows.nth(1).locator('select').first().inputValue(),
+    pid('Pomidor'),
+    'dopasowanie po podobnej nazwie',
+  );
+  assert.equal(await rows.nth(2).locator('select').first().inputValue(), '');
+  await rows.nth(0).getByText('Do magazynu: 6 L').waitFor();
+  await rows.nth(1).getByText('sprawdź').waitFor();
+  await mgr.getByText('Suma na paragonie: 60,59 zł').waitFor();
+  await mgr.screenshot({ path: `${ARTIFACTS}/skaner-tabela-390.png`, fullPage: true });
+  const scroll = await mgr.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);
+  assert.ok(scroll[0] <= scroll[1] + 1, 'tabela przewija się w swoim kontenerze, nie cała strona');
+
+  // poprawka ilości pomidorów: 2,5 → 2 kg (wartość przelicza się)
+  await mgr.getByLabel('Ilość: POMIDORY MALINOWE').fill('2');
+  await mgr.getByLabel('Ilość: POMIDORY MALINOWE').press('Tab');
+  await mgr.getByText('Suma pozycji (54,59 zł) różni się od sumy na paragonie').waitFor();
+  // bez produktu w wierszu 3 → błąd; potem tworzymy nowy produkt z pozycji paragonu
+  await mgr.getByRole('button', { name: 'Zapisz jako zakup' }).click();
+  await toast(mgr, 'Przypisz produkt w wierszu: 3');
+  await mgr.getByLabel('Produkt dla: BATON PROTEIN').selectOption('__new');
+  await toast(mgr, 'Dodano produkt: Baton proteinowy');
+  assert.equal(await sqlNum(`select count(*) from products where name = 'Baton proteinowy' and unit = 'szt'`), 1);
+  // pomijamy baton mimo wszystko
+  await mgr.getByLabel('Pomiń: BATON PROTEIN').check();
+
+  const stock = (n) =>
+    sqlNum(`select coalesce(sum(quantity_delta),0) from inventory_movements where product_id='${pid(n)}'`);
+  const [milk0, tom0] = [await stock('Mleko 3,2%'), await stock('Pomidor')];
+  await mgr.getByRole('button', { name: 'Zapisz jako zakup' }).click();
+  await toast(mgr, 'Zapisano zakup i dodano towar do magazynu.');
+  await mgr.waitForURL(/#\/zakupy\/[0-9a-f-]{36}$/);
+  assert.equal((await stock('Mleko 3,2%')) - milk0, 6, '6 × 1 l mleka = +6 l');
+  assert.equal((await stock('Pomidor')) - tom0, 2, 'poprawiona ilość pomidorów');
+  assert.equal(
+    await env.be.sql(
+      `select round(i.unit_price_net, 4) || '/' || i.vat_rate from purchase_items i join receipt_scans r on r.purchase_id = i.purchase_id where i.product_id = '${pid('Mleko 3,2%')}'`,
+    ),
+    '3.9048/5.00',
+    'cena netto = 4,10 brutto / 1,05',
+  );
+  assert.equal(
+    await sqlNum(
+      `select count(*) from receipt_scans s join purchases p on p.id = s.purchase_id and p.receipt_id = s.id`,
+    ),
+    1,
+    'skan powiązany z zakupem',
+  );
+  assert.equal(await sqlNum(`select count(*) from product_aliases`), 2, 'zapamiętane dopasowania dla 2 pozycji');
+  assert.equal(
+    await env.be.sql(`select (items->1->>'quantity') || '/' || (items->2->>'skip') from receipt_scans`),
+    '2/true',
+    'poprawki z tabeli zapisane w skanie',
+  );
+
+  // ponowne otwarcie skanu: oznaczony jako zapisany, bez drugiego zapisu
+  await mgr.goto(`${env.appUrl}/#/skaner`);
+  await mgr.getByText('zapisany').first().click();
+  await mgr.getByText('Ten paragon jest już zapisany jako zakup.').waitFor();
+  assert.equal(await mgr.getByRole('button', { name: 'Zapisz jako zakup' }).count(), 0);
+
+  // drugi paragon z tą samą nazwą: dopasowanie z pamięci (alias), nawet bez podpowiedzi modelu
+  env.be.state.scanReply = {
+    ...env.be.state.scanReply,
+    items: [{ ...env.be.state.scanReply.items[1], match: '', name_guess: 'Coś zupełnie innego' }],
+    total: 30,
+  };
+  await mgr.getByLabel('Wybierz zdjęcia').setInputFiles(photo);
+  await mgr.getByRole('button', { name: 'Odczytaj paragon' }).click();
+  await mgr.locator('.receipt-table').waitFor();
+  assert.equal(await mgr.locator('.receipt-table tbody tr select').first().inputValue(), pid('Pomidor'));
+
+  // pracownik nie ma dostępu do skanera
+  const ewa = await loginAs(env, await mk(), email('ewa'));
+  for (const route of ['skaner', 'katalog']) {
+    await ewa.evaluate((r) => (location.hash = `#/${r}`), route);
+    await ewa.waitForFunction(() => location.hash === '#/dzisiaj');
+    await toast(ewa, 'Nie masz dostępu do tej sekcji.');
+  }
+});

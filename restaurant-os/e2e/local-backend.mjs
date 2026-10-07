@@ -9,6 +9,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleAdminUsers } from '../supabase/functions/_shared/adminUsers.ts';
 import { handleDailySummary } from '../supabase/functions/_shared/dailySummary.ts';
+import { handleScanReceipt } from '../supabase/functions/_shared/scanReceipt.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const IDENT = /^[a-z_][a-z0-9_]*$/i;
@@ -61,6 +62,8 @@ export async function startBackend({ db = 'ros_e2e', port = 0, ttl = 3600 } = {}
     ttl,
     resendFail: false,
     requests: [],
+    scanReply: null, // odpowiedź „modelu” dla skanera paragonów (null = brak klucza API)
+    scanRequests: [],
   };
   const SERVICE = (() => {
     const t = `${b64({ alg: 'none' })}.${b64({ role: 'service_role', sub: 'service' })}.sig`;
@@ -399,6 +402,24 @@ export async function startBackend({ db = 'ros_e2e', port = 0, ttl = 3600 } = {}
         env: FN_ENV(),
         fetchFn: innerFetch,
         now: () => (state.clock ? new Date(state.clock) : new Date()),
+      });
+    else if (name === 'scan-receipt')
+      out = await handleScanReceipt(webReq, {
+        env: FN_ENV(),
+        fetchFn: innerFetch,
+        // Zamiast prawdziwego API: stała odpowiedź modelu z state.scanReply (testy nie wychodzą do sieci).
+        claude: state.scanReply
+          ? {
+              create: async (params) => {
+                state.scanRequests.push(params);
+                return {
+                  stop_reason: 'end_turn',
+                  model: 'claude-opus-5-5',
+                  content: [{ type: 'text', text: JSON.stringify(state.scanReply) }],
+                };
+              },
+            }
+          : null,
       });
     else return json(res, 404, { error: 'nie ma takiej funkcji' });
     const text = await out.text();

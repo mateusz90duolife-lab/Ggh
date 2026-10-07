@@ -1,0 +1,347 @@
+import { normalize } from './format.js';
+import type { Unit } from './units.js';
+
+/** Pozycja katalogu: gotowy produkt z ilustracją (emoji), który można dodać do magazynu jednym dotknięciem. */
+export interface CatalogItem {
+  name: string;
+  unit: Unit;
+  icon: string;
+}
+export interface CatalogGroup {
+  category: string;
+  icon: string;
+  items: CatalogItem[];
+}
+
+const i = (name: string, unit: Unit, icon: string): CatalogItem => ({ name, unit, icon });
+
+/**
+ * Katalog startowy: mięsa, warzywa, zupy, przyprawy i sosy. Ilustracje to emoji — działają offline,
+ * bez pobierania obrazków, i są czytelne na każdym telefonie.
+ */
+export const CATALOG: CatalogGroup[] = [
+  {
+    category: 'Mięso',
+    icon: '🥩',
+    items: [
+      i('Wołowina (antrykot)', 'kg', '🥩'),
+      i('Polędwica wołowa', 'kg', '🥩'),
+      i('Wołowina mielona', 'kg', '🍔'),
+      i('Schab wieprzowy', 'kg', '🐖'),
+      i('Karkówka', 'kg', '🐖'),
+      i('Łopatka wieprzowa', 'kg', '🐖'),
+      i('Wieprzowina mielona', 'kg', '🍔'),
+      i('Żeberka wieprzowe', 'kg', '🍖'),
+      i('Boczek', 'kg', '🥓'),
+      i('Golonka', 'kg', '🍖'),
+      i('Pierś z kurczaka', 'kg', '🐔'),
+      i('Udka z kurczaka', 'kg', '🍗'),
+      i('Skrzydełka z kurczaka', 'kg', '🍗'),
+      i('Kurczak cały', 'szt', '🐔'),
+      i('Indyk (filet)', 'kg', '🦃'),
+      i('Kaczka', 'szt', '🦆'),
+      i('Cielęcina', 'kg', '🐄'),
+      i('Jagnięcina', 'kg', '🐑'),
+      i('Wątróbka drobiowa', 'kg', '🍖'),
+      i('Kiełbasa', 'kg', '🌭'),
+      i('Parówki', 'kg', '🌭'),
+      i('Szynka', 'kg', '🍖'),
+      i('Salami', 'kg', '🍕'),
+    ],
+  },
+  {
+    category: 'Warzywa',
+    icon: '🥕',
+    items: [
+      i('Ziemniaki', 'kg', '🥔'),
+      i('Marchew', 'kg', '🥕'),
+      i('Cebula', 'kg', '🧅'),
+      i('Cebula czerwona', 'kg', '🧅'),
+      i('Czosnek', 'kg', '🧄'),
+      i('Pomidory', 'kg', '🍅'),
+      i('Pomidorki koktajlowe', 'kg', '🍅'),
+      i('Ogórki', 'kg', '🥒'),
+      i('Papryka czerwona', 'kg', '🫑'),
+      i('Papryka zielona', 'kg', '🫑'),
+      i('Papryczka chili', 'kg', '🌶️'),
+      i('Sałata lodowa', 'szt', '🥬'),
+      i('Rukola', 'kg', '🥗'),
+      i('Szpinak', 'kg', '🥬'),
+      i('Kapusta biała', 'szt', '🥬'),
+      i('Kapusta kiszona', 'kg', '🥬'),
+      i('Brokuły', 'kg', '🥦'),
+      i('Kalafior', 'szt', '🥦'),
+      i('Cukinia', 'kg', '🥒'),
+      i('Bakłażan', 'kg', '🍆'),
+      i('Pieczarki', 'kg', '🍄'),
+      i('Kukurydza', 'kg', '🌽'),
+      i('Fasolka szparagowa', 'kg', '🫘'),
+      i('Por', 'szt', '🥬'),
+      i('Seler', 'kg', '🥔'),
+      i('Pietruszka (korzeń)', 'kg', '🥕'),
+      i('Burak', 'kg', '🍠'),
+      i('Dynia', 'kg', '🎃'),
+      i('Awokado', 'szt', '🥑'),
+      i('Natka pietruszki', 'opak', '🌿'),
+      i('Koperek', 'opak', '🌿'),
+      i('Szczypiorek', 'opak', '🌿'),
+      i('Cytryny', 'kg', '🍋'),
+    ],
+  },
+  {
+    category: 'Zupy',
+    icon: '🍲',
+    items: [
+      i('Rosół', 'l', '🍲'),
+      i('Żurek', 'l', '🥣'),
+      i('Zakwas na żurek', 'l', '🫙'),
+      i('Barszcz czerwony', 'l', '🍠'),
+      i('Pomidorowa', 'l', '🍅'),
+      i('Ogórkowa', 'l', '🥒'),
+      i('Grochówka', 'l', '🍲'),
+      i('Kapuśniak', 'l', '🥬'),
+      i('Pieczarkowa', 'l', '🍄'),
+      i('Krem z dyni', 'l', '🎃'),
+      i('Krem z brokułów', 'l', '🥦'),
+      i('Zupa cebulowa', 'l', '🧅'),
+      i('Flaki', 'l', '🍲'),
+      i('Bulion warzywny', 'l', '🥣'),
+      i('Bulion wołowy', 'l', '🍜'),
+    ],
+  },
+  {
+    category: 'Przyprawy',
+    icon: '🧂',
+    items: [
+      i('Sól', 'kg', '🧂'),
+      i('Pieprz czarny', 'kg', '⚫'),
+      i('Papryka słodka mielona', 'kg', '🌶️'),
+      i('Papryka ostra mielona', 'kg', '🌶️'),
+      i('Papryka wędzona', 'kg', '🌶️'),
+      i('Czosnek granulowany', 'kg', '🧄'),
+      i('Oregano', 'opak', '🌿'),
+      i('Bazylia', 'opak', '🌿'),
+      i('Tymianek', 'opak', '🌿'),
+      i('Majeranek', 'opak', '🌿'),
+      i('Rozmaryn', 'opak', '🌿'),
+      i('Liść laurowy', 'opak', '🍃'),
+      i('Ziele angielskie', 'opak', '🫙'),
+      i('Kminek', 'opak', '🫙'),
+      i('Curry', 'opak', '🍛'),
+      i('Kurkuma', 'opak', '🫙'),
+      i('Gałka muszkatołowa', 'opak', '🌰'),
+      i('Cynamon', 'opak', '🫙'),
+      i('Imbir mielony', 'opak', '🫙'),
+      i('Chili płatki', 'opak', '🌶️'),
+      i('Vegeta', 'kg', '🧂'),
+      i('Cukier', 'kg', '🍬'),
+    ],
+  },
+  {
+    category: 'Sosy',
+    icon: '🥫',
+    items: [
+      i('Ketchup', 'kg', '🍅'),
+      i('Majonez', 'kg', '🥚'),
+      i('Musztarda', 'kg', '🌭'),
+      i('Sos sojowy', 'l', '🥢'),
+      i('Sos czosnkowy', 'l', '🧄'),
+      i('Sos BBQ', 'l', '🔥'),
+      i('Sos pomidorowy', 'l', '🥫'),
+      i('Sos śmietanowy', 'l', '🥛'),
+      i('Sos słodko-kwaśny', 'l', '🍍'),
+      i('Sos teriyaki', 'l', '🥢'),
+      i('Sos tatarski', 'kg', '🥒'),
+      i('Sos holenderski', 'l', '🍳'),
+      i('Pesto', 'kg', '🌿'),
+      i('Sriracha', 'but', '🌶️'),
+      i('Tabasco', 'but', '🌶️'),
+      i('Sos Worcestershire', 'but', '🫙'),
+      i('Ocet', 'l', '🍶'),
+      i('Oliwa z oliwek', 'l', '🫒'),
+      i('Olej rzepakowy', 'l', '🌻'),
+    ],
+  },
+];
+
+/** Ilustracje kategorii (także tych spoza katalogu — z domyślnej konfiguracji lokalu). */
+const CATEGORY_ICONS: Record<string, string> = {
+  mieso: '🥩',
+  warzywa: '🥕',
+  zupy: '🍲',
+  przyprawy: '🧂',
+  sosy: '🥫',
+  nabial: '🧀',
+  owoce: '🍎',
+  ryby: '🐟',
+  pieczywo: '🍞',
+  suche: '🌾',
+  napoje: '🥤',
+  alkohole: '🍷',
+  'chemia i czystosc': '🧴',
+  inne: '📦',
+};
+
+export const DEFAULT_ICON = '📦';
+
+export function categoryIcon(name: string | null | undefined): string {
+  return (name && CATEGORY_ICONS[normalize(name)]) || DEFAULT_ICON;
+}
+
+/** Słowa kluczowe -> ilustracja (dla produktów dodanych ręcznie, bez wybranej ikony). Kolejność ma znaczenie. */
+const KEYWORDS: [string, string][] = [
+  ['mleko', '🥛'],
+  ['smietan', '🥛'],
+  ['jogurt', '🥛'],
+  ['maslo', '🧈'],
+  ['ser', '🧀'],
+  ['jaj', '🥚'],
+  ['chleb', '🍞'],
+  ['bulk', '🥖'],
+  ['bagiet', '🥖'],
+  ['makaron', '🍝'],
+  ['ryz', '🍚'],
+  ['fasol', '🫘'],
+  ['mak', '🌾'],
+  ['kasz', '🌾'],
+  ['losos', '🐟'],
+  ['dorsz', '🐟'],
+  ['tunczyk', '🐟'],
+  ['ryb', '🐟'],
+  ['krewet', '🦐'],
+  ['kurczak', '🍗'],
+  ['indyk', '🦃'],
+  ['kaczk', '🦆'],
+  ['boczek', '🥓'],
+  ['kielbas', '🌭'],
+  ['parowk', '🌭'],
+  ['wolow', '🥩'],
+  ['wieprz', '🐖'],
+  ['schab', '🐖'],
+  ['karkow', '🐖'],
+  ['mielon', '🍔'],
+  ['zeberk', '🍖'],
+  ['szynk', '🍖'],
+  ['ziemniak', '🥔'],
+  ['frytk', '🍟'],
+  ['marchew', '🥕'],
+  ['cebul', '🧅'],
+  ['czosn', '🧄'],
+  ['pomidor', '🍅'],
+  ['ogor', '🥒'],
+  ['papryk', '🫑'],
+  ['chili', '🌶️'],
+  ['salat', '🥬'],
+  ['kapust', '🥬'],
+  ['brokul', '🥦'],
+  ['pieczark', '🍄'],
+  ['grzyb', '🍄'],
+  ['kukurydz', '🌽'],
+  ['baklazan', '🍆'],
+  ['dyni', '🎃'],
+  ['awokado', '🥑'],
+  ['cytryn', '🍋'],
+  ['limon', '🍋'],
+  ['jablk', '🍎'],
+  ['banan', '🍌'],
+  ['truskaw', '🍓'],
+  ['pomarancz', '🍊'],
+  ['winogron', '🍇'],
+  ['zup', '🍲'],
+  ['rosol', '🍲'],
+  ['bulion', '🥣'],
+  ['sos', '🥫'],
+  ['ketchup', '🍅'],
+  ['majonez', '🥚'],
+  ['oliw', '🫒'],
+  ['olej', '🌻'],
+  ['sol', '🧂'],
+  ['pieprz', '⚫'],
+  ['cukier', '🍬'],
+  ['kaw', '☕'],
+  ['herbat', '🍵'],
+  ['woda', '💧'],
+  ['sok', '🧃'],
+  ['piwo', '🍺'],
+  ['wino', '🍷'],
+  ['wodk', '🥃'],
+  ['ciast', '🍰'],
+  ['czekolad', '🍫'],
+  ['mrozon', '🧊'],
+  ['lod', '🧊'],
+  ['papier', '🧻'],
+  ['recznik', '🧻'],
+  ['plyn', '🧴'],
+  ['worki', '🗑️'],
+];
+
+/** Ilustracja dla dowolnej nazwy (bez kategorii): najpierw katalog, potem słowa kluczowe. */
+export function guessIcon(name: string): string | null {
+  const n = normalize(name);
+  if (!n) return null;
+  const exact = CATALOG_BY_NAME.get(n);
+  if (exact) return exact.icon;
+  for (const [kw, ic] of KEYWORDS) if (n.includes(kw)) return ic;
+  return null;
+}
+
+/** Ilustracja produktu: zapisana ikona → zgadnięta z nazwy → ikona kategorii. */
+export function productIcon(p: { name: string; icon?: string | null }, categoryName?: string | null): string {
+  return p.icon || guessIcon(p.name) || categoryIcon(categoryName);
+}
+
+const CATALOG_BY_NAME = new Map<string, CatalogItem>(
+  CATALOG.flatMap((g) => g.items.map((it) => [normalize(it.name), it] as const)),
+);
+
+/** Propozycje ikon do ręcznego wyboru w formularzu produktu. */
+export const ICON_CHOICES = [
+  '🥩',
+  '🐖',
+  '🍗',
+  '🐔',
+  '🥓',
+  '🌭',
+  '🍖',
+  '🐟',
+  '🦐',
+  '🥔',
+  '🥕',
+  '🧅',
+  '🧄',
+  '🍅',
+  '🥒',
+  '🫑',
+  '🌶️',
+  '🥬',
+  '🥦',
+  '🍄',
+  '🌽',
+  '🍆',
+  '🎃',
+  '🥑',
+  '🍋',
+  '🍎',
+  '🌿',
+  '🍲',
+  '🥣',
+  '🧂',
+  '🫙',
+  '🥫',
+  '🥛',
+  '🧀',
+  '🥚',
+  '🧈',
+  '🍞',
+  '🍝',
+  '🍚',
+  '🌾',
+  '🫒',
+  '🍬',
+  '☕',
+  '🥤',
+  '🍺',
+  '🍷',
+  '🧴',
+  '📦',
+];

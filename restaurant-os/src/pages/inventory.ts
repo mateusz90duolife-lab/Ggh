@@ -4,6 +4,7 @@ import { h, icon, mount } from '../dom.js';
 import { ApiError, errorMessage } from '../lib/errors.js';
 import { formatDateTime, formatPLN, formatQty, normalize, plural } from '../lib/format.js';
 import { storage } from '../lib/storage.js';
+import { ICON_CHOICES, guessIcon, productIcon } from '../lib/catalog.js';
 import { UNITS, unitLabel } from '../lib/units.js';
 import { parseQuantity, parseSignedQuantity, validateText } from '../lib/validate.js';
 import { navigate } from '../router.js';
@@ -31,7 +32,7 @@ import {
 import { confirmDialog, openModal } from '../ui/modal.js';
 import { toast } from '../ui/toast.js';
 
-const STOCK_COLS = 'product_id,name,unit,category_id,minimum_stock,active,stock,status';
+const STOCK_COLS = 'product_id,name,unit,category_id,minimum_stock,active,stock,status,icon';
 const num = (v: number | string) => Number(v);
 
 function groupByCategory<T extends { category_id: string | null }>(rows: T[], categories: Category[]) {
@@ -78,6 +79,9 @@ export async function inventoryPage(c: PageCtx): Promise<void> {
             variant: 'soft',
             onClick: () => openProductForm(null, categories, () => void load()),
           })
+        : null,
+      isManager()
+        ? h('a', { class: 'btn btn-soft', href: '#/katalog' }, icon('list', 20), h('span', null, 'Katalog'))
         : null,
     ),
     chipsHost,
@@ -127,14 +131,16 @@ export async function inventoryPage(c: PageCtx): Promise<void> {
     const n = normalize(query);
     let rows = stock.filter((s) => (showInactive ? true : s.active));
     if (n) rows = rows.filter((s) => normalize(s.name).includes(n));
-    if (filter === 'problems') rows = rows.filter((s) => s.status !== 'ok');
+    if (filter === 'problems') rows = rows.filter((s) => s.status === 'low' || s.status === 'out');
     if (rows.length === 0) {
       mount(
         listHost,
         stock.length === 0
           ? emptyState(
               'Magazyn jest pusty',
-              isManager() ? 'Dodaj pierwszy produkt przyciskiem „Produkt”.' : 'Manager musi najpierw dodać produkty.',
+              isManager()
+                ? 'Dodaj produkty z gotowego katalogu (przycisk „Katalog”) albo pojedynczo przyciskiem „Produkt”.'
+                : 'Manager musi najpierw dodać produkty.',
             )
           : emptyState(
               'Nic nie znaleziono',
@@ -156,6 +162,7 @@ export async function inventoryPage(c: PageCtx): Promise<void> {
               h(
                 'a',
                 { class: 'item', href: `#/magazyn/${s.product_id}` },
+                h('span', { class: 'prod-icon', 'aria-hidden': 'true' }, productIcon(s, g.name)),
                 h(
                   'div',
                   { class: 'item-main stock-row' },
@@ -231,6 +238,46 @@ export function openProductForm(existing: Product | null, categories: Category[]
     'Minimalny stan (alert poniżej)',
     numberInput({ value: existing ? formatQty(existing.minimum_stock) : '0' }),
   );
+  let chosenIcon: string | null = existing?.icon ?? null;
+  const iconHost = h('div', { class: 'icon-choices', role: 'radiogroup', 'aria-label': 'Ilustracja' });
+  function drawIcons() {
+    const auto = guessIcon((name.input as HTMLInputElement).value);
+    iconHost.replaceChildren(
+      h(
+        'button',
+        {
+          type: 'button',
+          class: `chip${chosenIcon ? '' : ' chip-active'}`,
+          role: 'radio',
+          'aria-checked': String(!chosenIcon),
+          onclick: () => {
+            chosenIcon = null;
+            drawIcons();
+          },
+        },
+        `Auto ${auto ?? ''}`.trim(),
+      ),
+      ...ICON_CHOICES.map((ic) =>
+        h(
+          'button',
+          {
+            type: 'button',
+            class: `icon-choice${chosenIcon === ic ? ' tile-selected' : ''}`,
+            role: 'radio',
+            'aria-checked': String(chosenIcon === ic),
+            'aria-label': `Ikona ${ic}`,
+            onclick: () => {
+              chosenIcon = ic;
+              drawIcons();
+            },
+          },
+          ic,
+        ),
+      ),
+    );
+  }
+  drawIcons();
+  name.input.addEventListener('change', drawIcons);
   const activeBox = h('input', { type: 'checkbox', id: 'p_active', checked: existing?.active ?? true });
   const m = openModal({ title: existing ? 'Edytuj produkt' : 'Nowy produkt', body: null });
   const save = button(existing ? 'Zapisz zmiany' : 'Dodaj produkt', { type: 'submit', size: 'lg', block: true });
@@ -240,6 +287,12 @@ export function openProductForm(existing: Product | null, categories: Category[]
     name.el,
     category.el,
     h('div', { class: 'form-row' }, unit.el, min.el),
+    h(
+      'details',
+      { class: 'field' },
+      h('summary', { class: 'muted', style: 'cursor:pointer;padding:6px 0' }, 'Ilustracja (ikona)'),
+      iconHost,
+    ),
     existing
       ? h(
           'label',
@@ -262,6 +315,7 @@ export function openProductForm(existing: Product | null, categories: Category[]
         name: n.value,
         category_id: (category.input as HTMLSelectElement).value || null,
         minimum_stock: q.value,
+        icon: chosenIcon,
         ...(existing
           ? { active: (activeBox as HTMLInputElement).checked }
           : { unit: (unitSel as HTMLSelectElement).value }),

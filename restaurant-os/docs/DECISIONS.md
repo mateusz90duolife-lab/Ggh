@@ -52,7 +52,7 @@ Testy E2E działają przeciw `e2e/local-backend.mjs`: serwerowi zgodnemu z API S
 
 ## D12. Poza zakresem tego wydania
 
-OCR dokumentów (FAZA 3), wykresy i alerty cen (FAZA 4), receptury i food cost (FAZA 5), raporty i prognozy (FAZA 6). Schemat bazy dla receptur i OCR jest opisany w `MASTER_PROMPT.md`, ale nie ma go w migracjach.
+Wykresy i alerty cen (FAZA 4), receptury i food cost (FAZA 5), raporty i prognozy (FAZA 6). Schemat bazy dla receptur i OCR jest opisany w `MASTER_PROMPT.md`, ale nie ma go w migracjach. Odczyt paragonów (część FAZY 3) jest od migracji 006 — patrz D18.
 
 ## D13. Funkcje API dostępne dla zalogowanych
 
@@ -69,3 +69,17 @@ Repozytorium jest publiczne, więc GitHub Pages jest darmowy. Zbudowana aplikacj
 ## D16. Widok stanów jako `security_invoker`
 
 Po uwadze doradcy bezpieczeństwa widok `product_stock` działa z uprawnieniami użytkownika, a sumy ruchów liczy funkcja `stock_levels()` ograniczona do restauracji zalogowanego. Pracownik nadal widzi stany, ale nie historię ruchów (migracja 005).
+
+## D17. Katalog produktów z ilustracjami (emoji)
+
+Ilustracje produktów to emoji: działają offline, nie wymagają pobierania obrazków ani magazynu plików, są kolorowe i czytelne na każdym telefonie. Katalog startowy (`src/lib/catalog.ts`, ok. 110 pozycji: mięsa, warzywa, zupy, przyprawy, sosy) dodaje produkty z ikoną w kolumnie `products.icon`; produktom bez ikony aplikacja dobiera ją po słowach w nazwie, a w ostateczności po kategorii. Produkt bez minimalnego stanu i bez zapasu ma status **„Bez stanu”** (`none`), a nie „BRAK” — inaczej każdy produkt dodany z katalogu od razu liczyłby się na pulpicie jako brak.
+
+## D18. Skaner paragonów (Claude, odczyt obrazu)
+
+- Zdjęcie jest zmniejszane w przeglądarce (JPEG, dłuższy bok ≤ 2000 px) i wysyłane do funkcji Edge `scan-receipt` (tylko manager i właściciel). Funkcja wywołuje model **Claude Opus 5.5** (`claude-opus-5-5`) przez oficjalne SDK `@anthropic-ai/sdk` (w Deno przez `npm:`), z odpowiedzią wymuszoną schematem JSON (`output_config.format`), więc wynik zawsze ma postać tabeli: nazwa, ilość, jednostka, cena jednostkowa, wartość, VAT, wielkość opakowania.
+- Włączone są **zapasowe modele po stronie serwera** (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`): gdy model odmówi odczytu, API samo ponawia zapytanie na modelu zalecanym przez Anthropic. Gdyby konto nie miało dostępu do tej funkcji beta (błąd 400), funkcja ponawia zapytanie raz bez niej.
+- Odpowiedź modelu jest zawsze sprawdzana (liczby, zakresy, daty, jednostki), a nazwa „dopasowania” jest przyjmowana tylko wtedy, gdy dokładnie odpowiada produktowi lokalu. Zdjęcia **nie są zapisywane** — w bazie zostaje tylko odczytana tabela (`receipt_scans`).
+- Dopasowanie pozycji do produktów: zapamiętane wcześniej dopasowanie (`product_aliases`) → podpowiedź modelu → podobna nazwa. Po zapisie zakupu aplikacja zapamiętuje dopasowania, więc kolejne paragony z tego sklepu dopasowują się same.
+- Ceny na paragonie są brutto; do zakupu trafia cena netto = brutto / (1 + VAT). Ilość jest przeliczana na jednostkę produktu (np. 6 × „Mleko 1 L” = 6 L, 3 × 500 g = 1,5 kg).
+- Limit 60 skanów na lokal na dobę chroni przed nadużyciem i niespodziewanym kosztem. Bez klucza `ANTHROPIC_API_KEY` skaner pokazuje czytelny komunikat zamiast błędu.
+- Testy nie łączą się z API: funkcja przyjmuje wstrzyknięty obiekt klienta, a testy jednostkowe i E2E podstawiają stałą odpowiedź modelu.

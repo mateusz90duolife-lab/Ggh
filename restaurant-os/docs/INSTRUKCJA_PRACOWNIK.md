@@ -17,7 +17,7 @@ Dotknij zadania. Zaznaczy się na zielono i pojawi się, kto i o której je zrob
 ## 4. Zgłoś brak, gdy czegoś brakuje
 
 1. Dotknij czerwonego przycisku **ZGŁOŚ BRAK**.
-2. Wpisz kilka liter nazwy i wybierz produkt z listy.
+2. Wybierz produkt: dotknij kafelka z obrazkiem w **Szybkim wyborze** (najpierw **⭐ Często**, potem kategorie: mięso, warzywa, zupy…) albo wpisz kilka liter nazwy i wybierz z listy.
 3. Ustaw ilość (przyciski **−** i **+** albo wpisz liczbę).
 4. Jeśli to pilne, zaznacz **PILNE**.
 5. Dotknij **DODAJ**. Zobaczysz potwierdzenie, np. „Dodano: Mleko 3,2% — 10 L”.
@@ -26,7 +26,7 @@ Możesz od razu dodać kolejny brak. Jeśli produktu nie ma na liście, dotknij 
 
 ## Magazyn
 
-Zakładka **Magazyn** pokazuje, ile czego jest. Zielony pasek to „Stan OK”, żółty „Niski stan”, czerwony „BRAK”. Możesz tu tylko oglądać.
+Zakładka **Magazyn** pokazuje, ile czego jest. Zielony pasek to „Stan OK”, żółty „Niski stan”, czerwony „BRAK”, a szary „Bez stanu” (produkt bez ustalonego minimum, którego nie ma na stanie). Możesz tu tylko oglądać.
 
 ## Gdy nie ma internetu
 

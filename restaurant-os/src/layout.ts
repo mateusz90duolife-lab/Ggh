@@ -22,6 +22,8 @@ const N = {
   zakupy: { path: '/zakupy', label: 'Zakupy', icon: 'cart' },
   zadania: { path: '/zadania', label: 'Zadania', icon: 'check' },
   wiecej: { path: '/wiecej', label: 'Więcej', icon: 'more' },
+  skaner: { path: '/skaner', label: 'Skaner paragonów', icon: 'search' },
+  katalog: { path: '/katalog', label: 'Katalog produktów', icon: 'list' },
   inwentaryzacja: { path: '/inwentaryzacja', label: 'Inwentaryzacja', icon: 'list' },
   dostawcy: { path: '/dostawcy', label: 'Dostawcy', icon: 'store' },
   kategorie: { path: '/kategorie', label: 'Kategorie', icon: 'tag' },
@@ -41,7 +43,7 @@ export function bottomNav(r: Role): NavItem[] {
 /** Pozycje spoza dolnego paska — pokazywane w „Więcej” i w panelu bocznym na komputerze. */
 export function moreNav(r: Role): NavItem[] {
   if (r === 'employee') return [];
-  const base = [N.braki, N.inwentaryzacja, N.dostawcy, N.kategorie, N.powiadomienia];
+  const base = [N.braki, N.skaner, N.katalog, N.inwentaryzacja, N.dostawcy, N.kategorie, N.powiadomienia];
   return r === 'owner' ? [...base, N.pracownicy, N.szablony, N.ustawienia, N.audyt] : base;
 }
 

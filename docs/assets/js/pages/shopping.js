@@ -195,7 +195,7 @@ export async function shoppingPage(c) {
                 toast(`Wysłano listę na ${r.sent_to} ${plural(r.sent_to, 'adres', 'adresy', 'adresów')} e-mail.`, 'ok');
             },
         }));
-        mount(host, h('div', { class: 'page' }, actions, area, buyBar, h('a', { class: 'btn btn-ghost', href: '#/zakupy/nowy' }, icon('plus', 20), h('span', null, 'Nowy zakup bez listy'))));
+        mount(host, h('div', { class: 'page' }, actions, area, buyBar, h('div', { class: 'row-actions' }, h('a', { class: 'btn btn-ghost', href: '#/zakupy/nowy' }, icon('plus', 20), h('span', null, 'Nowy zakup bez listy')), h('a', { class: 'btn btn-soft', href: '#/skaner' }, icon('search', 20), h('span', null, 'Skanuj paragon')))));
         draw();
     }
     async function drawHistory() {
@@ -206,7 +206,7 @@ export async function shoppingPage(c) {
         });
         if (!c.isAlive())
             return;
-        mount(host, h('div', { class: 'page' }, h('a', { class: 'btn btn-primary', href: '#/zakupy/nowy' }, icon('plus', 20), h('span', null, 'Nowy zakup')), rows.length
+        mount(host, h('div', { class: 'page' }, h('div', { class: 'row-actions' }, h('a', { class: 'btn btn-primary', href: '#/zakupy/nowy' }, icon('plus', 20), h('span', null, 'Nowy zakup')), h('a', { class: 'btn btn-soft', href: '#/skaner' }, icon('search', 20), h('span', null, 'Skanuj paragon'))), rows.length
             ? h('div', { class: 'card card-flush' }, rows.map((p) => h('a', { class: 'item', href: `#/zakupy/${p.id}` }, h('div', { class: 'item-main' }, h('div', { class: 'item-title' }, p.supplier_name ?? 'Bez dostawcy'), h('div', { class: 'item-sub' }, `${formatDate(p.purchase_date)}${p.document_number ? ` · ${p.document_number}` : ''} · ${p.items_count} ${plural(p.items_count, 'pozycja', 'pozycje', 'pozycji')}`)), h('span', {
                 class: `badge ${p.status === 'confirmed' ? 'badge-ok' : p.status === 'draft' ? 'badge-low' : 'badge-neutral'}`,
             }, STATUS_LABEL[p.status]), h('div', { class: 'item-end' }, formatPLN(p.total_gross)))))

@@ -146,8 +146,8 @@ export function selectInput(
   return s;
 }
 
-const STATUS_TEXT: Record<StockStatus, string> = { ok: 'Stan OK', low: 'Niski stan', out: 'BRAK' };
-const STATUS_ICON: Record<StockStatus, IconName> = { ok: 'check', low: 'alert', out: 'alert' };
+const STATUS_TEXT: Record<StockStatus, string> = { ok: 'Stan OK', low: 'Niski stan', out: 'BRAK', none: 'Bez stanu' };
+const STATUS_ICON: Record<StockStatus, IconName> = { ok: 'check', low: 'alert', out: 'alert', none: 'minus' };
 
 /** Kolor ZAWSZE z ikoną i tekstem (czytelne także dla osób z zaburzeniami widzenia barw). */
 export function stockBadge(status: StockStatus): HTMLElement {
@@ -156,7 +156,7 @@ export function stockBadge(status: StockStatus): HTMLElement {
 
 export function stockBar(stock: number, minimum: number, status: StockStatus): HTMLElement {
   const target = Math.max(minimum * 2, 1);
-  const pct = status === 'out' ? 0 : Math.max(4, Math.min(100, (stock / target) * 100));
+  const pct = status === 'out' || status === 'none' ? 0 : Math.max(4, Math.min(100, (stock / target) * 100));
   return h(
     'div',
     { class: `bar bar-${status}`, role: 'img', 'aria-label': `${STATUS_TEXT[status]}` },
