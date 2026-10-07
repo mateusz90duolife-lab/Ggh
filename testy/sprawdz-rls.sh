@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Sprawdza, co widać z zewnątrz samym kluczem anon, czyli tak, jak widzi
 # to każdy, kto otworzy źródło strony. Tylko odczyt: pyta o jeden
-# identyfikator na tabelę i niczego nie zmienia.
+# identyfikator na tabelę i niczego nie zmienia. Dostęp do pytań jest
+# bezpłatny, ale wymaga zalogowania — bez niego nic nie powinno być widać.
 #
 #   ./testy/sprawdz-rls.sh
 #
@@ -31,7 +32,7 @@ echo
 # sukcesem, czyli dawała fałszywie uspokajający wynik.
 status=0
 any_empty=0
-for table in questions progress subscriptions; do
+for table in questions progress; do
   body=$(mktemp); err=$(mktemp)
   set +e
   code=$(curl -sS --max-time 20 -o "$body" -w '%{http_code}' \
@@ -70,7 +71,7 @@ fi
 
 case "$status" in
   0) echo "WYNIK: żadna tabela nie ujawnia danych bez logowania." ;;
-  1) echo "WYNIK: WYCIEK. Wdróż supabase/migrations/20261007120000_rls_paywall.sql i uruchom ponownie." ;;
+  1) echo "WYNIK: WYCIEK. Wdróż supabase/migrations/20261007120000_rls.sql i uruchom ponownie." ;;
   2) echo "WYNIK: NIEROZSTRZYGNIĘTY. Nie udało się połączyć z projektem, więc o szczelności nic nie wiadomo." ;;
 esac
 exit "$status"

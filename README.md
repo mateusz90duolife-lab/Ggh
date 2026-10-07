@@ -6,7 +6,7 @@ Repozytorium zawiera dwie aplikacje, obie bez frameworka i bez kroku budowania.
 | Plik | Co to jest | Czego wymaga |
 | --- | --- | --- |
 | `trener.html` | **Trener izometryki** — generator ćwiczeń przestrzennych z adaptacyjną trudnością | nic, działa offline |
-| `index.html` | Powłoka SaaS: logowanie, subskrypcja, prosty quiz | konta Supabase i Stripe |
+| `index.html` | Powłoka SaaS: logowanie, prosty quiz, siatka izometryczna — bezpłatnie | konta Supabase |
 
 Metodyka, na której oparto trener, wraz ze źródłami: [METODYKA.md](METODYKA.md).
 
@@ -136,7 +136,8 @@ zwykłe sprawdzenie struktury, bo konfrontują kod z niezależnym wyliczeniem:
   24 obroty sześcianu. Kontrola ograniczona do obrotów obecnych w opcjach
   przepuszczała 7% zadań z dwiema poprawnymi interpretacjami.
 - **Polityki RLS na prawdziwej bazie** — migracja jest uruchamiana dwukrotnie
-  na tymczasowym PostgreSQL z imitacją Supabase, a 19 sprawdzeń weryfikuje,
+  na tymczasowym PostgreSQL z imitacją Supabase oraz raz na bazie bez dawnej
+  tabeli `subscriptions`, a 19 sprawdzeń weryfikuje,
   co widzi i co może zmienić każda rola oraz czy `auth.uid()` jest liczone
   raz na zapytanie. Sprawdzono też, że test wychwytuje celowo zepsutą
   politykę i nieopakowane `auth.uid()`.
@@ -149,8 +150,8 @@ obsługę z klawiatury.
 
 ## Powłoka SaaS (`index.html`)
 
-Frontend bez frameworka. Backend to Supabase (autoryzacja i baza), płatności
-przez Stripe Payment Link.
+Frontend bez frameworka. Backend to Supabase (autoryzacja i baza). Dostęp jest
+bezpłatny: po założeniu konta wszystkie zakładki są otwarte.
 
 ### Uruchomienie lokalne
 
@@ -168,9 +169,8 @@ z `file://`.
 | Zakładka | Opis |
 | --- | --- |
 | Dashboard | Statystyki odpowiedzi: suma, poprawne, błędne, skuteczność |
-| Quiz | Pytania jednokrotnego wyboru, tylko dla subskrybentów PRO |
+| Quiz | Pytania jednokrotnego wyboru, dla każdego zalogowanego |
 | Siatka izometryczna | Canvas 8×8, podgląd współrzędnych, malowanie kafelków |
-| Cennik | Płatność przez Stripe Payment Link |
 | Trener izometryki | Odsyłacz do `trener.html` |
 
 ### Konfiguracja Supabase
@@ -198,27 +198,18 @@ create table progress (
   correct     boolean not null,
   created_at  timestamptz default now()
 );
-
-create table subscriptions (
-  user_id    uuid primary key references auth.users(id) on delete cascade,
-  active     boolean     not null default false,
-  expires_at timestamptz
-);
 ```
 
-#### Row Level Security — bez tego płatny dostęp nie istnieje
+#### Row Level Security
 
 Klucz `anon` jest wpisany w źródło strony, więc każdy może odpytać API
-bezpośrednio, z pominięciem interfejsu. Sprawdzenie `AppState.subscribed`
-w kodzie przeglądarki **nie jest zabezpieczeniem**, tylko ukryciem przycisku.
-Jedyną realną granicą są polityki RLS. W szczególności musi być chroniona
-tabela `questions`: bez tego treść płatna jest publiczna.
-
-Polityki są w pliku migracji, który da się uruchamiać wielokrotnie:
+bezpośrednio, z pominięciem interfejsu. Pytania są bezpłatne, ale bez polityk
+RLS każdy mógłby też czytać cudze postępy, podrabiać je albo zmieniać treść
+pytań. Polityki są w pliku migracji, który da się uruchamiać wielokrotnie:
 
 ```bash
 supabase db push
-# albo wklej supabase/migrations/20261007120000_rls_paywall.sql
+# albo wklej supabase/migrations/20261007120000_rls.sql
 # w Supabase → SQL Editor → Run
 ```
 
@@ -227,13 +218,14 @@ dokumentacji Supabase dzięki temu identyfikator liczy się raz na zapytanie
 zamiast dla każdego wiersza, a doradca bazy nie zgłasza ostrzeżenia
 `0003_auth_rls_initplan`.
 
-Migracja chroni trzy tabele:
-
 | Tabela | Kto widzi | Kto zapisuje |
 | --- | --- | --- |
-| `questions` | zalogowani z aktywną subskrypcją | nikt z klientów |
+| `questions` | każdy zalogowany | nikt z klientów — tylko panel Supabase |
 | `progress` | właściciel wiersza | właściciel, tylko we własnym imieniu |
-| `subscriptions` | właściciel wiersza | wyłącznie webhook Stripe (`service_role`) |
+
+Jeśli w bazie została tabela `subscriptions` z czasów płatnego dostępu,
+migracja zamyka ją dla klientów, ale nie usuwa danych. Możesz ją usunąć ręcznie
+(`drop table subscriptions;`), gdy nie będzie już potrzebna.
 
 Po wdrożeniu sprawdź szczelność z zewnątrz, tak jak widzi ją każdy, kto
 otworzy źródło strony:
@@ -260,20 +252,6 @@ Konieczne ustawienie w panelu Supabase:
 
 Adresy w domenie `isomaster.local` nie istnieją, więc e-mail potwierdzający
 nigdy by nie dotarł i rejestracja utknęłaby na etapie weryfikacji.
-
-### Konfiguracja Stripe
-
-Ustaw `STRIPE_LINK` na swój Payment Link. Aplikacja dokleja do niego
-`?client_reference_id=<user_id>`. Webhook po stronie serwera odczytuje
-`session.client_reference_id` ze zdarzenia `checkout.session.completed`
-i aktywuje subskrypcję:
-
-```sql
-insert into subscriptions (user_id, active, expires_at)
-values ($1, true, now() + interval '1 month')
-on conflict (user_id) do update
-  set active = true, expires_at = excluded.expires_at;
-```
 
 ### Znane ograniczenia powłoki SaaS
 

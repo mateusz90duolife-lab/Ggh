@@ -7,7 +7,7 @@
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
-MIG=${RLS_MIGRATION:-supabase/migrations/20261007120000_rls_paywall.sql}
+MIG=${RLS_MIGRATION:-supabase/migrations/20261007120000_rls.sql}
 
 BIN=$(dirname "$(command -v pg_ctl 2>/dev/null || ls /usr/lib/postgresql/*/bin/pg_ctl 2>/dev/null | tail -1)")
 if [ ! -x "$BIN/pg_ctl" ]; then echo "Brak PostgreSQL — test pominięty."; exit 0; fi
@@ -39,5 +39,9 @@ $PSQL -o /dev/null < testy/rls-baza/zachowanie.sql 2>&1 | sed -E 's/^(psql:[^ ]+
 rc=${PIPESTATUS[0]}
 set -e
 [ "$rc" -eq 0 ] || { echo; echo "Polityki RLS NIE zachowują się zgodnie z założeniami."; exit 1; }
+# Nowa baza nie musi mieć tabeli subscriptions z czasów płatnego dostępu.
+echo "drop table public.subscriptions;" | $PSQL
+quiet "$MIG"
+echo "  ok    migracja działa także bez tabeli subscriptions"
 echo
 echo "Polityki RLS zachowują się zgodnie z założeniami."

@@ -1,6 +1,7 @@
 -- Sprawdza zachowanie polityk z perspektywy każdej roli.
--- Użytkownicy: U1 — aktywna subskrypcja, U2 — brak subskrypcji,
---              U3 — subskrypcja wygasła.
+-- Dostęp jest bezpłatny: U1, U2 i U3 to zwykli zalogowani użytkownicy.
+-- Tabela subscriptions to pozostałość po płatnym dostępie — sprawdzamy,
+-- że po migracji jest zamknięta dla klientów.
 \set ON_ERROR_STOP on
 \set U1 '''11111111-1111-1111-1111-111111111111'''
 \set U2 '''22222222-2222-2222-2222-222222222222'''
@@ -68,9 +69,20 @@ end $$;
 
 begin;
 select pg_temp.oczekuj('anon nie widzi pytań', pg_temp.ile('anon', null, 'select * from public.questions')::text, '0');
-select pg_temp.oczekuj('subskrybent widzi pytania', pg_temp.ile('authenticated', :U1, 'select * from public.questions')::text, '2');
-select pg_temp.oczekuj('zalogowany bez subskrypcji nie widzi pytań', pg_temp.ile('authenticated', :U2, 'select * from public.questions')::text, '0');
-select pg_temp.oczekuj('wygasła subskrypcja nie daje dostępu', pg_temp.ile('authenticated', :U3, 'select * from public.questions')::text, '0');
+select pg_temp.oczekuj('U1 widzi wszystkie pytania', pg_temp.ile('authenticated', :U1, 'select * from public.questions')::text, '2');
+select pg_temp.oczekuj('U2 bez subskrypcji widzi wszystkie pytania', pg_temp.ile('authenticated', :U2, 'select * from public.questions')::text, '2');
+select pg_temp.oczekuj('U3 z wygasłą subskrypcją widzi wszystkie pytania', pg_temp.ile('authenticated', :U3, 'select * from public.questions')::text, '2');
+select pg_temp.oczekuj('zalogowany nie doda pytania',
+  pg_temp.wykonaj('authenticated', :U1, 'insert into public.questions (question, answers, correct_index) values (''x'', ''["a"]'', 0)'),
+  'błąd 42501');
+select pg_temp.oczekuj('zalogowany nie zmieni pytania',
+  pg_temp.wykonaj('authenticated', :U1, 'update public.questions set correct_index = 1'),
+  'zmieniono 0');
+select pg_temp.oczekuj('zalogowany nie usunie pytania',
+  pg_temp.wykonaj('authenticated', :U1, 'delete from public.questions'),
+  'zmieniono 0');
+select pg_temp.oczekuj('pytania pozostały nienaruszone',
+  (select count(*) filter (where correct_index = 0)::text || '/' || count(*)::text from public.questions), '1/2');
 
 select pg_temp.oczekuj('anon nie widzi postępów', pg_temp.ile('anon', null, 'select * from public.progress')::text, '0');
 select pg_temp.oczekuj('U1 widzi wyłącznie własne postępy', pg_temp.ile('authenticated', :U1, 'select * from public.progress')::text, '1');
@@ -86,27 +98,15 @@ select pg_temp.oczekuj('U2 nie zmieni cudzego postępu',
   pg_temp.wykonaj('authenticated', :U2, format('update public.progress set correct = false where user_id = %L', :U1)),
   'zmieniono 0');
 
-select pg_temp.oczekuj('anon nie widzi subskrypcji', pg_temp.ile('anon', null, 'select * from public.subscriptions')::text, '0');
-select pg_temp.oczekuj('U1 widzi tylko własną subskrypcję', pg_temp.ile('authenticated', :U1, 'select * from public.subscriptions')::text, '1');
-select pg_temp.oczekuj('U2 nie nada sobie subskrypcji',
+select pg_temp.oczekuj('anon nie widzi dawnych subskrypcji', pg_temp.ile('anon', null, 'select * from public.subscriptions')::text, '0');
+select pg_temp.oczekuj('zalogowany nie widzi dawnych subskrypcji', pg_temp.ile('authenticated', :U1, 'select * from public.subscriptions')::text, '0');
+select pg_temp.oczekuj('zalogowany nie zapisze subskrypcji',
   pg_temp.wykonaj('authenticated', :U2, format('insert into public.subscriptions values (%L, true, null)', :U2)),
   'błąd 42501');
-select pg_temp.oczekuj('U3 nie przedłuży sobie wygasłej subskrypcji',
-  pg_temp.wykonaj('authenticated', :U3, format('update public.subscriptions set expires_at = null where user_id = %L', :U3)),
-  'zmieniono 0');
-select pg_temp.oczekuj('wygasła subskrypcja U3 pozostała nienaruszona',
-  (select (expires_at is not null)::text from public.subscriptions where user_id = :U3), 'true');
+select pg_temp.oczekuj('dane dawnych subskrypcji nie zostały usunięte',
+  (select count(*)::text from public.subscriptions), '2');
 
-select pg_temp.oczekuj('webhook (service_role) nadaje subskrypcję',
-  pg_temp.wykonaj('service_role', null, format('insert into public.subscriptions values (%L, true, null)', :U2)),
-  'zmieniono 1');
-select pg_temp.oczekuj('po opłaceniu U2 widzi pytania', pg_temp.ile('authenticated', :U2, 'select * from public.questions')::text, '2');
-
--- Wydajność: zalecenie Supabase (lint 0003_auth_rls_initplan). Sprawdzane
--- tylko dla progress i subscriptions, bo w polityce questions podzapytanie
--- jest nieskorelowane i staje się InitPlanem niezależnie od opakowania.
+-- Wydajność: zalecenie Supabase (lint 0003_auth_rls_initplan).
 select pg_temp.oczekuj('progress: auth.uid() liczone raz na zapytanie (InitPlan)',
   (pg_temp.plan('authenticated', :U1, 'select * from public.progress') like '%InitPlan%')::text, 'true');
-select pg_temp.oczekuj('subscriptions: auth.uid() liczone raz na zapytanie (InitPlan)',
-  (pg_temp.plan('authenticated', :U1, 'select * from public.subscriptions') like '%InitPlan%')::text, 'true');
 rollback;
