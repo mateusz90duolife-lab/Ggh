@@ -3,6 +3,10 @@
 Nauka rzutowania izometrycznego i czytania rysunku technicznego.
 Repozytorium zawiera dwie aplikacje, obie bez frameworka i bez kroku budowania.
 
+> Ta gałąź (`claude/iso-master-saas-app-oharjy`) zawiera wyłącznie kurs izometrii.
+> Aplikacja restauracji (Restaurant OS) jest na osobnych gałęziach: `main`,
+> `ccr-fb37870d-vqxmgt` i `gh-pages`.
+
 | Plik | Co to jest | Czego wymaga |
 | --- | --- | --- |
 | `trener.html` | **Trener izometryki** — generator ćwiczeń przestrzennych z adaptacyjną trudnością | nic, działa offline |
