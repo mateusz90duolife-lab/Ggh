@@ -66,7 +66,7 @@ export async function usersPage(c: PageCtx): Promise<void> {
                 h(
                   'div',
                   { class: 'item-sub' },
-                  `${u.email ?? '—'} · ${u.last_sign_in_at ? `ostatnio: ${relativeTime(u.last_sign_in_at, new Date(), tz())}` : 'nie logował(a) się'}`,
+                  `${u.nick ? `nick: ${u.nick} · PIN` : (u.email ?? '—')} · ${u.last_sign_in_at ? `ostatnio: ${relativeTime(u.last_sign_in_at, new Date(), tz())}` : 'nie logował(a) się'}`,
                 ),
               ),
               h(
@@ -109,45 +109,113 @@ function passwordBox(initial = ''): { el: HTMLElement; get(): string; input: HTM
   return { el: h('div', { class: 'form' }, f.el, h('div', null, gen)), get: () => input.value, input };
 }
 
+function randomPin(): string {
+  const b = new Uint32Array(1);
+  crypto.getRandomValues(b);
+  return String((b[0] ?? 0) % 10000).padStart(4, '0');
+}
+
+function pinBox(label = 'PIN (4 cyfry)'): { el: HTMLElement; get(): string; input: HTMLInputElement } {
+  const input = h('input', {
+    class: 'input',
+    type: 'text',
+    inputMode: 'numeric',
+    autocomplete: 'off',
+    maxLength: 4,
+    value: randomPin(),
+  });
+  const f = field(label, input, { hint: 'Pracownik wpisuje go przy logowaniu razem z nickiem. Przekaż osobiście.' });
+  const gen = button('Losuj', {
+    size: 'sm',
+    variant: 'soft',
+    onClick: () => {
+      input.value = randomPin();
+    },
+  });
+  return { el: h('div', { class: 'form' }, f.el, h('div', null, gen)), get: () => input.value.trim(), input };
+}
+
 function openCreate(onSaved: () => void): void {
   const name = field('Imię i nazwisko', textInput({ maxLength: 80, required: true, autocomplete: 'off' }));
+  const modeSel = selectInput(
+    [
+      { value: 'pin', label: 'Nick i 4-cyfrowy PIN (pracownik)' },
+      { value: 'email', label: 'E-mail i hasło' },
+    ],
+    'pin',
+  );
+  const mode = field('Logowanie', modeSel);
+  const nick = field('Nick (login)', textInput({ maxLength: 24, autocomplete: 'off', placeholder: 'np. kasia' }));
+  nick.input.setAttribute('autocapitalize', 'none');
+  const pin = pinBox();
   const email = field(
     'Adres e-mail (login)',
     textInput({ type: 'email', inputMode: 'email', autocomplete: 'off', required: true }),
   );
-  const role = field(
-    'Rola',
-    selectInput(
-      [
-        { value: 'employee', label: 'Pracownik' },
-        { value: 'manager', label: 'Manager' },
-        { value: 'owner', label: 'Właściciel' },
-      ],
-      'employee',
-    ),
+  const roleSel = selectInput(
+    [
+      { value: 'employee', label: 'Pracownik' },
+      { value: 'manager', label: 'Manager' },
+      { value: 'owner', label: 'Właściciel' },
+    ],
+    'employee',
   );
+  const role = field('Rola', roleSel);
   const pw = passwordBox(generatePassword());
+  const pinPart = h('div', { class: 'form' }, nick.el, pin.el);
+  const emailPart = h('div', { class: 'form' }, email.el, pw.el);
+  const syncMode = () => {
+    const isPin = (modeSel as HTMLSelectElement).value === 'pin';
+    pinPart.hidden = !isPin;
+    emailPart.hidden = isPin;
+    (roleSel as HTMLSelectElement).querySelector('option[value="owner"]')?.toggleAttribute('disabled', isPin);
+    if (isPin && (roleSel as HTMLSelectElement).value === 'owner') (roleSel as HTMLSelectElement).value = 'employee';
+  };
+  modeSel.addEventListener('change', syncMode);
+  syncMode();
   const m = openModal({ title: 'Nowy pracownik', body: null });
   const save = button('Utwórz konto', { type: 'submit', size: 'lg', block: true });
-  const form = h('form', { class: 'form', novalidate: true }, name.el, email.el, role.el, pw.el, save);
+  const form = h('form', { class: 'form', novalidate: true }, name.el, mode.el, pinPart, emailPart, role.el, save);
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     void guarded(save, async () => {
       const n = validateText((name.input as HTMLInputElement).value, 'imię i nazwisko', 2, 80);
       name.setError(n.ok ? null : n.error);
-      const em = validateEmail((email.input as HTMLInputElement).value);
-      email.setError(em.ok ? null : em.error);
-      const pass = pw.get();
-      pw.input.closest('.field')?.classList.toggle('has-error', pass.length < 8);
-      if (pass.length < 8) toast('Hasło musi mieć co najmniej 8 znaków.', 'error');
-      if (!n.ok || !em.ok || pass.length < 8) return;
-      await callFunction('admin-users', {
-        action: 'create',
-        email: em.value,
-        full_name: n.value,
-        role: (role.input as HTMLSelectElement).value,
-        password: pass,
-      });
+      const r = (roleSel as HTMLSelectElement).value;
+      let rows: [string, string][];
+      if ((modeSel as HTMLSelectElement).value === 'pin') {
+        const nk = (nick.input as HTMLInputElement).value.trim().toLowerCase();
+        const nickOk = /^[a-z0-9ąćęłńóśźż._-]{2,24}$/.test(nk);
+        nick.setError(nickOk ? null : 'Nick: 2–24 znaki — małe litery, cyfry, kropka, myślnik.');
+        const pn = pin.get();
+        const pinOk = /^\d{4}$/.test(pn);
+        pin.input.closest('.field')?.classList.toggle('has-error', !pinOk);
+        if (!pinOk) toast('PIN musi mieć dokładnie 4 cyfry.', 'error');
+        if (!n.ok || !nickOk || !pinOk) return;
+        await callFunction('admin-users', { action: 'create', full_name: n.value, nick: nk, pin: pn, role: r });
+        rows = [
+          ['Nick', nk],
+          ['PIN', pn],
+        ];
+      } else {
+        const em = validateEmail((email.input as HTMLInputElement).value);
+        email.setError(em.ok ? null : em.error);
+        const pass = pw.get();
+        pw.input.closest('.field')?.classList.toggle('has-error', pass.length < 8);
+        if (pass.length < 8) toast('Hasło musi mieć co najmniej 8 znaków.', 'error');
+        if (!n.ok || !em.ok || pass.length < 8) return;
+        await callFunction('admin-users', {
+          action: 'create',
+          email: em.value,
+          full_name: n.value,
+          role: r,
+          password: pass,
+        });
+        rows = [
+          ['Login', em.value],
+          ['Hasło tymczasowe', pass],
+        ];
+      }
       mount(
         m.el.querySelector('.modal-body') as HTMLElement,
         h(
@@ -157,12 +225,9 @@ function openCreate(onSaved: () => void): void {
           h(
             'dl',
             { class: 'kv' },
-            h('dt', null, 'Login'),
-            h('dd', null, em.value),
-            h('dt', null, 'Hasło tymczasowe'),
-            h('dd', null, pass),
+            rows.flatMap(([k, v]) => [h('dt', null, k), h('dd', null, v)]),
           ),
-          h('p', { class: 'muted small' }, 'Zapisz lub przekaż to hasło teraz — nie będzie ponownie widoczne.'),
+          h('p', { class: 'muted small' }, 'Zapisz lub przekaż te dane teraz — nie będą ponownie widoczne.'),
           button('Gotowe', { size: 'lg', block: true, onClick: () => m.close() }),
         ),
       );
@@ -175,6 +240,7 @@ function openCreate(onSaved: () => void): void {
 
 function openEdit(u: TeamUser, isSelf: boolean, onSaved: () => void): void {
   const name = field('Imię i nazwisko', textInput({ value: u.full_name, maxLength: 80 }));
+  const nickField = u.nick ? field('Nick (login)', textInput({ value: u.nick, maxLength: 24 })) : null;
   const role = field(
     'Rola',
     selectInput(
@@ -192,8 +258,9 @@ function openEdit(u: TeamUser, isSelf: boolean, onSaved: () => void): void {
   const form = h(
     'form',
     { class: 'form', novalidate: true },
-    h('p', { class: 'muted' }, u.email ?? ''),
+    h('p', { class: 'muted' }, u.nick ? `Logowanie: nick „${u.nick}” i PIN` : (u.email ?? '')),
     name.el,
+    nickField ? nickField.el : null,
     role.el,
     isSelf
       ? h(
@@ -212,6 +279,10 @@ function openEdit(u: TeamUser, isSelf: boolean, onSaved: () => void): void {
       if (!n.ok) return;
       const patch: Record<string, unknown> = { action: 'update', id: u.id };
       if (n.value !== u.full_name) patch.full_name = n.value;
+      if (nickField) {
+        const nk = (nickField.input as HTMLInputElement).value.trim().toLowerCase();
+        if (nk !== u.nick) patch.nick = nk;
+      }
       const r = (role.input as HTMLSelectElement).value as Role;
       if (!isSelf && r !== u.role) patch.role = r;
       if (Object.keys(patch).length === 2) {
@@ -227,7 +298,10 @@ function openEdit(u: TeamUser, isSelf: boolean, onSaved: () => void): void {
   const extra = h(
     'div',
     { class: 'form', style: 'margin-top:18px;border-top:1px solid var(--border);padding-top:16px' },
-    button('Resetuj hasło', { variant: 'soft', block: true, onClick: () => openReset(u, () => m.close()) }),
+    u.nick
+      ? button('Ustaw nowy PIN', { variant: 'soft', block: true, onClick: () => openSetPin(u, () => m.close()) })
+      : button('Resetuj hasło', { variant: 'soft', block: true, onClick: () => openReset(u, () => m.close()) }),
+    h('a', { class: 'btn btn-soft btn-block', href: `#/zespol/${u.id}` }, 'Godziny, zamówienia i zadania'),
     !isSelf
       ? button(u.active ? 'Dezaktywuj konto' : 'Aktywuj konto', {
           variant: u.active ? 'danger' : 'primary',
@@ -252,6 +326,48 @@ function openEdit(u: TeamUser, isSelf: boolean, onSaved: () => void): void {
       : null,
   );
   m.el.querySelector('.modal-body')?.replaceChildren(form, extra);
+}
+
+function openSetPin(u: TeamUser, onDone: () => void): void {
+  const pin = pinBox('Nowy PIN (4 cyfry)');
+  const m = openModal({ title: `Nowy PIN: ${u.full_name}`, body: null });
+  const save = button('Ustaw PIN', {
+    size: 'lg',
+    block: true,
+    onClick: async () => {
+      const p = pin.get();
+      if (!/^\d{4}$/.test(p)) {
+        toast('PIN musi mieć dokładnie 4 cyfry.', 'error');
+        return;
+      }
+      await callFunction('admin-users', { action: 'set_pin', id: u.id, pin: p });
+      mount(
+        m.el.querySelector('.modal-body') as HTMLElement,
+        h(
+          'div',
+          { class: 'form' },
+          h('div', { class: 'notice notice-ok' }, 'PIN zmieniony. Blokada po błędnych próbach została zdjęta.'),
+          h(
+            'dl',
+            { class: 'kv' },
+            h('dt', null, 'Nick'),
+            h('dd', null, u.nick ?? ''),
+            h('dt', null, 'Nowy PIN'),
+            h('dd', null, p),
+          ),
+          button('Gotowe', {
+            size: 'lg',
+            block: true,
+            onClick: () => {
+              m.close();
+              onDone();
+            },
+          }),
+        ),
+      );
+    },
+  });
+  m.el.querySelector('.modal-body')?.replaceChildren(h('div', { class: 'form' }, pin.el, save));
 }
 
 function openReset(u: TeamUser, onDone: () => void): void {

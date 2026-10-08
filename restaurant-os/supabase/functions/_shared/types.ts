@@ -6,6 +6,8 @@ export interface Env {
   CRON_SECRET?: string;
   RESEND_API_KEY?: string;
   MAIL_FROM?: string;
+  /** Opcjonalnie: sekret do wyliczania haseł kont na PIN (domyślnie klucz service role). */
+  PIN_SECRET?: string;
   /** Opcjonalnie: jedyna dozwolona domena aplikacji dla CORS (np. https://restauracja.vercel.app). */
   ALLOWED_ORIGIN?: string;
 }

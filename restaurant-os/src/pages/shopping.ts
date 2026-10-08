@@ -290,10 +290,15 @@ export async function shoppingPage(c: PageCtx): Promise<void> {
         area,
         buyBar,
         h(
-          'a',
-          { class: 'btn btn-ghost', href: '#/zakupy/nowy' },
-          icon('plus', 20),
-          h('span', null, 'Nowy zakup bez listy'),
+          'div',
+          { class: 'row-actions' },
+          h(
+            'a',
+            { class: 'btn btn-ghost', href: '#/zakupy/nowy' },
+            icon('plus', 20),
+            h('span', null, 'Nowy zakup bez listy'),
+          ),
+          h('a', { class: 'btn btn-soft', href: '#/skaner' }, icon('search', 20), h('span', null, 'Skanuj paragon')),
         ),
       ),
     );
@@ -312,7 +317,12 @@ export async function shoppingPage(c: PageCtx): Promise<void> {
       h(
         'div',
         { class: 'page' },
-        h('a', { class: 'btn btn-primary', href: '#/zakupy/nowy' }, icon('plus', 20), h('span', null, 'Nowy zakup')),
+        h(
+          'div',
+          { class: 'row-actions' },
+          h('a', { class: 'btn btn-primary', href: '#/zakupy/nowy' }, icon('plus', 20), h('span', null, 'Nowy zakup')),
+          h('a', { class: 'btn btn-soft', href: '#/skaner' }, icon('search', 20), h('span', null, 'Skanuj paragon')),
+        ),
         rows.length
           ? h(
               'div',

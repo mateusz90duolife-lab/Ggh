@@ -1,0 +1,1 @@
+window.__CONFIG__ = {"SUPABASE_URL":"https://wefcwnhqklovzrrmcfou.supabase.co","SUPABASE_ANON_KEY":"sb_publishable_3C16J0_WHtTDXiXZmSC0PA_VEYW6lg3"};

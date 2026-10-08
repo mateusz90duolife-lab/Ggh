@@ -25,6 +25,7 @@ import {
 } from '../ui/components.js';
 import { confirmDialog, openModal } from '../ui/modal.js';
 import { productPicker } from '../ui/picker.js';
+import { quickPick } from '../ui/quickPick.js';
 import { toast } from '../ui/toast.js';
 import type { Product, Shortage } from '../types.js';
 
@@ -333,6 +334,17 @@ export async function reportShortagePage(c: PageCtx): Promise<void> {
       { class: 'page' },
       form,
       addedHost,
+      quickPick({
+        products,
+        categories,
+        frequency: freq,
+        onPick: (p) => {
+          picker.set(p);
+          form.scrollIntoView({ block: 'start', behavior: 'smooth' });
+          qtyInput.focus({ preventScroll: true });
+          qtyInput.select();
+        },
+      }),
       h(
         'div',
         { class: 'row-actions' },

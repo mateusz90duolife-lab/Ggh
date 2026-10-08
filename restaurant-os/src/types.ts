@@ -1,7 +1,7 @@
 import type { Unit } from './lib/units.js';
 
 export type Role = 'owner' | 'manager' | 'employee';
-export type StockStatus = 'ok' | 'low' | 'out';
+export type StockStatus = 'ok' | 'low' | 'out' | 'none';
 
 export interface Profile {
   id: string;
@@ -9,6 +9,26 @@ export interface Profile {
   full_name: string;
   role: Role;
   active: boolean;
+  nick?: string | null;
+}
+
+export interface WorkShift {
+  id: string;
+  profile_id: string;
+  started_at: string;
+  ended_at: string | null;
+  note: string | null;
+  source: 'clock' | 'manual';
+}
+
+export interface StockMove {
+  id: string;
+  product_id: string;
+  type: string;
+  quantity_delta: number | string;
+  note: string | null;
+  created_by: string;
+  created_at: string;
 }
 
 export interface Restaurant {
@@ -32,6 +52,7 @@ export interface Product {
   minimum_stock: number | string;
   active: boolean;
   category_id: string | null;
+  icon?: string | null;
 }
 
 export interface ProductStock {
@@ -43,6 +64,7 @@ export interface ProductStock {
   active: boolean;
   stock: number | string;
   status: StockStatus;
+  icon?: string | null;
 }
 
 export interface Shortage {
@@ -161,6 +183,7 @@ export interface DashboardSummary {
 export interface TeamUser {
   id: string;
   email: string | null;
+  nick: string | null;
   full_name: string;
   role: Role;
   active: boolean;

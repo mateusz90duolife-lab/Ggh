@@ -1,4 +1,5 @@
 import { h } from '../dom.js';
+import { artEl } from './art.js';
 import { normalize } from '../lib/format.js';
 import { unitLabel } from '../lib/units.js';
 import type { Category, Product } from '../types.js';
@@ -90,9 +91,10 @@ export function productPicker(opts: {
                 onmousedown: (e: Event) => e.preventDefault(), // nie gub fokusu przed wyborem
                 onclick: () => choose(p),
               },
+              artEl(p, catName.get(p.category_id ?? '')),
               h(
                 'span',
-                null,
+                { style: 'flex:1' },
                 h('strong', null, p.name),
                 h('div', { class: 'item-sub' }, catName.get(p.category_id ?? '') ?? 'Inne'),
               ),
@@ -117,6 +119,7 @@ export function productPicker(opts: {
         h(
           'div',
           { class: 'item', style: 'padding:0;min-height:0;border:0;background:transparent' },
+          artEl(p, catName.get(p.category_id ?? '')),
           h(
             'div',
             { class: 'item-main' },

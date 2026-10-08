@@ -56,4 +56,17 @@ reset role;
 set role authenticated; select t_as('10000000-0000-0000-0000-000000000004');
 select t_ok((select count(*) from purchases_overview) = 0 and (select count(*) from tasks) = 0, 'tenant B: izolacja zakupów i zadań');
 reset role;
+-- żadna funkcja API nie jest wykonywalna bez logowania (rola anon); funkcje wyzwalaczy niedostępne dla nikogo
+select t_ok(not exists (
+  select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname not like 't\_%'
+     and has_function_privilege('anon', p.oid, 'execute')), 'anon nie wykona żadnej funkcji w schemacie public');
+select t_ok(not has_function_privilege('authenticated', 'audit_trigger()', 'execute')
+        and not has_function_privilege('authenticated', 'notify_low_stock()', 'execute'), 'funkcje wyzwalaczy poza API');
+-- widok stanów działa jako security_invoker i nadal pokazuje stany pracownikowi (bez dostępu do ruchów)
+select t_ok((select reloptions::text from pg_class where relname = 'product_stock') like '%security_invoker=true%', 'product_stock: security_invoker');
+set role authenticated; select t_as('10000000-0000-0000-0000-000000000003');
+select t_ok((select stock from product_stock where name = 'Mleko') > 0 and (select count(*) from inventory_movements) = 0, 'pracownik widzi stan, nie widzi ruchów');
+select t_as('10000000-0000-0000-0000-000000000004');
+select t_ok((select count(*) from product_stock) = 0, 'tenant B nie widzi stanów A');
+reset role;
 \echo APP FUNCTIONS TESTS PASSED

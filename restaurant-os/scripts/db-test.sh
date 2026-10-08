@@ -11,3 +11,5 @@ $P -f supabase/tests/00_supabase_mock.sql 2>&1 | grep -v -E 'wal_level|HINT' || 
 for f in supabase/migrations/*.sql; do echo "migracja: $(basename "$f")"; $P -f "$f"; done
 $P -f supabase/tests/10_rls_smoke.sql 2>&1 | grep -E 'FAIL|ERROR|PASSED' || true
 $P -f supabase/tests/20_app_functions.sql 2>&1 | grep -E 'FAIL|ERROR|PASSED' || true
+$P -f supabase/tests/30_catalog_receipts.sql 2>&1 | grep -E 'FAIL|ERROR|PASSED' || true
+$P -f supabase/tests/40_staff.sql 2>&1 | grep -E 'FAIL|ERROR|PASSED' || true

@@ -108,6 +108,31 @@ export async function signIn(email: string, password: string): Promise<Session> 
   return s;
 }
 
+/** Logowanie pracownika nickiem i 4-cyfrowym PIN-em (funkcja pin-login zwraca zwykłą sesję). */
+export async function signInWithPin(nick: string, pin: string): Promise<Session> {
+  const cfg = getConfig();
+  if (!cfg) throw new ApiError(500, 'CONFIG', 'Aplikacja nie jest skonfigurowana (brak adresu Supabase).');
+  let res: Response;
+  try {
+    res = await fetch(`${cfg.SUPABASE_URL}/functions/v1/pin-login`, {
+      method: 'POST',
+      headers: { apikey: cfg.SUPABASE_ANON_KEY, 'content-type': 'application/json' },
+      body: JSON.stringify({ nick, pin }),
+    });
+    markOnline();
+  } catch {
+    markOffline();
+    throw new NetworkError();
+  }
+  const data = (await res.json().catch(() => null)) as (TokenResponse & { error?: string }) | null;
+  if (!res.ok || !data?.access_token) {
+    throw new ApiError(res.status, 'PIN', data?.error ?? 'Nie udało się zalogować. Spróbuj ponownie.');
+  }
+  const s = toSession(data);
+  setSession(s);
+  return s;
+}
+
 export function refreshSession(): Promise<Session> {
   if (refreshing) return refreshing;
   const current = session;

@@ -4,7 +4,7 @@ import { formatLongDate, relativeTime } from '../lib/format.js';
 import type { PageCtx } from '../router.js';
 import { loadCatalog, nameOf, profile, today, tz } from '../state.js';
 import { loadOpenShortages, loadTodayTasks } from '../data.js';
-import { createTaskBoard, progressCard } from './tasks.js';
+import { createTaskBoard, progressCard, visibleTask } from './tasks.js';
 import { button, emptyState, errorState, qtyText, sectionHeader, skeleton } from '../ui/components.js';
 import type { Product, Shortage } from '../types.js';
 
@@ -34,6 +34,7 @@ export async function todayPage(c: PageCtx): Promise<void> {
   const progressHost = h('div');
   const board = createTaskBoard({
     limitUndone: 3,
+    filter: visibleTask,
     onChange: () =>
       mount(progressHost, progressCard(board.tasks.filter((t) => t.status === 'done').length, board.tasks.length)),
   });
@@ -54,6 +55,17 @@ export async function todayPage(c: PageCtx): Promise<void> {
         { class: 'btn btn-danger btn-lg btn-block', href: '#/braki/nowy' },
         icon('plus', 24),
         h('span', null, 'ZGŁOŚ BRAK'),
+      ),
+      h(
+        'div',
+        { class: 'row-actions' },
+        h(
+          'a',
+          { class: 'btn btn-soft', href: '#/produkty' },
+          icon('box', 20),
+          h('span', null, 'Produkty: dodaj / odejmij / zamów'),
+        ),
+        h('a', { class: 'btn btn-soft', href: '#/godziny' }, icon('clock', 20), h('span', null, 'Moje godziny')),
       ),
       progressHost,
       board.el,

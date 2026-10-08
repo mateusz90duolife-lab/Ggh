@@ -90,7 +90,7 @@ create table inventory_movements (
 create index on inventory_movements (product_id, created_at desc);
 create index on inventory_movements (restaurant_id, created_at desc);
 
-create or replace function forbid_change() returns trigger language plpgsql as $$
+create or replace function forbid_change() returns trigger language plpgsql set search_path = public as $$
 begin raise exception 'Rekordy w % są niezmienne (append-only)', tg_table_name; end $$;
 create trigger movements_immutable before update or delete on inventory_movements
   for each row execute function forbid_change();

@@ -2,7 +2,7 @@
 
 Legenda: ✅ sprawdzone automatycznie · ⚠️ częściowo albo wymaga sprawdzenia u Ciebie · ❌ nie zrobione.
 
-**Najważniejsze zastrzeżenie:** całość przetestowano przeciw lokalnemu backendowi testowemu na PostgreSQL (patrz `DECISIONS.md`, D10). **Nie uruchomiono jej na prawdziwym projekcie Supabase** (brak projektu i dostępu sieciowego). Pierwszy test dymny po wdrożeniu (`SETUP.md`, krok 7) jest więc obowiązkowy.
+**Stan wdrożenia:** backend działa na prawdziwym projekcie Supabase (migracje, RLS, funkcje Edge, konto właściciela); testy SQL i sprawdzenie API przeszły na produkcji — szczegóły w `WDROZENIE.md`. Interfejs przetestowano w Chromium przeciw lokalnemu backendowi testowemu (D10), a nie na prawdziwych telefonach. Po włączeniu GitHub Pages zrób test dymny (`SETUP.md`, krok 7).
 
 | Obszar                        | Stan | Dowód / uwagi                                                                                                                                                                   |
 | ----------------------------- | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

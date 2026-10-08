@@ -60,7 +60,7 @@ supabase secrets set RESEND_API_KEY=re_... \
 3. Wdróż funkcje (konfiguracja bramki JWT jest w `supabase/config.toml`):
 
 ```bash
-supabase functions deploy admin-users
+supabase functions deploy admin-users --no-verify-jwt
 supabase functions deploy daily-shopping-summary --no-verify-jwt
 ```
 

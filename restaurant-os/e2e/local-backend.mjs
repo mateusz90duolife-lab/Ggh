@@ -9,6 +9,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { handleAdminUsers } from '../supabase/functions/_shared/adminUsers.ts';
 import { handleDailySummary } from '../supabase/functions/_shared/dailySummary.ts';
+import { handleScanReceipt } from '../supabase/functions/_shared/scanReceipt.ts';
+import { handlePinLogin } from '../supabase/functions/_shared/pinLogin.ts';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const IDENT = /^[a-z_][a-z0-9_]*$/i;
@@ -61,6 +63,8 @@ export async function startBackend({ db = 'ros_e2e', port = 0, ttl = 3600 } = {}
     ttl,
     resendFail: false,
     requests: [],
+    scanReply: null, // odpowiedź „modelu” dla skanera paragonów (null = brak klucza API)
+    scanRequests: [],
   };
   const SERVICE = (() => {
     const t = `${b64({ alg: 'none' })}.${b64({ role: 'service_role', sub: 'service' })}.sig`;
@@ -354,6 +358,10 @@ export async function startBackend({ db = 'ros_e2e', port = 0, ttl = 3600 } = {}
         return json(res, 200, { id, email });
       }
       const m = /^\/admin\/users\/([0-9a-f-]{36})$/.exec(p);
+      if (m && req.method === 'GET') {
+        const email = await q(`select email from auth.fake_users where id = '${m[1]}';`);
+        return email ? json(res, 200, { id: m[1], email }) : json(res, 404, { msg: 'User not found' });
+      }
       if (m && req.method === 'PUT') {
         if (body.password) await q(`update auth.fake_users set password = ${lit(body.password)} where id = '${m[1]}';`);
         if (body.ban_duration)
@@ -400,6 +408,25 @@ export async function startBackend({ db = 'ros_e2e', port = 0, ttl = 3600 } = {}
         fetchFn: innerFetch,
         now: () => (state.clock ? new Date(state.clock) : new Date()),
       });
+    else if (name === 'scan-receipt')
+      out = await handleScanReceipt(webReq, {
+        env: FN_ENV(),
+        fetchFn: innerFetch,
+        // Zamiast prawdziwego API: stała odpowiedź modelu z state.scanReply (testy nie wychodzą do sieci).
+        claude: state.scanReply
+          ? {
+              create: async (params) => {
+                state.scanRequests.push(params);
+                return {
+                  stop_reason: 'end_turn',
+                  model: 'claude-opus-5-5',
+                  content: [{ type: 'text', text: JSON.stringify(state.scanReply) }],
+                };
+              },
+            }
+          : null,
+      });
+    else if (name === 'pin-login') out = await handlePinLogin(webReq, { env: FN_ENV(), fetchFn: innerFetch });
     else return json(res, 404, { error: 'nie ma takiej funkcji' });
     const text = await out.text();
     res.writeHead(out.status, Object.fromEntries(out.headers.entries()));
