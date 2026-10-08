@@ -607,22 +607,31 @@ function drawIso(canvas, solid, opt) {
   const ox = (W - b.w) / 2 - b.minX;
   const oy = (H - b.h) / 2 - b.minY;
 
-  const hue  = opt.hue == null ? 199 : opt.hue;
   const sat  = opt.sat == null ? 55  : opt.sat;
-  const top  = "hsl(" + hue + "," + sat + "%,64%)";
-  const front= "hsl(" + hue + "," + sat + "%,45%)";
-  const side = "hsl(" + hue + "," + sat + "%,31%)";
-  const edge = "hsl(" + hue + ",45%,14%)";
+  const palette = h => ({ top: "hsl(" + h + "," + sat + "%,64%)", front: "hsl(" + h + "," + sat + "%,45%)",
+                          side: "hsl(" + h + "," + sat + "%,31%)", edge: "hsl(" + h + ",45%,14%)" });
+  const base = palette(opt.hue == null ? 199 : opt.hue);
 
   const P = (x, y, z) => { const p = isoPt(x, y, z, s); return [p.x + ox, p.y + oy]; };
+
+  // Bryły w stałej ramie (łączenie brył) dostają podłogę z siatką — bez niej
+  // nie byłoby widać, w którym miejscu ramy stoją.
+  if (solid.framed) {
+    ctx.strokeStyle = "#33475a"; ctx.lineWidth = 1;
+    for (let i = 0; i <= solid.nx; i++) {
+      const a = P(i, 0, 0), b = P(i, solid.ny, 0), c = P(0, i, 0), d = P(solid.nx, i, 0);
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]); ctx.stroke();
+    }
+  }
 
   // Malarz: od najdalszych do najbliższych. Obserwator w kierunku (+x, −y, +z).
   const order = solid.cells.slice().sort((a, c) => (a[0] - a[1] + a[2]) - (c[0] - c[1] + c[2]));
   for (const cell of order) {
     const x = cell[0], y = cell[1], z = cell[2];
-    if (!solid.has(x, y, z + 1)) poly(ctx, [P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], top,   edge, 1);
-    if (!solid.has(x, y - 1, z)) poly(ctx, [P(x, y, z),     P(x + 1, y, z),     P(x + 1, y, z + 1),     P(x, y, z + 1)],     front, edge, 1);
-    if (!solid.has(x + 1, y, z)) poly(ctx, [P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], side,  edge, 1);
+    const c = opt.hueOf ? palette(opt.hueOf(x, y, z)) : base;
+    if (!solid.has(x, y, z + 1)) poly(ctx, [P(x, y, z + 1), P(x + 1, y, z + 1), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], c.top,   c.edge, 1);
+    if (!solid.has(x, y - 1, z)) poly(ctx, [P(x, y, z),     P(x + 1, y, z),     P(x + 1, y, z + 1),     P(x, y, z + 1)],     c.front, c.edge, 1);
+    if (!solid.has(x + 1, y, z)) poly(ctx, [P(x + 1, y, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1)], c.side,  c.edge, 1);
   }
   return ctx;
 }
@@ -937,6 +946,10 @@ const SKILLS = {
   "szkic":       { name: "Szkic izometryczny",     modul: "Szkicowanie izometryczne", w: 0.9 },
   "skos":        { name: "Linie pochyłe",          modul: "Powierzchnie pochyłe",   w: 0.9 },
   "elipsa":      { name: "Okręgi w izometrii",     modul: "Powierzchnie krzywe",    w: 0.8 },
+  "laczenie":    { name: "Łączenie brył",          modul: "Łączenie brył",          w: 0.9 },
+  "wymiar":      { name: "Wymiarowanie",           modul: "PN-EN ISO 129-1",        w: 0.8 },
+  "obrotowe":    { name: "Bryły obrotowe",         modul: "Bryły obrotowe",         w: 0.9 },
+  "siatka":      { name: "Rozwinięcia brył",       modul: "Rozwinięcia",            w: 0.9 },
 };
 const SKILL_IDS = Object.keys(SKILLS);
 
@@ -984,6 +997,29 @@ const WHY = {
   skosCorner: "ścięty niewłaściwy narożnik — sprawdź na rzucie, po której stronie leży skos",
   skosPlane:  "skos leży w innej płaszczyźnie — linią pochyłą widać go w tym rzucie, do którego jest prostopadły",
   skosLen:  "jeden koniec linii pochyłej odmierzony o jednostkę za blisko albo za daleko",
+  opUnion:  "to suma brył — objętość wspólna została wchłonięta, nic nie wycięto",
+  opDiff:   "to różnica A − B — z bryły A wycięto objętość wspólną",
+  opDiffRev:"to różnica B − A — kolejność odwrócona: wycięto z bryły B, a nie z A",
+  opInter:  "to część wspólna — zostały tylko kostki należące do obu brył",
+  revFlip:  "figura obrócona do góry nogami — sprawdź, która część jest na dole",
+  revRadius:"jedna część ma inny promień, niż wynika z szerokości figury",
+  revSlope: "pomylony walec ze stożkiem — skos figury daje stożek, prosty bok daje walec",
+  revDiam:  "szerokość figury potraktowana jak średnica — to promień, więc bryła jest dwa razy szersza",
+  netOverlap: "ta siatka się nie składa — dwa kwadraty trafiają po złożeniu na tę samą ścianę",
+  netMirror:  "te trzy ściany rzeczywiście stykają się w narożniku, ale w odwrotnej kolejności — to odbicie lustrzane",
+  netOpposite:"widać tu dwie ściany, które po złożeniu leżą naprzeciw siebie — nie mogą być widoczne jednocześnie",
+  netRadius:  "to połowa obwodu — średnica pomylona z promieniem",
+  net2pi:     "wzór 2·π·r zastosowany do średnicy — obwód to 2·π·r albo π·d",
+  netDiam:    "to sama średnica — obwód jest od niej π razy większy",
+  dimTotal: "to wymiar całkowity, a nie brakujące ogniwo łańcucha",
+  dimSum:   "to suma podanych ogniw — brakujące ogniwo to wymiar całkowity minus ta suma",
+  dimOff:   "pomyłka w odejmowaniu albo odczytaniu wymiarów",
+  dimOther: "tego błędu na rysunku nie ma — sprawdź położenie liczby, linie pomocnicze i jednostkę",
+  dim_below:   "liczba wymiarowa jest pod linią wymiarową, a pisze się ją nad linią",
+  dim_upside:  "liczba wymiarowa jest odwrócona — powinna być czytelna od dołu albo z prawej strony rysunku",
+  dim_outline: "linią wymiarową jest tu krawędź przedmiotu, a linia zarysu nie może być linią wymiarową",
+  dim_shortExt:"linie pomocnicze kończą się na linii wymiarowej, a wyprowadza się je 2–3 mm poza nią",
+  dim_unit:    "dopisano „mm” — wymiary w milimetrach podaje się bez jednostki",
 };
 
 /** Buduje listę opcji z unikatowymi identyfikatorami; odrzuca duplikaty. */
@@ -1602,6 +1638,375 @@ function exSkos(cfg, opts) {
   throw new Error("Nie udało się zbudować zadania ze skosem");
 }
 
+/* ═══ ŁĄCZENIE BRYŁ (Sorby, moduł 2) ═══
+   Dwie bryły zajmujące częściowo to samo miejsce łączy się na trzy sposoby:
+   suma (objętość wspólna zostaje wchłonięta), różnica (objętość wspólna
+   zostaje usunięta z bryły ciętej) i część wspólna (objętość wspólna staje
+   się nową bryłą). Bryły leżą w stałej ramie 3 × 3 × 3, bez normalizacji
+   położenia — inaczej nie byłoby widać, gdzie się nakładają. */
+const BOX = 3;
+
+function frameSolid(cells, n) {
+  const sorted = cells.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]);
+  const set = new Set(sorted.map(c => K(c[0], c[1], c[2])));
+  return { cells: sorted, set: set, nx: n, ny: n, nz: n, count: sorted.length, framed: true,
+           id: "F" + sorted.map(c => K(c[0], c[1], c[2])).join("|"),
+           has(x, y, z) { return set.has(K(x, y, z)); } };
+}
+
+function boolOp(a, b, op) {
+  const out = [];
+  for (let x = 0; x < BOX; x++) for (let y = 0; y < BOX; y++) for (let z = 0; z < BOX; z++) {
+    const ia = a.has(x, y, z), ib = b.has(x, y, z);
+    const keep = op === "union" ? ia || ib : op === "diff" ? ia && !ib : op === "diffRev" ? ib && !ia : ia && ib;
+    if (keep) out.push([x, y, z]);
+  }
+  return frameSolid(out, BOX);
+}
+
+const BOOL_TXT = {
+  union: "sumę brył A i B (połączenie)",
+  diff:  "różnicę A − B (z bryły A wycięto B)",
+  inter: "część wspólną brył A i B",
+};
+const BOOL_TAG = { union: "opUnion", diff: "opDiff", diffRev: "opDiffRev", inter: "opInter" };
+
+function exLaczenie(cfg, opts) {
+  for (let t = 0; t < 300; t++) {
+    const A = [], B = [];
+    for (let x = 0; x < BOX; x++) for (let y = 0; y < BOX; y++) {
+      const h = Math.random() < 0.75 ? 1 + randInt(BOX) : 0;
+      for (let z = 0; z < h; z++) A.push([x, y, z]);
+    }
+    const bw = 1 + randInt(2), bd = 1 + randInt(BOX), bh = 1 + randInt(BOX);
+    const bx = randInt(BOX - bw + 1), by = randInt(BOX - bd + 1), bz = randInt(BOX - bh + 1);
+    for (let x = bx; x < bx + bw; x++) for (let y = by; y < by + bd; y++) for (let z = bz; z < bz + bh; z++) B.push([x, y, z]);
+    const a = frameSolid(A, BOX), b = frameSolid(B, BOX);
+    if (a.count < 5 || a.count === BOX * BOX * BOX) continue;
+    const R = {};
+    for (const op of ["union", "diff", "diffRev", "inter"]) R[op] = boolOp(a, b, op);
+    // Wszystkie cztery wyniki niepuste i różne, a B naprawdę zmienia A
+    if (Object.values(R).some(s => s.count === 0)) continue;
+    if (new Set(Object.values(R).map(s => s.id)).size !== 4) continue;
+    if (R.union.id === a.id || R.diff.id === a.id) continue;
+    const op = (opts && opts.op) || pick(["union", "diff", "inter"]);
+    const cand = Object.keys(R).filter(k => k !== op).map(k => isoOpt(R[k], BOOL_TAG[k]));
+    return {
+      skill: "laczenie",
+      prompt: "Bryły A i B zajmują częściowo to samo miejsce. Która bryła to " + BOOL_TXT[op] + "?",
+      hint: "Najpierw znajdź objętość wspólną — fioletowe kostki. Suma ją wchłania, różnica usuwa z bryły ciętej, " +
+            "a część wspólna zostawia tylko ją.",
+      stimulus: [
+        { type: "iso", solid: a, cap: "bryła A" },
+        { type: "iso", solid: b, cap: "bryła B", hue: 28 },
+        { type: "overlap", a: a, b: b, cap: "A i B razem, fiolet — część wspólna" },
+      ],
+      options: assembleOptions(isoOpt(R[op], "ok"), cand, 4),
+      solution: R[op],
+    };
+  }
+  throw new Error("Nie udało się zbudować zadania z łączeniem brył");
+}
+
+/* ═══ BRYŁY OBROTOWE (Sorby, moduł 1) ═══
+   Figura płaska obrócona o 360° wokół osi daje bryłę obrotową. Profil to
+   lista odcinków od dołu: {h, r0, r1} — wysokość oraz promień na dole i na
+   górze odcinka. r0 = r1 to walec, r0 ≠ r1 — stożek ścięty, r1 = 0 — stożek. */
+const revId = p => p.map(s => s.h + ":" + s.r0 + ":" + s.r1).join("/");
+
+function genProfile(cfg) {
+  const nseg = 2 + (cfg.w >= 3 && Math.random() < 0.5 ? 1 : 0);
+  let r = 2 + randInt(2);
+  const out = [];
+  for (let i = 0; i < nseg; i++) {
+    const last = i === nseg - 1;
+    const kinds = last ? ["cyl", "cone", "frustum"] : ["cyl", "cyl", "frustum"];
+    let kind = pick(kinds);
+    if (kind === "frustum" && r < 2) kind = "cyl";
+    // Stożki i stożki ścięte są wyższe niż walce: niski stożek widziany z góry
+    // pod kątem izometrii chowa wierzchołek w elipsie podstawy i wygląda jak dysk.
+    const h = kind === "cyl" ? 1 + randInt(2) : r + 1 + randInt(2);
+    const r1 = kind === "cyl" ? r : kind === "cone" ? 0 : r - 1;
+    out.push({ h: h, r0: r, r1: r1 });
+    if (last) break;
+    // następny odcinek: dalej od tego samego promienia (ciągłość) albo stopień w dół
+    const next = kind === "frustum" ? r1 : r - 1;
+    if (next < 1) break;
+    r = next;
+  }
+  return out.length >= 2 || out[0].r0 !== out[0].r1 ? out : genProfile(cfg);
+}
+
+const PROFILE_XF = {
+  revFlip:   p => p.slice().reverse().map(s => ({ h: s.h, r0: s.r1, r1: s.r0 })),
+  revRadius: p => { const i = randInt(p.length); return p.map((s, j) => j !== i ? s : { h: s.h, r0: s.r0 + 1, r1: s.r1 === 0 ? 0 : s.r1 + 1 }); },
+  revSlope:  p => {
+    const i = randInt(p.length);
+    return p.map((s, j) => j !== i ? s : s.r0 !== s.r1 ? { h: s.h, r0: s.r0, r1: s.r0 } : { h: s.h, r0: s.r0, r1: Math.max(0, s.r0 - 1) });
+  },
+  revDiam:   p => p.map(s => ({ h: s.h, r0: s.r0 / 2, r1: s.r1 / 2 })),
+};
+
+function describeProfile(p) {
+  const part = s => s.r0 === s.r1 ? "walec o promieniu " + s.r0 + " i wysokości " + s.h
+    : s.r1 === 0 ? "stożek o promieniu podstawy " + s.r0 + " i wysokości " + s.h
+    : "stożek ścięty o promieniach " + s.r0 + " i " + s.r1 + " i wysokości " + s.h;
+  return "od dołu: " + p.map(part).join(", ");
+}
+
+function exObrotowe(cfg, opts) {
+  const mode = (opts && opts.mode) || pick(["bryla", "profil"]);
+  for (let t = 0; t < 100; t++) {
+    const p = genProfile(cfg);
+    const seen = new Set([revId(p)]), cand = [];
+    for (const tag of Object.keys(PROFILE_XF)) {
+      const q = PROFILE_XF[tag](p);
+      if (seen.has(revId(q)) || q.every(s => s.r0 === 0 && s.r1 === 0)) continue;
+      seen.add(revId(q)); cand.push({ p: q, tag: tag });
+    }
+    if (cand.length < 3) continue;
+    const kind = mode === "bryla" ? "rev" : "prof";
+    const opt = (q, tag) => ({ kind: kind, prof: q, tag: tag, id: kind + revId(q),
+      desc: (kind === "rev" ? "bryła obrotowa, " : "figura płaska przy osi, ") + describeProfile(q) });
+    return {
+      skill: "obrotowe",
+      prompt: mode === "bryla"
+        ? "Figurę płaską obrócono o 360° wokół zaznaczonej osi. Która bryła powstała?"
+        : "Bryłę otrzymano, obracając figurę płaską o 360° wokół osi pionowej. Która figura to była?",
+      hint: "Szerokość figury w danym miejscu to promień bryły na tej wysokości — średnica jest dwa razy większa.",
+      stimulus: mode === "bryla"
+        ? [{ type: "draw", cap: "figura i oś obrotu", desc: "figura płaska przy osi, " + describeProfile(p),
+             draw: c => drawProfile(c, p, { w: 200, h: 180 }) }]
+        : [{ type: "draw", cap: "bryła obrotowa", desc: "bryła obrotowa, " + describeProfile(p),
+             draw: c => drawRevolved(c, p, { w: 200, h: 180 }) }],
+      options: assembleOptions(opt(p, "ok"), cand.map(c => opt(c.p, c.tag)), 4),
+      note: "Wyobraź sobie figurę odbitą względem osi — razem z odbiciem tworzy przekrój osiowy bryły.",
+    };
+  }
+  throw new Error("Nie udało się zbudować zadania z bryłą obrotową");
+}
+
+/* ═══ ROZWINIĘCIA (Sorby, moduł 6) ═══
+   Siatka sześcianu to sześć kwadratów połączonych bokami. Składanie śledzi
+   dla każdego kwadratu trzy wektory: normalną ściany oraz kierunki „w prawo”
+   i „w dół” siatki po złożeniu. Przejście na sąsiedni kwadrat zgina siatkę
+   wzdłuż wspólnej krawędzi. Siatka jest poprawna, gdy sześć ścian ma sześć
+   różnych normalnych — inaczej dwie ściany trafiają w to samo miejsce. */
+function foldNet(cells) {
+  const key = (r, c) => r + "," + c;
+  const set = new Set(cells.map(([r, c]) => key(r, c)));
+  const neg = v => v.map(x => (x === 0 ? 0 : -x));
+  const st = new Map();
+  st.set(key(cells[0][0], cells[0][1]), { n: [0, 0, -1], rt: [1, 0, 0], dn: [0, 1, 0] });
+  const q = [cells[0]];
+  while (q.length) {
+    const [r, c] = q.shift(), s = st.get(key(r, c));
+    const nb = [
+      [r, c + 1, { n: s.rt, rt: neg(s.n), dn: s.dn }],
+      [r, c - 1, { n: neg(s.rt), rt: s.n, dn: s.dn }],
+      [r + 1, c, { n: s.dn, rt: s.rt, dn: neg(s.n) }],
+      [r - 1, c, { n: neg(s.dn), rt: s.rt, dn: s.n }],
+    ];
+    for (const [rr, cc, ns] of nb) if (set.has(key(rr, cc)) && !st.has(key(rr, cc))) { st.set(key(rr, cc), ns); q.push([rr, cc]); }
+  }
+  const normals = cells.map(([r, c]) => st.get(key(r, c)).n.join(","));
+  return new Set(normals).size === 6 ? normals : null;
+}
+
+const netKey = cells => cells.map(c => c.join(",")).sort().join("|");
+function normCells(cells) {
+  const mr = Math.min(...cells.map(c => c[0])), mc = Math.min(...cells.map(c => c[1]));
+  return cells.map(c => [c[0] - mr, c[1] - mc]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+}
+
+/** Wszystkie heksomina w każdym położeniu (216) podzielone na siatki sześcianu i pozostałe. */
+let CUBE_NETS = null;
+function cubeNets() {
+  if (CUBE_NETS) return CUBE_NETS;
+  let level = new Map([[netKey([[0, 0]]), [[0, 0]]]]);
+  for (let n = 1; n < 6; n++) {
+    const next = new Map();
+    for (const cells of level.values()) {
+      const has = new Set(cells.map(c => c.join(",")));
+      for (const [r, c] of cells) for (const [dr, dc] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+        if (has.has((r + dr) + "," + (c + dc))) continue;
+        const nc = normCells(cells.concat([[r + dr, c + dc]]));
+        next.set(netKey(nc), nc);
+      }
+    }
+    level = next;
+  }
+  const all = [...level.values()];
+  CUBE_NETS = { all: all, valid: all.filter(f => foldNet(f)), invalid: all.filter(f => !foldNet(f)) };
+  return CUBE_NETS;
+}
+
+/** Postać kanoniczna heksomina z dokładnością do obrotów i odbić — do liczenia siatek „różnych”. */
+function freeNetKey(cells) {
+  const forms = [];
+  let cur = cells;
+  for (let i = 0; i < 4; i++) {
+    cur = cur.map(([r, c]) => [c, -r]);
+    forms.push(netKey(normCells(cur)), netKey(normCells(cur.map(([r, c]) => [r, -c]))));
+  }
+  return forms.sort()[0];
+}
+
+const NET_COLORS = ["#E4572E", "#F3A712", "#4CB944", "#2E86AB", "#C05299", "#C8CCD0"];
+
+/** Widoki sześcianu (ściana górna, przednia, prawa), jakie dają się zobaczyć po złożeniu.
+    Trójka ścian przy narożniku jest widoczna w tym układzie, gdy wyznacznik jej
+    normalnych (góra, przód, prawa) jest dodatni — jak dla (z, −y, x) w rysunku izometrycznym. */
+function netViews(normals) {
+  const faceOf = new Map(normals.map((n, i) => [n, i]));
+  const det = (a, b, c) => a[0] * (b[1] * c[2] - b[2] * c[1]) - a[1] * (b[0] * c[2] - b[2] * c[0]) + a[2] * (b[0] * c[1] - b[1] * c[0]);
+  const views = [];
+  for (const sx of [1, -1]) for (const sy of [1, -1]) for (const sz of [1, -1]) {
+    const ns = [[sx, 0, 0], [0, sy, 0], [0, 0, sz]];
+    for (const [i, j, k] of [[0, 1, 2], [1, 2, 0], [2, 0, 1], [0, 2, 1], [2, 1, 0], [1, 0, 2]])
+      if (det(ns[i], ns[j], ns[k]) > 0)
+        views.push([faceOf.get(ns[i].join(",")), faceOf.get(ns[j].join(",")), faceOf.get(ns[k].join(","))]);
+  }
+  return views;
+}
+
+function exSiatka(cfg, opts) {
+  const mode = (opts && opts.mode) || pick(["czy", "kostka", "kostka", "walec"]);
+  const N = cubeNets();
+  if (mode === "czy") {
+    const ok = pick(N.valid);
+    const netOpt = (cells, tag) => ({ kind: "draw", tag: tag, id: "N" + netKey(cells),
+      draw: c => drawNet(c, cells, null, { w: 152, h: 132 }), desc: "siatka z sześciu kwadratów, " + describeNet(cells) });
+    return {
+      skill: "siatka",
+      prompt: "Która siatka składa się w sześcian bez nakładania się ścian?",
+      hint: "Złóż siatkę w wyobraźni wokół jednego kwadratu. Siatka odpada, gdy dwa kwadraty trafiają na tę samą ścianę.",
+      stimulus: [{ type: "draw", cap: "sześcian", desc: "sześcian", draw: c => cubeCanvas(c, 160, 140, 18) }],
+      options: assembleOptions(netOpt(ok, "ok"), shuffle(N.invalid).slice(0, 6).map(f => netOpt(f, "netOverlap")), 4),
+      note: "Sześcian ma 11 różnych siatek. Pomaga reguła: z trzech kwadratów w jednej linii skrajne leżą po złożeniu naprzeciw siebie.",
+    };
+  }
+  if (mode === "walec") {
+    const d = pick([20, 30, 40, 50, 60, 80]), h = pick([30, 40, 50, 60, 70]);
+    const r = Math.round;
+    const cand = [numOpt(r(Math.PI * d / 2), "netRadius"), numOpt(r(2 * Math.PI * d), "net2pi"), numOpt(d, "netDiam")];
+    return {
+      skill: "siatka",
+      prompt: "Z blachy wycina się powierzchnię boczną walca o średnicy " + d + " mm i wysokości " + h +
+              " mm. Jej rozwinięcie to prostokąt o wysokości " + h + " mm. Jaką ma długość (w mm, w zaokrągleniu)?",
+      hint: "Długość rozwinięcia to obwód podstawy walca.",
+      stimulus: [{ type: "draw", cap: "walec ⌀ " + d + " × " + h, desc: "walec o średnicy " + d + " mm i wysokości " + h + " mm",
+                   draw: c => drawRevolved(c, [{ h: h / d * 2, r0: 1, r1: 1 }], { w: 180, h: 170 }) }],
+      options: assembleOptions(numOpt(r(Math.PI * d), "ok"), cand, 4),
+      note: "Obwód okręgu to π·d, więc rozwinięcie ma wymiary π·d × h ≈ " + r(Math.PI * d) + " × " + h + " mm.",
+    };
+  }
+  // Sześcian z ponumerowanymi ścianami
+  const net = pick(N.valid);
+  const normals = foldNet(net);
+  const label = shuffle([1, 2, 3, 4, 5, 6]);
+  const views = netViews(normals);
+  const vkey = v => v.join(",");
+  const valid = new Set(views.map(vkey));
+  const correct = pick(views);
+  const opp = new Map(normals.map((n, i) => [i, normals.indexOf(n.split(",").map(x => (+x === 0 ? 0 : -x)).join(","))]));
+  const cand = [];
+  for (const v of shuffle(views)) {
+    const m = [v[0], v[2], v[1]];
+    if (!valid.has(vkey(m))) cand.push({ v: m, tag: "netMirror" });
+    const o = [v[0], opp.get(v[0]), v[2]];
+    if (!valid.has(vkey(o))) cand.push({ v: o, tag: "netOpposite" });
+  }
+  const viewOpt = (v, tag) => ({ kind: "draw", tag: tag, id: "V" + vkey(v),
+    draw: c => drawLabeledCube(c, v, label, { w: 152, h: 132 }),
+    desc: "sześcian: na górze ściana " + label[v[0]] + ", z przodu " + label[v[1]] + ", z prawej " + label[v[2]] });
+  return {
+    skill: "siatka",
+    prompt: "Siatkę złożono w sześcian liczbami na zewnątrz. Który widok sześcianu jest możliwy? Obrót samych liczb nie ma znaczenia.",
+    hint: "Ściany naprzeciw siebie nigdy nie są widoczne jednocześnie. Sprawdź też kolejność trzech ścian wokół narożnika.",
+    stimulus: [{ type: "draw", cap: "siatka", desc: "siatka sześcianu z ponumerowanymi ścianami, " + describeNet(net),
+                 draw: c => drawNet(c, net, label, { w: 230, h: 190 }) }],
+    options: assembleOptions(viewOpt(correct, "ok"), cand.map(c => viewOpt(c.v, c.tag)), 4),
+    note: "Trzy widoczne ściany muszą się stykać w jednym narożniku i leżeć wokół niego w tej samej kolejności co na złożonej siatce.",
+    check: { valid: [...valid] },   // do testów: wszystkie widoki możliwe po złożeniu
+  };
+}
+
+function describeNet(cells) {
+  const rows = Math.max(...cells.map(c => c[0])) + 1, cols = Math.max(...cells.map(c => c[1])) + 1;
+  return "w prostokącie " + rows + " na " + cols + " pola";
+}
+
+/* ═══ WYMIAROWANIE (PN-EN ISO 129-1) ═══
+   Zasady według materiałów uczelnianych opartych na normie (PG, AGH, UWM):
+   linie wymiarowe i pomocnicze cienkie ciągłe; pomocnicze wychodzą 2–3 mm
+   poza linię wymiarową; liczba nad linią, czytelna od dołu lub z prawej;
+   wymiary w milimetrach bez jednostki; linia zarysu nie może być linią
+   wymiarową; łańcuch wymiarów nie jest zamknięty. */
+const DIM_RULE = {
+  below:    "liczba wymiarowa pod linią wymiarową",
+  upside:   "liczba wymiarowa ustawiona do czytania od góry rysunku",
+  outline:  "linia zarysu użyta jako linia wymiarowa",
+  shortExt: "linie pomocnicze nie wychodzą poza linię wymiarową",
+  unit:     "dopisana jednostka „mm”",
+};
+
+function exWymiar(cfg, opts) {
+  const mode = (opts && opts.mode) || pick(["brak", "brak", "popraw", "blad"]);
+  if (mode === "brak") {
+    for (let t = 0; t < 100; t++) {
+      const k = pick([5, 10]), n = 2 + randInt(cfg.w >= 3 ? 2 : 1);
+      const ws = [], hs = [];
+      let h = k * (n + 1 + randInt(2));
+      for (let i = 0; i < n; i++) { ws.push(k * (2 + randInt(4))); hs.push(h); h -= k * (1 + randInt(2)); if (h < k) h = k; }
+      if (new Set(hs).size !== n) continue;
+      const W = ws.reduce((a, b) => a + b, 0), m = randInt(n);
+      const rest = W - ws[m];
+      const cand = [numOpt(W, "dimTotal"), numOpt(rest, "dimSum"), numOpt(ws[m] + k, "dimOff")];
+      if (ws[m] - k > 0) cand.push(numOpt(ws[m] - k, "dimOff"));
+      if (new Set(cand.map(c => c.value).concat([ws[m]])).size < 4) continue;
+      return {
+        skill: "wymiar",
+        prompt: "Rysunek przedstawia rzut z przodu klocka ze stopniami, wymiary w milimetrach. Ile wynosi wymiar oznaczony znakiem zapytania?",
+        hint: "Łańcuch wymiarów nie jest zamknięty — brakujące ogniwo wynika z wymiaru całkowitego.",
+        stimulus: [{ type: "draw", cap: "wymiary w mm", desc: "rzut klocka ze stopniami; szerokości stopni: " +
+                     ws.map((w, i) => i === m ? "?" : w).join(", ") + "; szerokość całkowita " + W,
+                     draw: c => drawDimStairs(c, ws, hs, m, { w: 320, h: 230 }) }],
+        options: assembleOptions(numOpt(ws[m], "ok"), cand, 4),
+        note: "Na poprawnym rysunku łańcuch wymiarów nie jest zamknięty: jedno ogniwo się pomija, bo wynika z wymiaru " +
+              "całkowitego i pozostałych ogniw. Tu: " + W + " − " + rest + " = " + ws[m] + ".",
+        check: { ws: ws, missing: m },
+      };
+    }
+  }
+  const W = pick([30, 40, 50, 60]), H = pick([15, 20, 25]);
+  const keys = Object.keys(DIM_RULE);
+  if (mode === "popraw") {
+    const dimOpt = (v, tag) => ({ kind: "draw", tag: tag, id: "D" + v,
+      draw: c => drawDimPart(c, W, H, v, { w: 152, h: 132 }),
+      desc: v === "ok" ? "wymiar zapisany zgodnie z zasadami" : "wymiar z błędem: " + DIM_RULE[v] });
+    return {
+      skill: "wymiar",
+      prompt: "Który rysunek ma poprawnie zapisany wymiar szerokości?",
+      hint: "Sprawdź położenie liczby, linie pomocnicze i to, czy linią wymiarową nie jest krawędź przedmiotu.",
+      stimulus: [{ type: "draw", cap: "płytka " + W + " × " + H + " mm", desc: "prostokątna płytka " + W + " na " + H + " mm",
+                   draw: c => drawDimPart(c, W, H, "none", { w: 200, h: 150 }) }],
+      options: assembleOptions(dimOpt("ok", "ok"), shuffle(keys).map(k => dimOpt(k, "dim_" + k)), 4),
+    };
+  }
+  const v = pick(keys);
+  return {
+    skill: "wymiar",
+    prompt: "Jaki błąd popełniono przy zapisie wymiaru szerokości?",
+    hint: "Porównaj rysunek z zasadami: położenie liczby, kierunek czytania, linie pomocnicze, jednostka.",
+    stimulus: [{ type: "draw", cap: "wymiar do sprawdzenia", desc: "płytka " + W + " na " + H + " mm z wymiarem szerokości zapisanym z jednym błędem",
+                 draw: c => drawDimPart(c, W, H, v, { w: 240, h: 170 }) }],
+    options: assembleOptions(textOpt(DIM_RULE[v], "ok"), keys.filter(k => k !== v).map(k => textOpt(DIM_RULE[k], "dimOther")), 4),
+    note: "Zasady: liczba nad linią wymiarową, czytelna od dołu lub z prawej; linie pomocnicze wychodzą 2–3 mm poza " +
+          "linię wymiarową; linia zarysu nie może być linią wymiarową; wymiary w milimetrach podaje się bez jednostki.",
+  };
+}
+
 /* ═══ ZADANIE W FORMACIE PSVT:R ═══
    Format testu Guaya (1977): pokazany jest obrót na jednej bryle, a trzeba
    zastosować ten sam obrót do drugiej. Obrotu nie podaje się słownie —
@@ -1708,6 +2113,10 @@ const BUILDERS = {
   "szkic":       exSzkic,
   "skos":        exSkos,
   "elipsa":      exElipsa,
+  "laczenie":    exLaczenie,
+  "wymiar":      exWymiar,
+  "obrotowe":    exObrotowe,
+  "siatka":      exSiatka,
   "psvt":        exPsvt,
 };
 
@@ -1851,7 +2260,7 @@ function describeOption(opt) {
   if (opt.kind === "iso")   return describeSolid(opt.solid);
   if (opt.kind === "ortho") return describeView(opt.view);
   if (opt.kind === "num")   return "liczba " + opt.value;
-  if (opt.kind === "draw" || opt.kind === "poly") return opt.desc;
+  if (opt.kind === "draw" || opt.kind === "poly" || opt.kind === "rev" || opt.kind === "prof") return opt.desc;
   return opt.text;
 }
 function labelCanvas(canvas, text) {
@@ -1869,9 +2278,9 @@ function figure(capText, canvasNode) {
   return f;
 }
 
-function isoFigure(solid, cap, size, scale) {
+function isoFigure(solid, cap, size, scale, hue) {
   const c = el("canvas");
-  drawIso(c, solid, { w: (size && size.w) || 200, h: (size && size.h) || 172, scale: scale });
+  drawIso(c, solid, { w: (size && size.w) || 200, h: (size && size.h) || 172, scale: scale, hue: hue });
   labelCanvas(c, (cap ? cap + ": " : "") + describeSolid(solid));
   return figure(cap, c);
 }
@@ -2032,6 +2441,233 @@ function polyViewEdges(p, kind) {
   return { visible: vis.map(v => v.e), hidden: hid.filter(h => !covered(h)).map(h => h.e) };
 }
 
+/* ═══ RYSUNKI: BRYŁY OBROTOWE ═══
+   Bryła z osią pionową rysowana jest warstwami od dołu: każda warstwa to
+   pozioma elipsa (okrąg w izometrii, duża oś pozioma, osie √1,5·r i √0,5·r).
+   Patrząc z góry, warstwa wyższa może zasłonić niższą, ale nie odwrotnie,
+   więc kolejność od dołu daje poprawne zasłanianie. Zarys liczony jest
+   dokładnie: dla każdego wiersza ekranu szerokość sumy wszystkich elips. */
+const ISO_MAJ = Math.sqrt(1.5), ISO_MIN = Math.sqrt(0.5);
+
+function revExtent(p) {
+  return { H: p.reduce((a, s) => a + s.h, 0), R: Math.max(...p.map(s => Math.max(s.r0, s.r1))) };
+}
+function revFitScale(p, W, H, pad) {
+  const e = revExtent(p);
+  return Math.min((W - 2 * pad) / (2 * ISO_MAJ * e.R), (H - 2 * pad) / (e.H + 2 * ISO_MIN * e.R));
+}
+
+function drawRevolved(canvas, p, opt) {
+  opt = opt || {};
+  const W = opt.w || 152, Hc = opt.h || 132, pad = 12;
+  const ctx = setupCanvas(canvas, W, Hc);
+  const e = revExtent(p), s = opt.scale || revFitScale(p, W, Hc, pad);
+  const cx = W / 2;
+  const yb = (Hc + e.H * s + 2 * ISO_MIN * e.R * s) / 2 - ISO_MIN * e.R * s;   // środek dolnej podstawy
+  const edge = "hsl(199,45%,14%)";
+  const slices = [], arcs = [];
+  let z = 0;
+  p.forEach((seg, i) => {
+    const n = Math.max(2, Math.ceil(seg.h * s / 1.5));
+    for (let k = 0; k <= n; k++) {
+      const t = k / n, r = seg.r0 + (seg.r1 - seg.r0) * t;
+      const cy = yb - (z + seg.h * t) * s, A = ISO_MAJ * r * s, B = ISO_MIN * r * s;
+      slices.push({ cy: cy, A: A, B: B });
+      if (r <= 0) continue;
+      const g = ctx.createLinearGradient(cx - A, 0, cx + A, 0);
+      g.addColorStop(0, "hsl(199,55%,54%)"); g.addColorStop(1, "hsl(199,55%,27%)");
+      ctx.beginPath(); ctx.ellipse(cx, cy, A, B, 0, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill();
+    }
+    z += seg.h;
+    const next = p[i + 1], top = seg.r1, cy = yb - z * s;
+    if (top > 0 && (!next || next.r0 < top - 1e-9)) {
+      // ściana górna odcinka (cała albo pierścień wokół węższej części)
+      ctx.beginPath(); ctx.ellipse(cx, cy, ISO_MAJ * top * s, ISO_MIN * top * s, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "hsl(199,55%,64%)"; ctx.fill(); ctx.strokeStyle = edge; ctx.lineWidth = 1.3; ctx.stroke();
+    } else if (next && top > 0 && Math.abs(next.r0 - top) < 1e-9 &&
+               Math.abs((seg.r1 - seg.r0) / seg.h - (next.r1 - next.r0) / next.h) > 1e-9) {
+      arcs.push({ cy: cy, A: ISO_MAJ * top * s, B: ISO_MIN * top * s });   // załamanie tworzącej
+    }
+  });
+  for (const a of arcs) {
+    ctx.beginPath(); ctx.ellipse(cx, a.cy, a.A, a.B, 0, 0, Math.PI);
+    ctx.strokeStyle = edge; ctx.lineWidth = 1.3; ctx.stroke();
+  }
+  // Zarys: w każdym wierszu najszersza z elips, które go przecinają
+  const y0 = Math.floor(Math.min(...slices.map(q => q.cy - q.B))), y1 = Math.ceil(Math.max(...slices.map(q => q.cy + q.B)));
+  const L = [], R = [];
+  for (let y = y0; y <= y1; y += 0.5) {
+    let w = -1;
+    for (const q of slices) {
+      const d = y - q.cy;
+      if (q.B === 0) { if (Math.abs(d) < 0.5) w = Math.max(w, 0); continue; }
+      if (Math.abs(d) <= q.B) w = Math.max(w, q.A * Math.sqrt(1 - (d / q.B) * (d / q.B)));
+    }
+    if (w >= 0) { L.push([cx - w, y]); R.push([cx + w, y]); }
+  }
+  ctx.beginPath();
+  L.forEach((pt, i) => i ? ctx.lineTo(pt[0], pt[1]) : ctx.moveTo(pt[0], pt[1]));
+  for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+  ctx.closePath(); ctx.strokeStyle = edge; ctx.lineWidth = 1.8; ctx.lineJoin = "round"; ctx.stroke();
+  return ctx;
+}
+
+function profFitScale(p, W, H, pad) {
+  const e = revExtent(p);
+  return Math.min((W - 2 * pad - 30) / e.R, (H - 2 * pad - 16) / e.H);
+}
+
+/** Figura płaska przy osi obrotu (połowa przekroju osiowego bryły). */
+function drawProfile(canvas, p, opt) {
+  opt = opt || {};
+  const W = opt.w || 152, H = opt.h || 132, pad = 12;
+  const ctx = setupCanvas(canvas, W, H);
+  const e = revExtent(p), s = opt.scale || profFitScale(p, W, H, pad);
+  const x0 = (W - e.R * s) / 2 - 6, yb = (H + e.H * s) / 2;
+  const pts = [[x0, yb]];
+  let z = 0;
+  for (const seg of p) {
+    pts.push([x0 + seg.r0 * s, yb - z * s]);
+    z += seg.h;
+    pts.push([x0 + seg.r1 * s, yb - z * s]);
+  }
+  pts.push([x0, yb - z * s]);
+  poly(ctx, pts, "#2c3a4a", "#d8e6f0", 2);
+  ctx.save(); ctx.setLineDash([7, 3, 1.5, 3]); ctx.strokeStyle = "#FFD60A"; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.moveTo(x0, yb + 9); ctx.lineTo(x0, yb - z * s - 9); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = "#FFD60A"; ctx.font = "11px system-ui, Arial"; ctx.textAlign = "right"; ctx.textBaseline = "top";
+  ctx.fillText("oś", x0 - 4, yb - z * s - 8);
+  return ctx;
+}
+
+/* ═══ RYSUNKI: SIATKI I SZEŚCIAN Z OZNACZONYMI ŚCIANAMI ═══ */
+function drawNet(canvas, cells, label, opt) {
+  opt = opt || {};
+  const W = opt.w || 152, H = opt.h || 132, pad = 10;
+  const ctx = setupCanvas(canvas, W, H);
+  const rows = Math.max(...cells.map(c => c[0])) + 1, cols = Math.max(...cells.map(c => c[1])) + 1;
+  const sz = Math.min((W - 2 * pad) / cols, (H - 2 * pad) / rows);
+  const ox = (W - cols * sz) / 2, oy = (H - rows * sz) / 2;
+  const has = new Set(cells.map(c => c.join(",")));
+  cells.forEach(([r, c], i) => {
+    ctx.fillStyle = label ? NET_COLORS[label[i] - 1] : "#2c3a4a";
+    ctx.fillRect(ox + c * sz, oy + r * sz, sz, sz);
+    if (label) {
+      ctx.fillStyle = "#111"; ctx.font = "bold " + Math.round(sz * 0.42) + "px system-ui, Arial";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(label[i]), ox + (c + 0.5) * sz, oy + (r + 0.5) * sz + 1);
+    }
+  });
+  const seg = (x1, y1, x2, y2, fold) => {
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+    ctx.strokeStyle = fold ? (label ? "rgba(0,0,0,.55)" : "#7d93a4") : "#d8e6f0";
+    ctx.lineWidth = fold ? 1 : 2.2; ctx.lineCap = "round"; ctx.stroke();
+  };
+  for (const [r, c] of cells) {
+    const x = ox + c * sz, y = oy + r * sz;
+    seg(x, y, x + sz, y, has.has((r - 1) + "," + c));
+    seg(x, y + sz, x + sz, y + sz, has.has((r + 1) + "," + c));
+    seg(x, y, x, y + sz, has.has(r + "," + (c - 1)));
+    seg(x + sz, y, x + sz, y + sz, has.has(r + "," + (c + 1)));
+  }
+  return ctx;
+}
+
+/** Sześcian z trzema widocznymi ścianami w kolorach i z numerami ścian siatki. */
+function drawLabeledCube(canvas, v, label, opt) {
+  opt = opt || {};
+  const g = cubeCanvas(canvas, opt.w || 152, opt.h || 132, 18), P = g.P, ctx = g.ctx;
+  const faces = [
+    [[P(0, 0, 1), P(1, 0, 1), P(1, 1, 1), P(0, 1, 1)], 0],
+    [[P(0, 0, 0), P(1, 0, 0), P(1, 0, 1), P(0, 0, 1)], 0.2],
+    [[P(1, 0, 0), P(1, 1, 0), P(1, 1, 1), P(1, 0, 1)], 0.36],
+  ];
+  faces.forEach(([pts, dark], i) => {
+    poly(ctx, pts, NET_COLORS[label[v[i]] - 1], null);
+    poly(ctx, pts, "rgba(0,0,0," + dark + ")", "#10161c", 1.4);
+    const cxp = pts.reduce((a, q) => a + q[0], 0) / 4, cyp = pts.reduce((a, q) => a + q[1], 0) / 4;
+    ctx.fillStyle = "#111"; ctx.font = "bold 17px system-ui, Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(String(label[v[i]]), cxp, cyp + 1);
+  });
+  return ctx;
+}
+
+/* ═══ RYSUNKI: WYMIARY ═══
+   Wymiar poziomy: linie pomocnicze od krawędzi przedmiotu do 2–3 mm poza
+   linię wymiarową, linia wymiarowa z grotami, liczba nad linią. Warianty
+   błędne służą zadaniom na rozpoznawanie błędów zapisu. */
+function dimArrow(ctx, x, y, dir, len) {
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dir * len, y - len * 0.3); ctx.lineTo(x + dir * len, y + len * 0.3);
+  ctx.closePath(); ctx.fill();
+}
+
+function dimH(ctx, xa, xb, yObj, yLine, text, mm, v) {
+  ctx.strokeStyle = ctx.fillStyle = "#d8e6f0"; ctx.lineWidth = 1;
+  const over = v === "shortExt" ? 0 : Math.max(7, 2.5 * mm), len = Math.max(6, 2.6 * mm);
+  const ln = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+  const yl = v === "outline" ? yObj : yLine;
+  if (v !== "outline") { ln(xa, yObj, xa, yLine + over); ln(xb, yObj, xb, yLine + over); }
+  ln(xa, yl, xb, yl);
+  dimArrow(ctx, xa, yl, 1, len); dimArrow(ctx, xb, yl, -1, len);
+  const t = v === "unit" ? text + " mm" : text, mid = (xa + xb) / 2, gap = 2;
+  ctx.font = "12px system-ui, Arial"; ctx.textAlign = "center";
+  if (v === "below") { ctx.textBaseline = "top"; ctx.fillText(t, mid, yl + gap); }
+  else if (v === "upside") {
+    ctx.save(); ctx.translate(mid, yl + gap); ctx.rotate(Math.PI); ctx.textBaseline = "bottom"; ctx.fillText(t, 0, 0); ctx.restore();
+  } else { ctx.textBaseline = "bottom"; ctx.fillText(t, mid, yl - gap); }
+}
+
+/** Wymiar pionowy, z liczbą czytaną z prawej strony rysunku. */
+function dimV(ctx, ya, yb, xObj, xLine, text, mm) {
+  ctx.strokeStyle = ctx.fillStyle = "#d8e6f0"; ctx.lineWidth = 1;
+  const over = Math.max(7, 2.5 * mm), len = Math.max(6, 2.6 * mm);
+  const ln = (x1, y1, x2, y2) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); };
+  ln(xObj, ya, xLine - over, ya); ln(xObj, yb, xLine - over, yb); ln(xLine, ya, xLine, yb);
+  ctx.save(); ctx.translate(xLine, ya); ctx.rotate(Math.PI / 2); dimArrow(ctx, 0, 0, 1, len); ctx.restore();
+  ctx.save(); ctx.translate(xLine, yb); ctx.rotate(Math.PI / 2); dimArrow(ctx, 0, 0, -1, len); ctx.restore();
+  ctx.save(); ctx.translate(xLine - 2, (ya + yb) / 2); ctx.rotate(-Math.PI / 2);
+  ctx.font = "12px system-ui, Arial"; ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillText(text, 0, 0); ctx.restore();
+}
+
+function drawDimPart(canvas, Wmm, Hmm, v, opt) {
+  opt = opt || {};
+  const W = opt.w || 152, H = opt.h || 132;
+  const ctx = setupCanvas(canvas, W, H);
+  // Margines z lewej na wymiar wysokości, z dołu na wymiar szerokości
+  const left = 40, right = 10, top = 12, bottom = 40;
+  const mm = Math.min((W - left - right) / Wmm, (H - top - bottom) / Hmm);
+  const x0 = left + (W - left - right - Wmm * mm) / 2, y0 = top, x1 = x0 + Wmm * mm, y1 = y0 + Hmm * mm;
+  const off = Math.min(26, Math.max(18, 10 * mm));
+  poly(ctx, [[x0, y0], [x1, y0], [x1, y1], [x0, y1]], "#2c3a4a", "#d8e6f0", 2.2);
+  dimV(ctx, y0, y1, x0, x0 - off, String(Hmm), mm);
+  if (v !== "none") dimH(ctx, x0, x1, y1, y1 + off, String(Wmm), mm, v);
+  return ctx;
+}
+
+/** Rzut klocka ze stopniami: łańcuch szerokości stopni (z jednym brakującym)
+    i wymiar całkowity 7 mm dalej, jak w zasadach rozmieszczania wymiarów. */
+function drawDimStairs(canvas, ws, hs, missing, opt) {
+  opt = opt || {};
+  const W = opt.w || 320, H = opt.h || 230;
+  const ctx = setupCanvas(canvas, W, H);
+  const Wmm = ws.reduce((a, b) => a + b, 0), Hmm = hs[0];
+  const mm = Math.min((W - 60) / Wmm, (H - 24) / (Hmm + 26));
+  const x0 = (W - Wmm * mm) / 2 + 12, yb = 10 + Hmm * mm;
+  const X = [0];
+  for (const w of ws) X.push(X[X.length - 1] + w);
+  const pts = [[x0, yb], [x0 + Wmm * mm, yb]];
+  for (let i = ws.length - 1; i >= 0; i--) {
+    pts.push([x0 + X[i + 1] * mm, yb - hs[i] * mm]);
+    pts.push([x0 + X[i] * mm, yb - hs[i] * mm]);
+  }
+  poly(ctx, pts, "#2c3a4a", "#d8e6f0", 2.2);
+  const yc = yb + 10 * mm, yt = yb + 17 * mm;
+  ws.forEach((w, i) => dimH(ctx, x0 + X[i] * mm, x0 + X[i + 1] * mm, yb, yc, i === missing ? "?" : String(w), mm, "ok"));
+  dimH(ctx, x0, x0 + Wmm * mm, yb, yt, String(Wmm), mm, "ok");
+  dimV(ctx, yb - Hmm * mm, yb, x0, x0 - 10 * mm, String(Hmm), mm);
+  return ctx;
+}
+
 /* ═══ SYMBOL METODY RZUTOWANIA (PN-EN ISO 5456-2) ═══
    Ścięty stożek w dwóch rzutach. Widziany od węższego końca daje dwa
    współśrodkowe okręgi, widziany z prawej — trapez z krótszym bokiem po
@@ -2154,7 +2790,8 @@ function layoutDiagram(method, slot) {
 function renderStimulus(list, scale) {
   const row = el("div", "stimulus");
   for (const s of list) {
-    if (s.type === "iso")            row.appendChild(isoFigure(s.solid, s.cap, { w: 214, h: 182 }, scale));
+    if (s.type === "iso")            row.appendChild(isoFigure(s.solid, s.cap, { w: 214, h: 182 }, scale, s.hue));
+    else if (s.type === "overlap")   row.appendChild(overlapFigure(s.a, s.b, s.cap, { w: 214, h: 182 }, scale));
     else if (s.type === "plan")      row.appendChild(planFigure(s.hm, s.cap));
     else if (s.type === "views")     row.appendChild(viewsLayout(s.solid, s.method, s.side));
     else if (s.type === "layoutDiagram") row.appendChild(layoutDiagram(s.method, s.slot));
@@ -2198,6 +2835,8 @@ function renderOptionBody(opt, scale) {
   if (opt.kind === "ortho") { const c = el("canvas"); drawOrtho(c, opt.view, { cell: 19 }); return hide(c); }
   if (opt.kind === "draw")  { const c = el("canvas"); opt.draw(c); return hide(c); }
   if (opt.kind === "poly")  { const c = el("canvas"); drawPolyIso(c, opt.poly, { w: 152, h: 132, scale: opt.scale }); return hide(c); }
+  if (opt.kind === "rev")   { const c = el("canvas"); drawRevolved(c, opt.prof, { w: 152, h: 132, scale: opt.scale }); return hide(c); }
+  if (opt.kind === "prof")  { const c = el("canvas"); drawProfile(c, opt.prof, { w: 152, h: 132, scale: opt.scale }); return hide(c); }
   if (opt.kind === "num")   { const d = el("div", null, String(opt.value)); d.style.cssText = "font-size:32px;font-weight:800;color:#EAEAEA;padding:14px 0;"; return d; }
   const d = el("div", null, opt.text);
   d.style.cssText = "font-size:14px;color:#EAEAEA;padding:12px 4px;line-height:1.35;";
@@ -2465,10 +3104,14 @@ function renderQuestion(root) {
     .concat(q.stimulus.filter(s => s.type === "iso").map(s => s.solid));
   for (const st of q.stimulus) if (st.type === "psvt") isoSolids.push(st.a, st.b, st.target);
   const isoScale = isoSolids.length ? sharedIsoScale(isoSolids, 152, 132, 12) : null;
-  const polys = q.options.filter(o => o.kind === "poly");
-  if (polys.length) {
-    const ps = Math.min.apply(null, polys.map(o => polyIsoFitScale(o.poly, 152, 132, 12)));
-    for (const o of polys) o.scale = ps;
+  // Wspólna skala w obrębie jednego rodzaju rysunku — różnica wielkości bywa sednem dystraktora
+  const fits = { poly: o => polyIsoFitScale(o.poly, 152, 132, 12), rev: o => revFitScale(o.prof, 152, 132, 12),
+                 prof: o => profFitScale(o.prof, 152, 132, 12) };
+  for (const kind of Object.keys(fits)) {
+    const same = q.options.filter(o => o.kind === kind);
+    if (!same.length) continue;
+    const sc = Math.min.apply(null, same.map(fits[kind]));
+    for (const o of same) o.scale = sc;
   }
 
   card.appendChild(renderStimulus(q.stimulus, isoScale));
@@ -3411,6 +4054,127 @@ const LESSONS = [
 },
 ];
 
+const LESSONS_NEW = {
+laczenie: {
+  id: "laczenie", title: "Łączenie brył: suma, różnica, część wspólna",
+  build: b => {
+    para(b, "Złożone przedmioty powstają z prostych brył. Gdy dwie bryły zajmują częściowo to samo miejsce, " +
+      "łączy się je na jeden z trzech sposobów. Kluczem jest objętość wspólna — część przestrzeni należąca do obu brył.");
+    const A = frameSolid([[0,0,0],[0,0,1],[0,0,2],[0,1,0],[0,1,1],[0,2,0],[1,0,0],[1,0,1],[1,1,0],[1,1,1],[1,2,0],[2,0,0],[2,1,0]], BOX);
+    const B = frameSolid([[1,0,1],[1,1,1],[2,0,1],[2,1,1],[1,0,2],[1,1,2],[2,0,2],[2,1,2]], BOX);
+    const sc = sharedIsoScale([A], 170, 150, 12);
+    b.appendChild(stimRow(
+      isoFigure(A, "bryła A", { w: 170, h: 150 }, sc),
+      isoFigure(B, "bryła B", { w: 170, h: 150 }, sc, 28),
+      overlapFigure(A, B, "razem; fiolet — część wspólna", { w: 170, h: 150 }, sc)));
+    bullets(b, [
+      "<b>Suma (łączenie)</b> — objętość wspólna zostaje wchłonięta; wynik to wszystko, co należy do A albo do B.",
+      "<b>Różnica (wycinanie)</b> — objętość wspólna zostaje usunięta z bryły ciętej. A − B to nie to samo co B − A.",
+      "<b>Część wspólna (przecięcie)</b> — objętość wspólna staje się nową bryłą.",
+    ]);
+    b.appendChild(stimRow(
+      isoFigure(boolOp(A, B, "union"), "A + B", { w: 150, h: 132 }, sc),
+      isoFigure(boolOp(A, B, "diff"), "A − B", { w: 150, h: 132 }, sc),
+      isoFigure(boolOp(A, B, "diffRev"), "B − A", { w: 150, h: 132 }, sc),
+      isoFigure(boolOp(A, B, "inter"), "część wspólna", { w: 150, h: 132 }, sc)));
+    noteBox(b, "Wskazówka z kursu Sorby: patrząc na dwie nakładające się bryły, wyobraź sobie, które krawędzie zostaną " +
+      "po połączeniu. Tak samo powstają bryły w programach CAD — z operacji dodawania, odejmowania i przecinania.");
+    srcLine(b, "Higher Education Services, slajdy kursu „Developing Spatial Thinking”, moduł 2 (Combining Solids).");
+  }
+},
+wymiarowanie: {
+  id: "wymiarowanie", title: "Wymiarowanie",
+  build: b => {
+    para(b, "Rysunek bez wymiarów pokazuje kształt, ale nie wielkość. Wymiar składa się z linii wymiarowej, pomocniczych " +
+      "linii wymiarowych, znaków ograniczenia (zwykle grotów) i liczby wymiarowej.");
+    const c = el("canvas");
+    drawDimStairs(c, [30, 20, 20], [40, 30, 15], -1, { w: 340, h: 240 });
+    labelCanvas(c, "przykład: klocek ze stopniami zwymiarowany łańcuchem 30, 20, 20 i wymiarem całkowitym 70, wysokość 40");
+    b.appendChild(stimRow(figure("łańcuch wymiarów i wymiar całkowity", c)));
+    bullets(b, [
+      "<b>Linie wymiarowe i pomocnicze</b> rysuje się linią cienką ciągłą. Linia wymiarowa jest równoległa do " +
+        "wymiarowanego odcinka, pomocnicze — prostopadłe do niej i przeciągnięte 2–3 mm poza nią.",
+      "<b>Linią wymiarową nie może być</b> linia zarysu przedmiotu, linia pomocnicza ani oś symetrii.",
+      "<b>Liczbę wymiarową</b> pisze się nad linią wymiarową, w jej środkowej części, tak by była czytelna od dołu " +
+        "albo z prawej strony rysunku.",
+      "<b>Wymiary podaje się w milimetrach bez jednostki.</b> Inną jednostkę trzeba zapisać przy liczbie.",
+      "<b>Odstępy:</b> linia wymiarowa co najmniej 10 mm od zarysu, kolejne linie wymiarowe co najmniej 7 mm od siebie.",
+      "<b>Każdy wymiar podaje się raz</b> i tylko wymiary potrzebne. Łańcucha wymiarów się nie zamyka — najmniej " +
+        "istotne ogniwo pomija się; jeśli jest podane dla informacji, zapisuje się je w nawiasie.",
+      "<b>Znaki wymiarowe:</b> ⌀ — średnica, R — promień, □ — kwadrat.",
+      "<b>Krawędzi niewidocznych się nie wymiaruje</b>, jeśli da się wymiar podać na rzucie, na którym są widoczne.",
+    ]);
+    noteBox(b, "W przykładzie łańcuch 30 + 20 + 20 i wymiar całkowity 70 opisują szerokość jednoznacznie. Dopisanie " +
+      "czwartego wymiaru zamknęłoby łańcuch — na rysunku wykonawczym to błąd, bo każdy wymiar ma swoją tolerancję " +
+      "i zamknięty łańcuch byłby sprzeczny.");
+    srcLine(b, "Politechnika Gdańska, „Rysunek techniczny — wymiarowanie”; AGH, „Rysunek techniczny budowlany — " +
+      "wymiarowanie” (powołuje PN-EN ISO 129-1:2020-03); UWM, „Rysunek techniczny”, wykład o wymiarowaniu. " +
+      "Treści samej normy nie czytano.");
+  }
+},
+obrotowe: {
+  id: "obrotowe", title: "Bryły obrotowe",
+  build: b => {
+    para(b, "Bryła obrotowa powstaje, gdy figura płaska obraca się wokół osi. Figura zamknięta daje bryłę, " +
+      "linia otwarta — powierzchnię. Wynik zależy od tego, wokół której osi figura się obraca i o jaki kąt.");
+    const p = [{ h: 1, r0: 3, r1: 3 }, { h: 2, r0: 2, r1: 2 }, { h: 3, r0: 2, r1: 0 }];
+    const c1 = el("canvas"); drawProfile(c1, p, { w: 180, h: 180 }); labelCanvas(c1, "figura płaska przy osi, " + describeProfile(p));
+    const c2 = el("canvas"); drawRevolved(c2, p, { w: 200, h: 180 }); labelCanvas(c2, "bryła obrotowa, " + describeProfile(p));
+    b.appendChild(stimRow(figure("figura i oś", c1), figure("bryła po obrocie o 360°", c2)));
+    bullets(b, [
+      "<b>Jak to sobie wyobrazić:</b> odbij figurę względem osi. Figura i jej odbicie tworzą przekrój osiowy bryły, " +
+        "a bryła powstaje z obrotu tego przekroju.",
+      "<b>Szerokość figury to promień,</b> nie średnica. Część o szerokości 3 daje walec o średnicy 6.",
+      "<b>Prostokąt przy osi</b> daje walec, trójkąt prostokątny — stożek, trapez — stożek ścięty.",
+      "<b>Figura odsunięta od osi</b> daje bryłę z otworem walcowym — tak powstają tuleje i pierścienie.",
+    ]);
+    noteBox(b, "Każdy przekrój bryły obrotowej prostopadły do osi to okrąg. W rysunku izometrycznym rysuje się go jako " +
+      "elipsę — dokładnie tak, jak w lekcji o okręgach. Dla osi pionowej wszystkie te elipsy leżą poziomo.");
+    srcLine(b, "Higher Education Services, slajdy kursu „Developing Spatial Thinking”, moduł 1 (Surfaces and Solids of Revolution).");
+  }
+},
+rozwiniecia: {
+  id: "rozwiniecia", title: "Rozwinięcia brył (siatki)",
+  build: b => {
+    para(b, "Rozwinięcie to płaski wykrój, który po zagięciu daje powierzchnię bryły. Tak powstają pudełka, opakowania " +
+      "i elementy z blachy. Linie ciągłe wewnątrz rozwinięcia to linie zgięcia.");
+    const good = [[0, 1], [1, 0], [1, 1], [1, 2], [1, 3], [2, 1]];
+    const bad = [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]];
+    const lab = [1, 2, 3, 4, 5, 6];
+    const c1 = el("canvas"); drawNet(c1, good, lab, { w: 210, h: 170 }); labelCanvas(c1, "poprawna siatka sześcianu, ściany 1–6");
+    const c2 = el("canvas"); drawLabeledCube(c2, netViews(foldNet(good))[0], lab, { w: 170, h: 150 });
+    labelCanvas(c2, "sześcian złożony z tej siatki");
+    const c3 = el("canvas"); drawNet(c3, bad, null, { w: 170, h: 140 }); labelCanvas(c3, "prostokąt 2 na 3 — nie jest siatką sześcianu");
+    b.appendChild(stimRow(figure("siatka sześcianu", c1), figure("po złożeniu", c2), figure("to nie jest siatka sześcianu", c3)));
+    bullets(b, [
+      "<b>Sześcian ma 11 różnych siatek.</b> Aplikacja sprawdza to, przeglądając wszystkie 35 figur z sześciu kwadratów.",
+      "<b>Trzy kwadraty w jednej linii:</b> skrajne leżą po złożeniu naprzeciw siebie. Ściany naprzeciw siebie nigdy " +
+        "nie są widoczne jednocześnie.",
+      "<b>Oznaczenia na sąsiednich polach siatki</b> lądują na sąsiednich ścianach i zachowują wzajemne położenie.",
+      "<b>Większość brył ma wiele różnych rozwinięć.</b> Rozwinięcie bez den daje bryłę otwartą, jak rurę.",
+      "<b>Walec:</b> powierzchnia boczna to prostokąt o długości równej obwodowi podstawy, π·d, i wysokości walca.",
+      "<b>Stożek:</b> powierzchnia boczna to wycinek koła o promieniu równym tworzącej stożka.",
+    ]);
+    srcLine(b, "Higher Education Services, slajdy kursu „Developing Spatial Thinking”, moduł 6 (Flat Patterns); " +
+      "liczba siatek sześcianu — wyliczenie w testach aplikacji (testy/logika.js).");
+  }
+},
+};
+
+/** Dwie bryły w jednej ramie: niebieskie kostki tylko w A, pomarańczowe tylko w B, fioletowe w obu. */
+function overlapFigure(A, B, cap, size, scale) {
+  const c = el("canvas");
+  const U = boolOp(A, B, "union");
+  drawIso(c, U, { w: size.w, h: size.h, scale: scale,
+    hueOf: (x, y, z) => A.has(x, y, z) && B.has(x, y, z) ? 285 : B.has(x, y, z) ? 28 : 199 });
+  labelCanvas(c, (cap ? cap + ": " : "") + "bryła A z " + A.count + " kostek i bryła B z " + B.count + " kostek w tej samej ramie; wspólnych " + boolOp(A, B, "inter").count);
+  return figure(cap, c);
+}
+
+// Nowe lekcje wstawione w kolejności tematów kursu
+for (const [after, id] of [["szkic", "laczenie"], ["czytanie", "wymiarowanie"], ["elipsy", "obrotowe"], ["obrotowe", "rozwiniecia"]])
+  LESSONS.splice(LESSONS.findIndex(L => L.id === after) + 1, 0, LESSONS_NEW[id]);
+
 const LESSON_BY_ID = {};
 for (const L of LESSONS) LESSON_BY_ID[L.id] = L;
 
@@ -3599,14 +4363,13 @@ function render() {
 /* ═══════════════════════════════════════════════════════════════
    CZĘŚĆ 16 — KURS
 
-   Ścieżka prowadzona: 12 modułów w ustalonej kolejności, każdy
-   zamknięty sprawdzianem, plus egzamin końcowy. Kolejność tematów
-   idzie za kursem „Developing Spatial Thinking" (Sorby): szkicowanie
-   izometryczne, rzuty, powierzchnie pochyłe i krzywe, obroty wokół
-   jednej i dwóch osi, odbicia, przekroje. Z jego dziesięciu modułów
-   trzech aplikacja nie obejmuje: brył obrotowych, łączenia brył
-   i rozwinięć. Identyfikatory m1–m10 zostały z pierwszej wersji kursu,
-   żeby zapisany postęp nie przepadł.
+   Ścieżka prowadzona: 16 modułów w ustalonej kolejności, każdy
+   zamknięty sprawdzianem, plus egzamin końcowy. Obejmuje wszystkie
+   dziesięć tematów kursu „Developing Spatial Thinking" (Sorby) oraz
+   tematy rysunku technicznego spoza niego: krawędzie niewidoczne,
+   wymiarowanie i normę rozmieszczenia rzutów. Bryły obrotowe stoją po
+   lekcji o okręgach, bo ich rysunek składa się z elips. Identyfikatory
+   m1–m10 zostały z pierwszej wersji kursu, żeby zapisany postęp nie przepadł.
    ═══════════════════════════════════════════════════════════════ */
 
 const COURSE = [
@@ -3630,6 +4393,12 @@ const COURSE = [
     tip: "To jedyny moduł, w którym nic nie wybierasz z listy: rysujesz. Szkic jest zaliczony, jeśli jest poprawny " +
          "przy pierwszym albo drugim sprawdzeniu." },
 
+  { id: "m-laczenie", title: "Łączenie brył", time: "12 min",
+    goal: "Wskażesz sumę, różnicę i część wspólną dwóch nakładających się brył.",
+    lessons: ["laczenie"],
+    drill: [{ skill: "laczenie", n: 5, level: 3 }],
+    test:  [{ skill: "laczenie", n: 6, level: 4 }], pass: 5 },
+
   { id: "m3", title: "Trzy rzuty prostokątne", time: "12 min",
     goal: "Wskażesz, jak wygląda rzut z przodu, z góry i z boku dla zadanej bryły.",
     lessons: ["rzuty"],
@@ -3651,11 +4420,29 @@ const COURSE = [
     tip: "Zadanie konstrukcyjne jest tu ważniejsze od testu wyboru: wybór z listy sprawdza rozpoznawanie, " +
          "budowanie sprawdza, czy procedura odczytu rzutów naprawdę działa." },
 
+  { id: "m-wymiar", title: "Wymiarowanie", time: "15 min",
+    goal: "Odczytasz wymiary z rysunku, uzupełnisz brakujące ogniwo łańcucha i rozpoznasz błędy zapisu wymiaru.",
+    lessons: ["wymiarowanie"],
+    drill: [{ skill: "wymiar", n: 5, level: 3 }],
+    test:  [{ skill: "wymiar", n: 6, level: 4 }], pass: 5 },
+
   { id: "m-skosy", title: "Powierzchnie pochyłe i okręgi", time: "18 min",
     goal: "Narysujesz linię pochyłą przez odmierzenie jej końców i rozpoznasz poprawną elipsę okręgu na każdej ścianie.",
     lessons: ["skosy", "elipsy"],
     drill: [{ skill: "skos", n: 3, level: 3 }, { skill: "elipsa", n: 3, level: 3 }],
     test:  [{ skill: "skos", n: 3, level: 4 }, { skill: "elipsa", n: 3, level: 4 }], pass: 5 },
+
+  { id: "m-obrotowe", title: "Bryły obrotowe", time: "12 min",
+    goal: "Przewidzisz bryłę powstałą z obrotu figury płaskiej i odwrotnie — odczytasz figurę z bryły.",
+    lessons: ["obrotowe"],
+    drill: [{ skill: "obrotowe", n: 5, level: 3 }],
+    test:  [{ skill: "obrotowe", n: 6, level: 4 }], pass: 5 },
+
+  { id: "m-siatki", title: "Rozwinięcia brył", time: "15 min",
+    goal: "Rozpoznasz siatki sześcianu, złożysz w wyobraźni siatkę z oznaczonymi ścianami i policzysz rozwinięcie walca.",
+    lessons: ["rozwiniecia"],
+    drill: [{ skill: "siatka", n: 5, level: 3 }],
+    test:  [{ skill: "siatka", n: 6, level: 4 }], pass: 5 },
 
   { id: "m6", title: "Obroty wokół osi pionowej", time: "12 min",
     goal: "Przewidzisz wygląd bryły po obrocie o 90° w prawo lub w lewo, patrząc z góry.",
@@ -3693,11 +4480,15 @@ for (const m of COURSE) COURSE_BY_ID[m.id] = m;
 const COURSE_MINUTES = COURSE.reduce((a, m) => a + parseInt(m.time, 10), 0);
 
 const EXAM = {
-  pass: 11,
+  pass: 14,
   specs: [
     { skill: "liczenie",    n: 1, level: 4 },
     { skill: "plan-bryla",  n: 1, level: 4 },
     { skill: "szkic",       n: 1, level: 3, opts: { from: "plan" } },
+    { skill: "laczenie",    n: 1, level: 4 },
+    { skill: "wymiar",      n: 1, level: 4 },
+    { skill: "obrotowe",    n: 1, level: 4 },
+    { skill: "siatka",      n: 1, level: 4 },
     { skill: "bryla-rzut",  n: 2, level: 4 },
     { skill: "rzuty-bryla", n: 2, level: 4 },
     { skill: "skos",        n: 1, level: 4 },

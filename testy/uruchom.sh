@@ -23,6 +23,14 @@ sed '/START APLIKACJI/,$d' "$TMP/pelny.js" > "$TMP/rdzen.js"
 cat "$TMP/rdzen.js" testy/logika.js > "$TMP/testy.js"
 node "$TMP/testy.js"
 
+# Karta recenzji musi odpowiadać aktualnej treści lekcji
+node narzedzia/karta-recenzji.js > "$TMP/karta.md"
+if ! diff -q "$TMP/karta.md" recenzja/karta.md >/dev/null; then
+  echo "BŁĄD: recenzja/karta.md jest nieaktualna. Uruchom: node narzedzia/karta-recenzji.js > recenzja/karta.md"
+  exit 1
+fi
+echo "Karta recenzji aktualna ($(grep -c '^| [0-9]' recenzja/karta.md) pozycji)."
+
 # Skrypt sprawdzający szczelność RLS — na lokalnym serwerze udającym Supabase
 node testy/rls-skrypt.js
 

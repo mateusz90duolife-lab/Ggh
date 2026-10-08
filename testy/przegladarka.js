@@ -72,7 +72,7 @@ async function testTrening(browser) {
     await page.locator('button.btn').filter({ hasText: /Dalej|Zakończ sesję/ }).first().click();
     await page.waitForTimeout(90);
   }
-  console.log('  typów zadań w jednej sesji: ' + kinds.size + ' z 11');
+  console.log('  typów zadań w jednej sesji: ' + kinds.size + ' z 15');
   if (kinds.size < 6) errors.push('przeplatanie dało tylko ' + kinds.size + ' typów zadań');
 
   await page.click('#nav button:has-text("Buduj")');
@@ -91,12 +91,12 @@ async function testTrening(browser) {
   for (let i = 0; i < lessons; i++) { await page.locator('.lesson-h').nth(i).click(); await page.waitForTimeout(50); }
   await page.waitForTimeout(250);
   console.log('  lekcji w dziale Teoria: ' + lessons);
-  if (lessons < 15) errors.push('spodziewano się 15 lekcji, jest ' + lessons);
+  if (lessons < 19) errors.push('spodziewano się 19 lekcji, jest ' + lessons);
 
   await page.click('#nav button:has-text("Postępy")');
   await page.waitForTimeout(250);
   const skills = await page.locator('.skill').count();
-  if (skills !== 11) errors.push('lista postępów pokazuje ' + skills + ' umiejętności zamiast 11');
+  if (skills !== 15) errors.push('lista postępów pokazuje ' + skills + ' umiejętności zamiast 15');
 
   await page.reload();
   await page.waitForTimeout(350);
@@ -125,10 +125,10 @@ async function testKurs(browser) {
 
   if ((await page.textContent('#nav button.on')).trim() !== 'Kurs') errors.push('domyślną zakładką nie jest Kurs');
   const rows = await page.locator('.mod').count();
-  if (rows !== 13) errors.push('spis kursu ma ' + rows + ' pozycji zamiast 13');
+  if (rows !== 17) errors.push('spis kursu ma ' + rows + ' pozycji zamiast 17');
   if (!(await page.locator('.mod').nth(1).evaluate(e => e.classList.contains('locked')))) errors.push('moduł 2 otwarty na starcie');
-  if (!(await page.locator('.mod').nth(12).evaluate(e => e.classList.contains('locked')))) errors.push('egzamin otwarty na starcie');
-  console.log('  spis: 12 modułów + egzamin, bramkowanie na starcie poprawne');
+  if (!(await page.locator('.mod').nth(16).evaluate(e => e.classList.contains('locked')))) errors.push('egzamin otwarty na starcie');
+  console.log('  spis: 16 modułów + egzamin, bramkowanie na starcie poprawne');
 
   await page.locator('.mod').nth(0).click();
   await page.waitForTimeout(250);
@@ -159,7 +159,7 @@ async function testKurs(browser) {
   if (!/Moduł zaliczony/.test(await page.textContent('h2'))) errors.push('zdany sprawdzian nie zaliczył modułu');
   if (!(await page.evaluate(() => moduleUnlocked(1)))) errors.push('moduł 2 nie odblokował się');
 
-  for (let i = 1; i < 12; i++) {
+  for (let i = 1; i < 16; i++) {
     const id = await page.evaluate(k => COURSE[k].id, i);
     await page.evaluate(x => { Session.summary = null; UI.module = x; render(); }, id);
     await page.waitForTimeout(120);
@@ -169,13 +169,13 @@ async function testKurs(browser) {
     if (!/Moduł zaliczony/.test(await page.textContent('h2'))) { errors.push('moduł ' + (i + 1) + ' niezaliczony'); break; }
   }
   const passed = await page.evaluate(() => passedCount());
-  console.log('  zaliczonych modułów: ' + passed + ' z 12 (w tym szkicowanie, zaliczone szkicami)');
-  if (passed !== 12) errors.push('nie wszystkie moduły dało się zaliczyć');
+  console.log('  zaliczonych modułów: ' + passed + ' z 16 (w tym szkicowanie, zaliczone szkicami)');
+  if (passed !== 16) errors.push('nie wszystkie moduły dało się zaliczyć');
 
   await page.evaluate(() => { Session.summary = null; UI.module = null; render(); });
   await page.waitForTimeout(150);
-  if (await page.locator('.mod').nth(12).evaluate(e => e.classList.contains('locked'))) errors.push('egzamin nie otworzył się');
-  await page.locator('.mod').nth(12).click();
+  if (await page.locator('.mod').nth(16).evaluate(e => e.classList.contains('locked'))) errors.push('egzamin nie otworzył się');
+  await page.locator('.mod').nth(16).click();
   await page.waitForTimeout(200);
   const nExam = await answerSession(page, true);
   console.log('  egzamin: ' + nExam + ' zadań');
@@ -185,7 +185,7 @@ async function testKurs(browser) {
 
   await page.reload();
   await page.waitForTimeout(350);
-  if ((await page.evaluate(() => passedCount())) !== 12 || !(await page.locator('.cert').count()))
+  if ((await page.evaluate(() => passedCount())) !== 16 || !(await page.locator('.cert').count()))
     errors.push('postęp kursu nie przetrwał przeładowania');
   console.log('  certyfikat wystawiony i zachowany po przeładowaniu');
   await page.close();

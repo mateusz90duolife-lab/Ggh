@@ -177,7 +177,7 @@ if (modOk) ok(COURSE.length + " modułów: opisy, lekcje, umiejętności i progi
 const taught = new Set();
 for (const m of COURSE) for (const sp of m.drill.concat(m.test)) taught.add(sp.skill);
 chk("kurs pokrywa wszystkie umiejętności", SKILL_IDS.filter(id => !taught.has(id)), []);
-chk("egzamin ma 14 zadań", EXAM.specs.reduce((a, s) => a + s.n, 0), 14);
+chk("egzamin ma 18 zadań", EXAM.specs.reduce((a, s) => a + s.n, 0), 18);
 chk("próg egzaminu: 75–85% zadań", EXAM.pass / EXAM.total >= 0.75 && EXAM.pass / EXAM.total <= 0.85, true);
 
 let queued = 0, qcOk = true;
@@ -716,7 +716,7 @@ head("27. Regulator trudności utrzymuje 75–85%");
 
 head("28. Kurs: nowe moduły i zachowanie postępu");
 {
-  chk("kurs ma 12 modułów", COURSE.length, 12);
+  chk("kurs ma 16 modułów", COURSE.length, 16);
   chk("moduł szkicowania stoi po planie kodowanym, jak w kursie Sorby", COURSE.findIndex(m => m.id === "m-szkic"), COURSE.findIndex(m => m.id === "m2") + 1);
   chk("moduł powierzchni pochyłych stoi przed obrotami", COURSE.findIndex(m => m.id === "m-skosy") < COURSE.findIndex(m => m.id === "m6"), true);
   const save = JSON.stringify(State.course);
@@ -742,6 +742,96 @@ head("29. Sesja ze szkicem");
   chk("rozstrzygnięty szkic liczy się jako poprawna odpowiedź", [Session.answered, Session.ok], [true, 1]);
   Session.active = false; Session.summary = null;
   render = realRender;
+}
+
+head("30. Łączenie brył");
+{
+  let algebra = true, opts = true;
+  for (let i = 0; i < 200; i++) {
+    const q = buildExercise("laczenie", 1 + (i % 8));
+    const st = q.stimulus, A = st[0].solid, B = st[1].solid;
+    const U = boolOp(A, B, "union"), I = boolOp(A, B, "inter"), D = boolOp(A, B, "diff");
+    if (U.count + I.count !== A.count + B.count) algebra = false;
+    if (boolOp(D, I, "union").id !== A.id) algebra = false;
+    if (q.options.length !== 4 || new Set(q.options.map(o => o.id)).size !== 4) opts = false;
+    if (q.options[q.correct].solid.id !== q.solution.id) opts = false;
+  }
+  chk("200 zadań: |A ∪ B| + |A ∩ B| = |A| + |B| oraz (A − B) ∪ (A ∩ B) = A", algebra, true);
+  chk("200 zadań: cztery różne wyniki, poprawny zgodny z operacją", opts, true);
+}
+
+head("31. Rozwinięcia brył");
+{
+  const N = cubeNets();
+  chk("heksomina w każdym położeniu: 216", N.all.length, 216);
+  chk("heksomina różne z dokładnością do obrotów i odbić: 35", new Set(N.all.map(freeNetKey)).size, 35);
+  chk("siatki sześcianu różne z dokładnością do obrotów i odbić: 11", new Set(N.valid.map(freeNetKey)).size, 11);
+  chk("prostokąt 2 × 3 nie jest siatką sześcianu", foldNet([[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]]), null);
+  // Przykład do sprawdzenia w głowie: krzyż A nad C, w wierszu B C D E, F pod C. Patrząc na nadruk
+  // i zaginając ścianki od siebie, C jest górą, F przodem, D prawą — widok (C, F, D) jest możliwy,
+  // a jego odbicie (C, D, F) nie.
+  const cross = [[0, 1], [1, 0], [1, 1], [1, 2], [1, 3], [2, 1]], nm = "ABCDEF";
+  const vs = netViews(foldNet(cross)).map(v => v.map(i => nm[i]).join(""));
+  chk("krzyż: widok góra C, przód F, prawa D możliwy; jego odbicie nie", [vs.includes("CFD"), vs.includes("CDF")], [true, false]);
+  chk("każda siatka daje 24 możliwe widoki (8 narożników × 3 obroty)", N.valid.every(f => netViews(foldNet(f)).length === 24), true);
+  let ok = true;
+  for (let i = 0; i < 200; i++) {
+    const q = buildExercise("siatka", 4, { mode: "kostka" });
+    const valid = new Set(q.check.valid);
+    q.options.forEach((o, j) => { if ((j === q.correct) !== valid.has(o.id.slice(1))) ok = false; });
+  }
+  chk("200 zadań z sześcianem: dokładnie jeden możliwy widok wśród opcji", ok, true);
+  let okc = true;
+  for (let i = 0; i < 100; i++) {
+    const q = buildExercise("siatka", 4, { mode: "czy" });
+    const N2 = cubeNets(), validKeys = new Set(N2.valid.map(netKey));
+    q.options.forEach((o, j) => { if ((j === q.correct) !== validKeys.has(o.id.slice(1))) okc = false; });
+  }
+  chk("100 zadań „która siatka”: dokładnie jedna składa się w sześcian", okc, true);
+}
+
+head("32. Bryły obrotowe");
+{
+  let mono = true, flip = true, distinct = true;
+  for (let i = 0; i < 300; i++) {
+    const p = genProfile(cfgFor(1 + (i % 8)));
+    let r = Infinity;
+    for (const sg of p) { if (sg.r0 > r + 1e-9 || sg.r1 > sg.r0) mono = false; r = sg.r1; }
+    if (revId(PROFILE_XF.revFlip(PROFILE_XF.revFlip(p))) !== revId(p)) flip = false;
+    const q = buildExercise("obrotowe", 1 + (i % 8));
+    if (new Set(q.options.map(o => o.id)).size !== q.options.length || q.options.length < 3) distinct = false;
+  }
+  chk("profile: promień nie rośnie ku górze (brak nawisów)", mono, true);
+  chk("odwrócenie figury dwa razy przywraca ją", flip, true);
+  chk("300 zadań: opcje różne, co najmniej 3", distinct, true);
+  const d = PROFILE_XF.revDiam([{ h: 2, r0: 3, r1: 3 }]);
+  chk("dystraktor „średnica zamiast promienia” ma połowę promienia", d[0].r0, 1.5);
+}
+
+head("33. Wymiarowanie");
+{
+  let arith = true, one = true;
+  for (let i = 0; i < 200; i++) {
+    const q = buildExercise("wymiar", 1 + (i % 8), { mode: "brak" });
+    const ws = q.check.ws, m = q.check.missing, W = ws.reduce((a, b) => a + b, 0);
+    if (q.options[q.correct].value !== W - (W - ws[m])) arith = false;
+    if (q.options.filter(o => o.value === ws[m]).length !== 1) arith = false;
+    for (const mode of ["popraw", "blad"]) {
+      const r = buildExercise("wymiar", 4, { mode: mode });
+      if (r.options.filter(o => o.tag === "ok").length !== 1 || new Set(r.options.map(o => o.id)).size !== r.options.length) one = false;
+    }
+  }
+  chk("200 zadań: brakujące ogniwo = wymiar całkowity − pozostałe ogniwa, jedna opcja z tą wartością", arith, true);
+  chk("zadania na zasady zapisu: jedna poprawna odpowiedź, opcje różne", one, true);
+  chk("każdy wariant błędu ma opis dla ucznia", Object.keys(DIM_RULE).every(k => WHY["dim_" + k]), true);
+}
+
+head("34. Kurs obejmuje wszystkie tematy kursu Sorby");
+{
+  const sorby = ["m-obrotowe", "m-laczenie", "m-szkic", "m3", "m-skosy", "m-siatki", "m6", "m7", "m8", "m9"];
+  chk("10 modułów odpowiadających tematom „Developing Spatial Thinking” jest w kursie", sorby.filter(id => !COURSE_BY_ID[id]), []);
+  chk("bryły obrotowe stoją po lekcji o okręgach", COURSE.findIndex(m => m.id === "m-obrotowe") > COURSE.findIndex(m => m.id === "m-skosy"), true);
+  chk("wymiarowanie stoi po czytaniu rzutów", COURSE.findIndex(m => m.id === "m-wymiar") > COURSE.findIndex(m => m.id === "m5"), true);
 }
 
 console.log(FAILS ? "\n" + FAILS + " BŁĘDÓW\n" : "\nWszystkie testy logiki przeszły.\n");

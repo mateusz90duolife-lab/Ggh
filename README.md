@@ -26,30 +26,31 @@ Aplikacja ma sześć zakładek: **Kurs**, **Trening**, **Szkicuj**, **Buduj**,
 
 ### Kurs — ścieżka prowadzona
 
-Dwanaście modułów w ustalonej kolejności, niecałe trzy godziny. Każdy moduł
-to teoria, ćwiczenia bez oceny i sprawdzian z progiem około 80%, który otwiera
-kolejny moduł. Na końcu egzamin z 14 zadań ze wszystkich modułów, próg 11,
-oraz certyfikat do wydruku.
+Szesnaście modułów w ustalonej kolejności, około trzech i pół godziny. Każdy
+moduł to teoria, ćwiczenia bez oceny i sprawdzian z progiem około 80%, który
+otwiera kolejny moduł. Na końcu egzamin z 18 zadań ze wszystkich modułów,
+próg 14, oraz certyfikat do wydruku.
 
 | # | Moduł | # | Moduł |
 | --- | --- | --- | --- |
-| 1 | Układ osi i rzut izometryczny | 7 | Powierzchnie pochyłe i okręgi |
-| 2 | Plan kodowany | 8 | Obroty wokół osi pionowej |
-| 3 | Szkicowanie izometryczne | 9 | Obroty wokół osi poziomych |
-| 4 | Trzy rzuty prostokątne | 10 | Odbicia i symetria |
-| 5 | Krawędzie widoczne i niewidoczne | 11 | Przekroje i kłady |
-| 6 | Czytanie rzutów: od rysunku do bryły | 12 | Metoda pierwszego i trzeciego kąta |
+| 1 | Układ osi i rzut izometryczny | 9 | Powierzchnie pochyłe i okręgi |
+| 2 | Plan kodowany | 10 | Bryły obrotowe |
+| 3 | Szkicowanie izometryczne | 11 | Rozwinięcia brył |
+| 4 | Łączenie brył | 12 | Obroty wokół osi pionowej |
+| 5 | Trzy rzuty prostokątne | 13 | Obroty wokół osi poziomych |
+| 6 | Krawędzie widoczne i niewidoczne | 14 | Odbicia i symetria |
+| 7 | Czytanie rzutów: od rysunku do bryły | 15 | Przekroje i kłady |
+| 8 | Wymiarowanie | 16 | Metoda pierwszego i trzeciego kąta |
 
-Kolejność tematów idzie za kursem „Developing Spatial Thinking" (Sorby).
-Z jego dziesięciu modułów aplikacja nie obejmuje trzech: brył obrotowych,
-łączenia brył i rozwinięć.
+Kurs obejmuje wszystkie dziesięć tematów kursu „Developing Spatial Thinking"
+(Sorby) oraz krawędzie niewidoczne, wymiarowanie i normę rozmieszczenia rzutów.
 Kurs buduje rozumienie po kolei, tryb Trening je potem utrwala, mieszając
 materiał. Uzasadnienie tego podziału opisuje sekcja 9 w
 [METODYKA.md](METODYKA.md).
 
 ### Trening — praktyka przeplatana
 
-Sesja to 10 zadań dobieranych przez model ucznia. **Jedenaście typów zadań**,
+Sesja to 10 zadań dobieranych przez model ucznia. **Piętnaście typów zadań**,
 generowanych proceduralnie, więc pule zadań się nie wyczerpują:
 
 | Zadanie | Umiejętność |
@@ -65,6 +66,10 @@ generowanych proceduralnie, więc pule zadań się nie wyczerpują:
 | Szkic izometryczny | rysunek bryły na siatce punktowej — bez wyboru z listy |
 | Linie pochyłe | rzuty bryły ze skosem → rysunek izometryczny |
 | Okręgi w izometrii | orientacja i wymiary elipsy |
+| Łączenie brył | suma, różnica i część wspólna dwóch brył |
+| Bryły obrotowe | figura przy osi ↔ bryła powstała z obrotu |
+| Rozwinięcia brył | siatki sześcianu, składanie w wyobraźni, rozwinięcie walca |
+| Wymiarowanie | brakujący wymiar w łańcuchu, poprawny zapis wymiaru |
 
 Rzuty są rysowane zgodnie z PN-EN ISO 128: krawędzie widoczne linią ciągłą
 grubą, niewidoczne kreskową cienką, a pole kładu jest kreskowane.
@@ -82,7 +87,7 @@ i zaznacza odcinki zbędne i brakujące. Na szkic są dwie próby.
 i pusta siatka, w której trzeba postawić bryłę słupek po słupku. Poprawna
 jest bryła wzorcowa i każda inna o identycznych trzech rzutach.
 
-**Teoria** to piętnaście lekcji z rysunkami generowanymi tym samym silnikiem
+**Teoria** to dziewiętnaście lekcji z rysunkami generowanymi tym samym silnikiem
 co zadania; twierdzenia oparte na źródłach mają je podane pod lekcją.
 **Postępy** pokazują opanowanie każdej umiejętności i termin najbliższej
 powtórki.
@@ -184,6 +189,21 @@ z klawiatury w całej aplikacji.
 
 Audyt treści i jego pomiary opisuje sekcja 11 w [METODYKA.md](METODYKA.md),
 a uzasadnienie nowych modułów — sekcja 12.
+
+### Recenzja merytoryczna
+
+Treści nie sprawdził jeszcze nauczyciel rysunku technicznego, a tekstu norm
+nie przeczytano. Do recenzji służy karta `recenzja/karta.md`, generowana
+z kodu aplikacji: każde twierdzenie z lekcji i każdy tekst informacji zwrotnej
+w osobnym wierszu, z miejscem na ocenę i uwagi.
+
+```bash
+node narzedzia/karta-recenzji.js > recenzja/karta.md   # po każdej zmianie treści
+```
+
+`./testy/uruchom.sh` kończy się błędem, gdy karta nie odpowiada aktualnej
+treści. Recenzent kopiuje kartę jako `recenzja/RRRR-MM-nazwisko.md`
+i wypełnia kopię.
 
 ---
 

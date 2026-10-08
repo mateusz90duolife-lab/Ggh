@@ -6,7 +6,7 @@ przekłada się na konkretną funkcję programu.
 
 > **Status źródeł.** Pierwsza wersja tego dokumentu opierała się wyłącznie
 > na streszczeniach wyszukiwarki, bo środowisko robocze blokowało dostęp do
-> stron źródłowych. W obecnej wersji **17 z 28 pozycji zostało przeczytanych**
+> stron źródłowych. W obecnej wersji **20 z 31 pozycji zostało przeczytanych**
 > za pośrednictwem konektora Firecrawl — w całości albo w postaci dosłownych
 > fragmentów wybranych pod kątem konkretnych pytań. Weryfikacja obaliła dwa
 > twierdzenia z pierwszej wersji i doprecyzowała kilka innych; zmiany są
@@ -280,21 +280,22 @@ też jest ułożony tematycznie, tydzień po tygodniu.
 | **Kurs** | zbudować rozumienie po kolei | blokowa, temat po temacie |
 | **Trening** | utrwalić i utrzymać | przeplatana, sterowana powtórkami |
 
-Kurs ma dwanaście modułów w kolejności tematów kursu „Developing Spatial
-Thinking”: osie i plan kodowany, szkicowanie izometryczne, rzuty, krawędzie
-widoczne i niewidoczne, czytanie rzutów, powierzchnie pochyłe i krzywe,
-obroty wokół jednej i dwóch osi, odbicia, przekroje, a na końcu norma
-rozmieszczenia rzutów. Każdy moduł zamyka sprawdzian na progu około 80%
-(5 z 6 albo 3 z 4 szkiców), który otwiera kolejny moduł. Egzamin końcowy —
-14 zadań, próg 11 — miesza wszystkie umiejętności, bo na tym etapie
-sprawdzamy transfer. Odpowiedzi z kursu zasilają ten sam model ucznia co
-trening, więc po kursie harmonogram powtórek jest gotowy.
+Kurs ma szesnaście modułów i obejmuje wszystkie dziesięć tematów kursu
+„Developing Spatial Thinking” oraz trzy tematy rysunku technicznego spoza
+niego: krawędzie niewidoczne, wymiarowanie i normę rozmieszczenia rzutów.
+Kolejność: osie, plan kodowany, szkicowanie, łączenie brył, rzuty,
+krawędzie, czytanie rzutów, wymiarowanie, powierzchnie pochyłe i okręgi,
+bryły obrotowe, rozwinięcia, obroty wokół jednej i dwóch osi, odbicia,
+przekroje, norma. U Sorby bryły obrotowe i łączenie brył otwierają kurs;
+tu łączenie brył stoi po planie kodowanym, bo korzysta z brył z kostek,
+a bryły obrotowe — po lekcji o okręgach, bo ich rysunek składa się z elips.
+Każdy moduł zamyka sprawdzian na progu około 80% (5 z 6 albo 3 z 4 szkiców),
+który otwiera kolejny moduł. Egzamin końcowy — 18 zadań, próg 14 — miesza
+wszystkie umiejętności, bo na tym etapie sprawdzamy transfer. Odpowiedzi
+z kursu zasilają ten sam model ucznia co trening, więc po kursie
+harmonogram powtórek jest gotowy.
 
-Z dziesięciu modułów kursu Sorby aplikacja nie obejmuje trzech: brył
-obrotowych, łączenia brył i rozwinięć (siatek brył). Silnik oparty na
-kostkach ich nie wyrazi — patrz sekcja 12.
-
-**Uwaga o czasie:** kurs to niecałe trzy godziny, a sprawdzone programy
+**Uwaga o czasie:** kurs to około trzech i pół godziny, a sprawdzone programy
 trwają około 15 godzin (wersja obecna) albo około 40 (pierwotny GN102).
 Kurs jest rusztowaniem, nie całą nauką. Objętość ma dostarczyć regularny
 trening.
@@ -367,15 +368,30 @@ Wszystkie zostały dodane.
 | **Okręgi w izometrii** | Otwory i walce są na niemal każdym rysunku części. Najczęstszy błąd to zła orientacja elipsy. | Lekcja i dwa rodzaje zadań: orientacja elipsy na każdej ze ścian i wymiary osi bez skrótu (1,22·d × 0,71·d). |
 | **Krawędzie niewidoczne w rzutach** | Na prawdziwym rysunku rzuty mają linie kreskowe. Bez nich nie da się czytać rysunków, a trzy rzuty nie wyznaczają bryły jednoznacznie. | Wszystkie rzuty zgodne z PN-EN ISO 128; nowa lekcja; zadania z tym samym zarysem rozróżniane także liniami niewidocznymi. |
 
-**Czego nadal brakuje** — trzy moduły kursu Sorby, których silnik oparty na
-kostkach nie wyrazi:
+Druga runda uzupełniła brakujące tematy kursu Sorby i wymiarowanie:
 
-- **rozwinięcia (siatki brył)** — składanie i rozkładanie powierzchni,
-  przydatne przy blachach i opakowaniach;
-- **bryły obrotowe** — walec, stożek i kula powstające z obrotu figury płaskiej;
-- **łączenie brył** — suma, różnica i część wspólna.
+| Dodatek | Co robi aplikacja | Jak sprawdzono poprawność |
+| --- | --- | --- |
+| **Łączenie brył** | Dwie bryły w stałej ramie 3 × 3 × 3, objętość wspólna zaznaczona kolorem; wybór sumy, różnicy albo części wspólnej. Dystraktory to pozostałe operacje, w tym odwrócona różnica B − A. | Algebra zbiorów na 200 zadaniach: \|A ∪ B\| + \|A ∩ B\| = \|A\| + \|B\| oraz (A − B) ∪ (A ∩ B) = A. |
+| **Bryły obrotowe** | Figura przy osi → bryła i bryła → figura. Dystraktory: figura odwrócona, inny promień, walec zamiast stożka, szerokość potraktowana jak średnica. | Rysunek warstwami z dokładnym zarysem; profile bez nawisów, więc kolejność rysowania daje poprawne zasłanianie. |
+| **Rozwinięcia** | Która siatka składa się w sześcian; który widok sześcianu złożonego z siatki z numerowanymi ścianami jest możliwy; długość rozwinięcia walca. | Pełny przegląd: 216 heksomin, 35 różnych, 11 siatek sześcianu; kierunek składania sprawdzony na przykładzie, który da się złożyć w głowie. |
+| **Wymiarowanie** | Brakujące ogniwo łańcucha wymiarów, wybór poprawnie zapisanego wymiaru, nazwanie błędu zapisu. | Arytmetyka łańcucha na 200 zadaniach; zasady z trzech zgodnych materiałów uczelnianych. |
 
-Do tego dochodzą rzeczy, których żadna aplikacja nie zastąpi: budowanie
+Zasady wymiarowania potwierdzają zgodnie materiały Politechniki Gdańskiej,
+AGH i UWM; materiał AGH powołuje PN-EN ISO 129-1:2020-03. W trakcie
+wyszukiwania trafił się też pełny tekst ISO 129-1 w serwisie z dokumentami
+wgrywanymi przez użytkowników. To nieautoryzowana kopia płatnej normy,
+więc nie została wykorzystana jako źródło.
+
+**Recenzja człowieka.** Audytu nie przeprowadził nauczyciel rysunku
+technicznego, a tekstu norm nie przeczytano. Żeby recenzja była możliwie
+tania, `narzedzia/karta-recenzji.js` generuje z kodu aplikacji kartę
+`recenzja/karta.md` z każdym twierdzeniem lekcji i każdym tekstem
+informacji zwrotnej (242 pozycje) oraz miejscem na ocenę. Test pilnuje,
+żeby karta odpowiadała aktualnej treści. Recenzja nie jest zrobiona —
+karta jest narzędziem do jej przeprowadzenia.
+
+Rzeczy, których żadna aplikacja nie zastąpi: budowanie
 z prawdziwych kostek przed szkicowaniem i szkicowanie odręczne na papierze.
 Rekomendacja dla ucznia: równolegle z kursem w aplikacji szkicować te same
 bryły ołówkiem na wydrukowanej siatce izometrycznej.
@@ -412,7 +428,7 @@ Oznaczenia:
 - (P) [Purdue Spatial Visualization Test: Visualization of Rotations](https://en.wikipedia.org/wiki/Purdue_Spatial_Visualization_Test:_Visualization_of_Rotations). Wikipedia.
 - (P) [Revised PSVT:R](https://www.spatiallearning.org/tools/revised-purdue-spatial-visualization-test-revised-psvtr-visualization-of-rotations). Spatial Intelligence and Learning Center. Podaje rok testu oryginalnego jako 1976; Wikipedia i praca Sorby'ego — 1977.
 
-- (P) [Presentation Slides — Developing Spatial Thinking](https://www.higheredservices.org/wp-content/uploads/2016/05/DevelopingSpatialThinkingPresentationSlides2016.pdf). Higher Education Services. Fragment: lista dziesięciu modułów kursu.
+- (P) [Presentation Slides — Developing Spatial Thinking](https://www.higheredservices.org/wp-content/uploads/2016/05/DevelopingSpatialThinkingPresentationSlides2016.pdf). Higher Education Services. Fragmenty: lista dziesięciu modułów kursu oraz treść modułów 1 (bryły obrotowe), 2 (łączenie brył) i 6 (rozwinięcia).
 - (P) Khooshabeh, P., Hegarty, M., Shipley, T. F. (2013). [Individual differences in mental rotation: piecemeal versus holistic processing](https://www.semanticscholar.org/paper/Individual-differences-in-mental-rotation%3A-versus-Khooshabeh-Hegarty/9220cbe8b1dff1d4873c9a4d07d29cb415e6b25f). *Experimental Psychology*. Streszczenie.
 
 **Psychologia uczenia się**
@@ -436,5 +452,8 @@ Oznaczenia:
 - (P) [Rzuty aksonometryczne](http://www.pcez-bytow.pl/download/plk/rzuty-aksonometryczne.pdf). PCEZ Bytów. Fragmenty: skrót 0,816 w izometrii, osie elips (d i 0,58·d; bez skrótu 1,2·d i 0,7·d).
 - (P) [Widoki, przekroje, kłady](https://www.wim.wat.edu.pl/wp-content/uploads/2024/01/widoki_przekroje_klady.pdf). WAT, Wydział Inżynierii Mechanicznej. Fragmenty: kład jako odmiana przekroju.
 - (P) [Design Graphics for Engineering Communication, rozdz. 4 (próbka)](https://static.sdcpublications.com/pdfsample/978-1-58503-909-8-4.pdf). SDC Publications. Fragmenty: linie nieizometryczne, elipsy w rombie, linie niewidoczne w rysunkach aksonometrycznych.
+- (P) [Rysunek techniczny — wymiarowanie](https://chem.pg.edu.pl/documents/175333/62323968/3_wymiarowanie.pdf). Politechnika Gdańska. Fragmenty: linie wymiarowe i pomocnicze, liczby wymiarowe, odstępy, wymiar zamykający w nawiasie.
+- (P) [Rysunek techniczny budowlany — wymiarowanie](https://galaxy.agh.edu.pl/~olesiak/rysunek/05_wymiarowanie.pdf). AGH. Fragmenty: elementy wymiaru, linie wymiarowe, kierunek czytania liczb; powołuje PN-EN ISO 129-1:2020-03.
+- (P) [Rysunek techniczny](http://pracownicy.uwm.edu.pl/wojsob/pliki/dydaktyka/rt-03.pdf). UWM. Fragmenty: zasady rozmieszczania wymiarów, łańcuch wymiarów, wymiary w milimetrach.
 - (S) [Linie na rysunku technicznym](https://www.cognity.pl/linie-na-rysunku-technicznym-jak-stosowac), [materiały PRz](https://e-learning.prz.edu.pl/), [materiały AGH](https://galaxy.agh.edu.pl/~olesiak/rysunek/01_wprowadzenie.pdf) — zgodne streszczenia: krawędzie widoczne linią ciągłą grubą, niewidoczne kreskową.
 - (B) [ISO 5456-3:1996, próbka](https://cdn.standards.iteh.ai/samples/11503/006c88f9e0b040618800ce7a590d049f/ISO-5456-3-1996.pdf). Skan; tekstu nie udało się wydobyć, więc aplikacja nie przypisuje normie konkretnej skali izometrii.
